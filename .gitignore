@@ -1,0 +1,45 @@
+# Build outputs
+bin/
+obj/
+[Bb]uild/
+
+# .NET / Visual Studio
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.rsuser
+*.VC.db
+*.VC.VC.opendb
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+
+# Test results & coverage
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/packages/
+
+# Logs
+*.log
+
+# OS / tooling
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Optional: local env files
+.env
+.env.*
