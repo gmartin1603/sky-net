@@ -16,36 +16,37 @@ Delivered:
 
 Goal: evolve the proof-of-concept into a reusable simulation framework that supports composable components, predictable state updates, and better observability — still CLI-first.
 
-Planned work:
-1) Component graph + ports
-   - Formalize inputs/outputs via typed ports (e.g., pressure, flow, position)
-   - Define clear update ordering (or explicit dependency graph)
-   - Make “systems” composable from components without hard-coded wiring
+Status: Completed (January 2026)
+
+Delivered:
+1) Component graph + typed ports + dependency ordering
+   - Added unit-strong signal keys (e.g., pressure/flow/position/velocity) and typed `SignalBus` APIs
+   - Implemented a dependency-graph system builder that topologically sorts components based on declared reads/writes
+   - Enforced safety rules: single writer per signal, unit mismatch detection, and cycle detection
 
 2) Parameter model upgrades
-   - Add metadata: units, min/max, default, description
-   - Add validation and clamping rules (e.g., ValveOpening ∈ [0,1])
-   - Add change history or last-changed timestamp (optional, CLI-visible)
+   - Added `ParameterDefinition` metadata (default/min/max/description/unit type)
+   - Centralized validation/clamping on set (e.g., ValveOpening clamped to [0,1])
+   - Improved change events to expose requested vs applied values and whether clamping occurred
 
-3) Observability & logging
-   - Add a lightweight telemetry layer (sampled signals + structured log output)
-   - CLI commands for `watch <signal>` and `signals`/`params` discovery
-   - Optionally export snapshots to JSON/CSV for later graphing
+3) Observability & discovery (CLI-first)
+   - CLI discovery commands for `params`/`param <name>` and `signals`/`signal <name>`
+   - Simple `watch (param|signal) <name>` overlay rendered on the live status line
 
 4) Simulation control & safety
-   - Support pause/resume/step-N-ticks deterministically from CLI
-   - Add consistent cancellation + clean shutdown of runner
-   - Introduce "real-time drift" reporting when pacing can’t keep up
+   - CLI step mode: `step [n]`
+   - Pause/resume support in the runner
+   - Basic real-time drift counters (late ticks + max behind seconds)
 
-5) First training-grade domain slice (choose one)
-   - Hydraulic slice: pump → relief valve → directional valve → cylinder + load
-   - Pneumatic slice: compressor → regulator → valve → actuator
+5) First training-grade domain slice (hydraulic)
+   - Added a training-oriented multi-component `HydraulicTrainingSystem` built via the dependency graph
+     (supply → valve → sensor → actuator) with typed units and discoverable signals/params
 
 6) Testing strategy expansion
-   - Property tests or table-driven tests for component behaviors
-   - Golden snapshot tests for short deterministic runs
+   - Added focused unit tests for parameter clamping/metadata, dependency ordering, and runner stepping
+   - Added a “golden snapshot” test for deterministic hydraulic runs to catch behavior drift intentionally
 
-Definition of done for Phase 2:
+Definition of done for Phase 2 (met):
 - You can build a small system by wiring components (not hard-coded)
 - You can list parameters/signals, watch key outputs, and adjust inputs live
 - The system can run deterministically (step mode) and in real-time (paced mode)
