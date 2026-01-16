@@ -56,31 +56,33 @@ Definition of done for Phase 2 (met):
 
 Goal: make the simulator runnable as a headless process that streams live telemetry to a separate web-based dashboard for easy testing and training visibility.
 
-Status: In progress (January 2026)
+Status: Completed (January 2026)
 
-Planned deliverables:
+Delivered:
 1) Headless daemon process (host)
-   - New project that runs a chosen `ISimSystem` via `SimulationRunner`
-   - Exposes a small HTTP API for discovery + control:
-     - List parameter definitions + current values
-     - List current signals (and later signal metadata)
-     - Set parameter values during runtime
-     - Pause/resume/step controls
+   - Added `SkyNet.Simulator.Daemon` project (ASP.NET Core)
+   - Runs `HydraulicTrainingSystem` via `SimulationRunner`
+   - Exposes HTTP endpoints for discovery + control:
+     - `GET /api/parameters/definitions`
+     - `GET /api/parameters/values`
+     - `POST /api/parameters/{name}`
+     - `GET /api/signals`
+     - `GET /api/status`
+     - `POST /api/pause`, `POST /api/resume`, `POST /api/step?n=1`
 
 2) Real-time telemetry streaming
-   - Stream tick snapshots (sim time + selected signals/params) to clients
-   - Default transport: SignalR (browser-friendly)
-   - Downsample option for UI (e.g., 10–20Hz) while simulation can still tick at 60Hz
+   - Added SignalR hub at `/simhub`
+   - Broadcasts `TelemetrySnapshot` messages (time/tick + param/signal dictionaries)
 
 3) Web dashboard (separate process)
-   - New web app that connects to the daemon and renders:
-     - Live gauges / numeric tiles for key signals
-     - Parameter controls (sliders/inputs using min/max from definitions)
-     - Simple time-series plots (initially line charts)
+   - Added `SkyNet.Simulator.Dashboard` (Blazor WebAssembly)
+   - Shows live numeric tiles for key signals
+   - Includes parameter edit + set controls
+   - Includes a basic rolling line-chart view (SVG) for key signal trends
 
-4) Contract + stability checks
-   - Minimal tests to prevent telemetry contract drift
-   - Basic versioning strategy for snapshot payloads
+4) Contracts + stability checks
+   - Added `SkyNet.Simulator.Contracts` project for shared DTOs
+   - Added a minimal JSON round-trip test to guard telemetry contract drift
 
 Definition of done for Phase 3:
 - You can run the headless daemon and connect via browser
