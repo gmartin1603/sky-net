@@ -4,14 +4,14 @@ using SkyNet.Simulator.Core.Simulation;
 using SkyNet.Simulator.Core.Systems;
 
 var parameters = new ParameterStore();
-var system = new DemoHydraulicSystem(parameters);
+var system = new HydraulicTrainingSystem(parameters);
 var runner = new SimulationRunner(system);
 
 Task? runTask = null;
 CancellationTokenSource? runCts = null;
 
 Console.WriteLine("SkyNet Simulator CLI");
-Console.WriteLine("Commands: start | stop | list | get <name> | set <name> <value> | status | help | quit");
+Console.WriteLine("Commands: start | stop | status | step [n] | pause | resume | params | param <name> | set <name> <value> | signals | signal <name> | watch (param|signal) <name> | watch off | help | quit");
 
 // Avoid a constantly flashing caret while we reposition the cursor for live updates.
 // (Typing still works; we render the input buffer ourselves.)
@@ -21,7 +21,7 @@ try { Console.CursorVisible = false; } catch { /* ignore (redirected output etc.
 // When the user presses Enter, we "snapshot" by finalizing the current two lines,
 // then continue rendering on fresh lines.
 
-static string FormatStatus(SimulationRunner runner, DemoHydraulicSystem system, bool running)
+static string FormatStatus(SimulationRunner runner, ISimSystem system, bool running)
 {
 	if (!running)
 	{
@@ -82,6 +82,9 @@ static int ClampRenderTop(int renderTop)
 
 var inputPrefix = "> ";
 var inputBuffer = string.Empty;
+
+var watchKind = "none"; // none | param | signal
+var watchName = string.Empty;
 Console.WriteLine(); // status line placeholder
 Console.WriteLine(); // input line placeholder
 var renderTop = ClampRenderTop(Console.CursorTop - 2);
@@ -96,6 +99,23 @@ void Render(bool force)
 	renderTop = ClampRenderTop(renderTop);
 	var running = runTask is not null && !runTask.IsCompleted;
 	var status = FormatStatus(runner, system, running);
+	if (!string.Equals(watchKind, "none", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(watchName))
+	{
+		var watchText = watchKind.ToLowerInvariant() switch
+		{
+			"param" => system.Parameters.Contains(watchName)
+				? $"WatchParam={watchName}={system.Parameters.Get(watchName):0.###}"
+				: $"WatchParam={watchName}=<unknown>",
+			"signal" => system.Signals.TryGet(watchName, out var v)
+				? $"WatchSignal={watchName}={v:0.###}"
+				: $"WatchSignal={watchName}=<unknown>",
+			_ => string.Empty,
+		};
+		if (!string.IsNullOrEmpty(watchText))
+		{
+			status += "  " + watchText;
+		}
+	}
 	var width = Math.Max(1, Console.BufferWidth);
 	var inputLine = FitToWidth(inputPrefix + inputBuffer, width);
 
@@ -148,8 +168,8 @@ while (true)
 				switch (cmd)
 				{
 					case "help":
-						Console.WriteLine("Commands: start | stop | list | get <name> | set <name> <value> | status | help | quit");
-						Console.WriteLine("Parameters: SupplyPressurePsi, ValveOpening (0..1), LoadForce");
+						Console.WriteLine("Commands: start | stop | status | step [n] | pause | resume | params | param <name> | set <name> <value> | signals | signal <name> | watch (param|signal) <name> | watch off | help | quit");
+						Console.WriteLine("Tip: 'params' shows ranges; out-of-range values are clamped.");
 						break;
 
 					case "start":
@@ -181,23 +201,78 @@ while (true)
 
 					case "status":
 						Console.WriteLine($"Tick={runner.Time.Tick} Time={runner.Time.TotalSeconds:0.000}s Step={runner.StepSeconds:0.000000}s");
-						Console.WriteLine(runTask is not null && !runTask.IsCompleted ? "State=Running" : "State=Stopped");
+						Console.WriteLine(runTask is not null && !runTask.IsCompleted ? (runner.IsPaused ? "State=Running (Paused)" : "State=Running") : "State=Stopped");
+						break;
+
+					case "step":
+						if (runTask is not null && !runTask.IsCompleted)
+						{
+							Console.WriteLine("Stop the real-time run before stepping.");
+							break;
+						}
+
+						var steps = 1;
+						if (parts.Length == 2 && int.TryParse(parts[1], out var parsed) && parsed > 0)
+						{
+							steps = parsed;
+						}
+						else if (parts.Length != 1)
+						{
+							Console.WriteLine("Usage: step [n]");
+							break;
+						}
+
+						runner.Step(steps);
+						Console.WriteLine($"Stepped {steps} tick(s). Tick={runner.Time.Tick}");
+						break;
+
+					case "pause":
+						runner.Pause();
+						Console.WriteLine("Paused.");
+						break;
+
+					case "resume":
+						runner.Resume();
+						Console.WriteLine("Resumed.");
 						break;
 
 					case "list":
-						foreach (var kvp in parameters.Snapshot().OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+					case "params":
+						var defs = parameters.SnapshotDefinitions();
+						var vals = parameters.Snapshot();
+						foreach (var def in defs.Values.OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase))
 						{
-							Console.WriteLine($"{kvp.Key} = {kvp.Value.ToString(CultureInfo.InvariantCulture)}");
+							vals.TryGetValue(def.Name, out var v);
+							var min = def.MinValue.HasValue ? def.MinValue.Value.ToString(CultureInfo.InvariantCulture) : "-inf";
+							var max = def.MaxValue.HasValue ? def.MaxValue.Value.ToString(CultureInfo.InvariantCulture) : "+inf";
+							var desc = string.IsNullOrWhiteSpace(def.Description) ? string.Empty : $"  {def.Description}";
+							Console.WriteLine($"{def.Name} = {v.ToString(CultureInfo.InvariantCulture)}  range=[{min}, {max}]{desc}");
 						}
 						break;
 
 					case "get":
+					case "param":
 						if (parts.Length != 2)
 						{
-							Console.WriteLine("Usage: get <name>");
+							Console.WriteLine("Usage: param <name>");
 							break;
 						}
-						Console.WriteLine(parameters.Get(parts[1]).ToString(CultureInfo.InvariantCulture));
+
+						if (parameters.TryGetDefinition(parts[1], out var defn))
+						{
+							var v = parameters.Get(defn.Name);
+							Console.WriteLine($"{defn.Name} = {v.ToString(CultureInfo.InvariantCulture)}");
+							Console.WriteLine($"UnitType={defn.UnitType.Name}");
+							Console.WriteLine($"Default={defn.DefaultValue.ToString(CultureInfo.InvariantCulture)} Min={defn.MinValue?.ToString(CultureInfo.InvariantCulture) ?? "-inf"} Max={defn.MaxValue?.ToString(CultureInfo.InvariantCulture) ?? "+inf"}");
+							if (!string.IsNullOrWhiteSpace(defn.Description))
+							{
+								Console.WriteLine(defn.Description);
+							}
+						}
+						else
+						{
+							Console.WriteLine(parameters.Get(parts[1]).ToString(CultureInfo.InvariantCulture));
+						}
 						break;
 
 					case "set":
@@ -214,7 +289,64 @@ while (true)
 						}
 
 						parameters.Set(parts[1], newValue);
-						Console.WriteLine("OK");
+						var applied = parameters.Get(parts[1]);
+						if (!applied.Equals(newValue))
+						{
+							Console.WriteLine($"Clamped to {applied.ToString(CultureInfo.InvariantCulture)}");
+						}
+						else
+						{
+							Console.WriteLine("OK");
+						}
+						break;
+
+					case "signals":
+						foreach (var kvp in system.Signals.Snapshot().OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+						{
+							Console.WriteLine($"{kvp.Key} = {kvp.Value.ToString(CultureInfo.InvariantCulture)}");
+						}
+						break;
+
+					case "signal":
+						if (parts.Length != 2)
+						{
+							Console.WriteLine("Usage: signal <name>");
+							break;
+						}
+						Console.WriteLine(system.Signals.Get(parts[1]).ToString(CultureInfo.InvariantCulture));
+						break;
+
+					case "watch":
+						if (parts.Length == 2 && string.Equals(parts[1], "off", StringComparison.OrdinalIgnoreCase))
+						{
+							watchKind = "none";
+							watchName = string.Empty;
+							Console.WriteLine("Watch cleared.");
+							break;
+						}
+
+						if (parts.Length != 3)
+						{
+							Console.WriteLine("Usage: watch (param|signal) <name> | watch off");
+							break;
+						}
+
+						if (string.Equals(parts[1], "param", StringComparison.OrdinalIgnoreCase))
+						{
+							watchKind = "param";
+							watchName = parts[2];
+							Console.WriteLine($"Watching param '{watchName}'.");
+						}
+						else if (string.Equals(parts[1], "signal", StringComparison.OrdinalIgnoreCase))
+						{
+							watchKind = "signal";
+							watchName = parts[2];
+							Console.WriteLine($"Watching signal '{watchName}'.");
+						}
+						else
+						{
+							Console.WriteLine("Usage: watch (param|signal) <name> | watch off");
+						}
 						break;
 
 					case "quit":

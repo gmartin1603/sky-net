@@ -5,10 +5,13 @@ namespace SkyNet.Simulator.Core.Simulation;
 
 public sealed class SimulationRunner
 {
-	private readonly DemoHydraulicSystem _system;
+	private readonly ISimSystem _system;
 	private readonly FixedStepClock _clock;
+	private volatile bool _paused;
+	private long _lateTicks;
+	private double _maxBehindSeconds;
 
-	public SimulationRunner(DemoHydraulicSystem system, double stepSeconds = 1.0 / 60.0)
+	public SimulationRunner(ISimSystem system, double stepSeconds = 1.0 / 60.0)
 	{
 		_system = system;
 		_clock = new FixedStepClock(stepSeconds);
@@ -16,10 +19,29 @@ public sealed class SimulationRunner
 
 	public SimTime Time => _clock.Time;
 	public double StepSeconds => _clock.StepSeconds;
+	public bool IsPaused => _paused;
+	public long LateTicks => Interlocked.Read(ref _lateTicks);
+	public double MaxBehindSeconds => Volatile.Read(ref _maxBehindSeconds);
+
+	public void Pause() => _paused = true;
+	public void Resume() => _paused = false;
 
 	public void StepOnce()
 	{
 		_system.Tick(_clock.Advance(), _clock.StepSeconds);
+	}
+
+	public void Step(int steps)
+	{
+		if (steps <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(steps), "Steps must be >= 1.");
+		}
+
+		for (var i = 0; i < steps; i++)
+		{
+			StepOnce();
+		}
 	}
 
 	public async Task RunRealTimeAsync(CancellationToken cancellationToken)
@@ -30,6 +52,19 @@ public sealed class SimulationRunner
 
 		while (!cancellationToken.IsCancellationRequested)
 		{
+			if (_paused)
+			{
+				try
+				{
+					await Task.Delay(25, cancellationToken).ConfigureAwait(false);
+					continue;
+				}
+				catch (OperationCanceledException)
+				{
+					return;
+				}
+			}
+
 			StepOnce();
 
 			nextTickAt += TimeSpan.FromSeconds(_clock.StepSeconds);
@@ -49,6 +84,12 @@ public sealed class SimulationRunner
 			{
 				// If we're behind, skip sleeping and keep ticking.
 				// (No catch-up burst logic yet; keep phase-1 simple.)
+				Interlocked.Increment(ref _lateTicks);
+				var behind = -delay.TotalSeconds;
+				if (behind > _maxBehindSeconds)
+				{
+					Volatile.Write(ref _maxBehindSeconds, behind);
+				}
 			}
 		}
 	}
