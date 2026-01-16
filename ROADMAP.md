@@ -51,3 +51,38 @@ Definition of done for Phase 2 (met):
 - You can list parameters/signals, watch key outputs, and adjust inputs live
 - The system can run deterministically (step mode) and in real-time (paced mode)
 - Tests cover core engine behavior and at least one domain slice
+
+## Phase 3: Headless sim daemon + web dashboard (visual observability)
+
+Goal: make the simulator runnable as a headless process that streams live telemetry to a separate web-based dashboard for easy testing and training visibility.
+
+Status: In progress (January 2026)
+
+Planned deliverables:
+1) Headless daemon process (host)
+   - New project that runs a chosen `ISimSystem` via `SimulationRunner`
+   - Exposes a small HTTP API for discovery + control:
+     - List parameter definitions + current values
+     - List current signals (and later signal metadata)
+     - Set parameter values during runtime
+     - Pause/resume/step controls
+
+2) Real-time telemetry streaming
+   - Stream tick snapshots (sim time + selected signals/params) to clients
+   - Default transport: SignalR (browser-friendly)
+   - Downsample option for UI (e.g., 10–20Hz) while simulation can still tick at 60Hz
+
+3) Web dashboard (separate process)
+   - New web app that connects to the daemon and renders:
+     - Live gauges / numeric tiles for key signals
+     - Parameter controls (sliders/inputs using min/max from definitions)
+     - Simple time-series plots (initially line charts)
+
+4) Contract + stability checks
+   - Minimal tests to prevent telemetry contract drift
+   - Basic versioning strategy for snapshot payloads
+
+Definition of done for Phase 3:
+- You can run the headless daemon and connect via browser
+- Changing a parameter in the dashboard visibly affects downstream signals
+- Dashboard can pause/resume and show live, updating telemetry

@@ -1,0 +1,305 @@
+﻿@page "/"
+
+@using SkyNet.Simulator.Contracts
+@using SkyNet.Simulator.Dashboard.Components
+@using SkyNet.Simulator.Dashboard.Services
+@implements IDisposable
+@implements IAsyncDisposable
+
+@inject SimApiClient Api
+@inject SimHubClient Hub
+@inject DaemonClientOptions Options
+
+<PageTitle>SkyNet Dashboard</PageTitle>
+
+<h1>SkyNet Dashboard</h1>
+<p>Daemon: <code>@Options.BaseUrl</code></p>
+
+<div style="display:flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+	<button @onclick="Pause" disabled="@(_status?.IsPaused ?? false)">Pause</button>
+	<button @onclick="Resume" disabled="@(!(_status?.IsPaused ?? true))">Resume</button>
+	<button @onclick="StepOnce" disabled="@(!(_status?.IsPaused ?? false))">Step</button>
+	<span style="margin-left: 0.75rem;">Connection: <b>@(Hub.IsConnected ? "Connected" : "Disconnected")</b></span>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+	<p style="color: darkred;"><b>Error:</b> @_error</p>
+}
+
+@if (_snapshot is null)
+{
+	<p>Waiting for telemetry...</p>
+}
+else
+{
+	<p>
+		<b>Tick</b> @_snapshot.Tick | <b>Sim Time</b> @_snapshot.TimeSeconds.ToString("0.000")s
+		@if (_status is not null)
+		{
+			<span> | <b>Paused</b> @_status.IsPaused</span>
+		}
+	</p>
+
+	<h2>Key Signals</h2>
+	<div style="display:flex; gap: 1rem; flex-wrap: wrap;">
+		@foreach (var key in _keySignals)
+		{
+			var value = _snapshot.Signals.TryGetValue(key, out var v) ? v : double.NaN;
+			<div style="border: 1px solid #ccc; padding: 0.75rem; min-width: 220px;">
+				<div style="font-size: 0.9rem; opacity: 0.8;">@key</div>
+				<div style="font-size: 1.5rem;"><b>@value.ToString("0.###")</b></div>
+			</div>
+		}
+	</div>
+
+	<h2>Trends</h2>
+	<div style="display:flex; gap: 1rem; flex-wrap: wrap;">
+		<LineChart Title="Downstream Pressure" SubTitle="psi" Stroke="#d62728" Points="@_pressureSeries" YFormat="0.0" />
+		<LineChart Title="Actuator Position" SubTitle="pos" Stroke="#1f77b4" Points="@_positionSeries" YFormat="0.000" />
+		<LineChart Title="Valve Flow" SubTitle="gpm" Stroke="#2ca02c" Points="@_flowSeries" YFormat="0.0" />
+	</div>
+
+	<h2>Parameters</h2>
+	@if (_parameterDefinitions is null)
+	{
+		<p>Loading parameter definitions...</p>
+	}
+	else
+	{
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Value</th>
+					<th>Min</th>
+					<th>Max</th>
+					<th>Set</th>
+					<th>Description</th>
+				</tr>
+			</thead>
+			<tbody>
+				@foreach (var def in _parameterDefinitions)
+				{
+					var current = _snapshot.Parameters.TryGetValue(def.Name, out var v) ? v : double.NaN;
+					_parameterEdits.TryGetValue(def.Name, out var edit);
+
+					<tr>
+						<td><code>@def.Name</code></td>
+						<td>@current.ToString("0.###")</td>
+						<td>@(def.MinValue?.ToString("0.###") ?? "-")</td>
+						<td>@(def.MaxValue?.ToString("0.###") ?? "-")</td>
+						<td style="white-space: nowrap;">
+							<input type="number" step="any" style="width: 120px;" value="@edit" @onchange="e => OnEditChanged(def.Name, e)" />
+							<button style="margin-left: 0.25rem;" @onclick="() => ApplyParameter(def.Name)">Set</button>
+						</td>
+						<td>@def.Description</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+
+	<h2>All Signals</h2>
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th>Value</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var kvp in _snapshot.Signals.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+			{
+				<tr>
+					<td><code>@kvp.Key</code></td>
+					<td>@kvp.Value.ToString("0.###")</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+@code {
+	private readonly object _seriesLock = new();
+	private const int MaxPoints = 600; // ~30s at ~20Hz telemetry
+
+	private readonly string[] _keySignals =
+	[
+		"DownstreamPressurePsi",
+		"DownstreamPressureSensorPsi",
+		"ValveFlowGpm",
+		"ActuatorPosition",
+		"ActuatorVelocity",
+	];
+
+	private LineChart.Point[] _pressureSeries = Array.Empty<LineChart.Point>();
+	private LineChart.Point[] _positionSeries = Array.Empty<LineChart.Point>();
+	private LineChart.Point[] _flowSeries = Array.Empty<LineChart.Point>();
+	private readonly List<LineChart.Point> _pressurePoints = new(MaxPoints);
+	private readonly List<LineChart.Point> _positionPoints = new(MaxPoints);
+	private readonly List<LineChart.Point> _flowPoints = new(MaxPoints);
+
+	private TelemetrySnapshot? _snapshot;
+	private SimStatus? _status;
+	private ParameterDefinitionDto[]? _parameterDefinitions;
+	private readonly Dictionary<string, double> _parameterEdits = new(StringComparer.OrdinalIgnoreCase);
+	private string? _error;
+	private CancellationTokenSource? _cts;
+	private Task? _pollTask;
+
+	protected override async Task OnInitializedAsync()
+	{
+		_cts = new CancellationTokenSource();
+
+		try
+		{
+			_parameterDefinitions = await Api.GetParameterDefinitionsAsync(_cts.Token);
+			var values = await Api.GetParameterValuesAsync(_cts.Token);
+			foreach (var kvp in values)
+			{
+				_parameterEdits[kvp.Key] = kvp.Value;
+			}
+		}
+		catch (Exception ex)
+		{
+			_error = ex.Message;
+		}
+
+		Hub.SnapshotReceived += OnSnapshot;
+		try
+		{
+			await Hub.StartAsync(_cts.Token);
+		}
+		catch (Exception ex)
+		{
+			_error = ex.Message;
+		}
+
+		_pollTask = PollStatusLoopAsync(_cts.Token);
+	}
+
+	private void OnSnapshot(TelemetrySnapshot snapshot)
+	{
+		_snapshot = snapshot;
+
+		lock (_seriesLock)
+		{
+			var t = snapshot.TimeSeconds;
+			Append(_pressurePoints, t, snapshot.Signals.GetValueOrDefault("DownstreamPressurePsi"));
+			Append(_positionPoints, t, snapshot.Signals.GetValueOrDefault("ActuatorPosition"));
+			Append(_flowPoints, t, snapshot.Signals.GetValueOrDefault("ValveFlowGpm"));
+
+			_pressureSeries = _pressurePoints.ToArray();
+			_positionSeries = _positionPoints.ToArray();
+			_flowSeries = _flowPoints.ToArray();
+		}
+
+		_ = InvokeAsync(StateHasChanged);
+	}
+
+	private static void Append(List<LineChart.Point> series, double timeSeconds, double value)
+	{
+		series.Add(new LineChart.Point(timeSeconds, value));
+		if (series.Count <= MaxPoints)
+		{
+			return;
+		}
+
+		var remove = series.Count - MaxPoints;
+		series.RemoveRange(0, remove);
+	}
+
+	private async Task PollStatusLoopAsync(CancellationToken cancellationToken)
+	{
+		while (!cancellationToken.IsCancellationRequested)
+		{
+			try
+			{
+				_status = await Api.GetStatusAsync(cancellationToken);
+				await InvokeAsync(StateHasChanged);
+			}
+			catch
+			{
+				// ignore transient errors while starting up/reconnecting
+			}
+
+			await Task.Delay(500, cancellationToken);
+		}
+	}
+
+	private async Task Pause()
+	{
+		_error = null;
+		try { await Api.PauseAsync(_cts?.Token ?? default); } catch (Exception ex) { _error = ex.Message; }
+	}
+
+	private async Task Resume()
+	{
+		_error = null;
+		try { await Api.ResumeAsync(_cts?.Token ?? default); } catch (Exception ex) { _error = ex.Message; }
+	}
+
+	private async Task StepOnce()
+	{
+		_error = null;
+		try { await Api.StepAsync(1, _cts?.Token ?? default); } catch (Exception ex) { _error = ex.Message; }
+	}
+
+	private void OnEditChanged(string name, ChangeEventArgs e)
+	{
+		if (e.Value is null)
+		{
+			return;
+		}
+
+		if (double.TryParse(e.Value.ToString(), out var parsed))
+		{
+			_parameterEdits[name] = parsed;
+		}
+	}
+
+	private async Task ApplyParameter(string name)
+	{
+		_error = null;
+		try
+		{
+			if (_parameterEdits.TryGetValue(name, out var v))
+			{
+				await Api.SetParameterAsync(name, v, _cts?.Token ?? default);
+			}
+		}
+		catch (Exception ex)
+		{
+			_error = ex.Message;
+		}
+	}
+
+	public void Dispose()
+	{
+		Hub.SnapshotReceived -= OnSnapshot;
+		var cts = Interlocked.Exchange(ref _cts, null);
+		if (cts is not null)
+		{
+			try { cts.Cancel(); } catch { /* ignore */ }
+			cts.Dispose();
+		}
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		Hub.SnapshotReceived -= OnSnapshot;
+		var cts = Interlocked.Exchange(ref _cts, null);
+		if (cts is not null)
+		{
+			try { cts.Cancel(); } catch { /* ignore */ }
+			cts.Dispose();
+		}
+		if (_pollTask is not null)
+		{
+			try { await _pollTask.ConfigureAwait(false); } catch { /* ignore */ }
+		}
+		await Hub.DisposeAsync();
+	}
+}
+

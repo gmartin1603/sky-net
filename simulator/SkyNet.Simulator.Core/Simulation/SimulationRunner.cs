@@ -7,6 +7,7 @@ public sealed class SimulationRunner
 {
 	private readonly ISimSystem _system;
 	private readonly FixedStepClock _clock;
+	private readonly object _stepLock = new();
 	private volatile bool _paused;
 	private long _lateTicks;
 	private double _maxBehindSeconds;
@@ -28,7 +29,10 @@ public sealed class SimulationRunner
 
 	public void StepOnce()
 	{
-		_system.Tick(_clock.Advance(), _clock.StepSeconds);
+		lock (_stepLock)
+		{
+			_system.Tick(_clock.Advance(), _clock.StepSeconds);
+		}
 	}
 
 	public void Step(int steps)

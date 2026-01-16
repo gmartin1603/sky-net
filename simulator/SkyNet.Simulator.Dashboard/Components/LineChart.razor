@@ -1,0 +1,132 @@
+@namespace SkyNet.Simulator.Dashboard.Components
+
+@using System.Globalization
+
+<div style="border: 1px solid #ddd; border-radius: 6px; padding: 0.75rem;">
+	<div style="display:flex; justify-content: space-between; align-items: baseline; gap: 1rem;">
+		<div>
+			<b>@Title</b>
+			@if (!string.IsNullOrWhiteSpace(SubTitle))
+			{
+				<span style="opacity: 0.7; margin-left: 0.5rem;">@SubTitle</span>
+			}
+		</div>
+		@if (Points.Count > 0)
+		{
+			<div style="opacity: 0.7; font-size: 0.9rem;">
+				min=@_yMinText max=@_yMaxText
+			</div>
+		}
+	</div>
+
+	<svg width="@Width" height="@Height" viewBox="0 0 @Width @Height" xmlns:svg="http://www.w3.org/2000/svg" style="display:block; margin-top: 0.5rem;">
+		<rect x="0" y="0" width="@Width" height="@Height" fill="white" />
+
+		@{
+			const double padL = 42;
+			const double padR = 12;
+			const double padT = 10;
+			const double padB = 22;
+
+			var w = Math.Max(1, Width - padL - padR);
+			var h = Math.Max(1, Height - padT - padB);
+		}
+
+		<!-- Axes -->
+		<line x1="@padL" y1="@padT" x2="@padL" y2="@(Height - padB)" stroke="#bbb" stroke-width="1" />
+		<line x1="@padL" y1="@(Height - padB)" x2="@(Width - padR)" y2="@(Height - padB)" stroke="#bbb" stroke-width="1" />
+
+		<!-- Y labels -->
+		@if (Points.Count > 0)
+		{
+			<svg:text x="@padL" y="@(padT + 10)" text-anchor="end" font-size="10" fill="#666">@_yMaxText</svg:text>
+			<svg:text x="@padL" y="@(Height - padB)" text-anchor="end" font-size="10" fill="#666">@_yMinText</svg:text>
+		}
+
+		<!-- Line -->
+		@if (!string.IsNullOrWhiteSpace(_pathD))
+		{
+			<path d="@_pathD" fill="none" stroke="@Stroke" stroke-width="2" />
+		}
+	</svg>
+</div>
+
+@code {
+	public readonly record struct Point(double X, double Y);
+
+	[Parameter] public string Title { get; set; } = "";
+	[Parameter] public string? SubTitle { get; set; }
+	[Parameter] public string Stroke { get; set; } = "#1f77b4";
+	[Parameter] public int Width { get; set; } = 520;
+	[Parameter] public int Height { get; set; } = 180;
+	[Parameter] public IReadOnlyList<Point> Points { get; set; } = Array.Empty<Point>();
+	[Parameter] public string YFormat { get; set; } = "0.###";
+
+	private string? _pathD;
+	private string _yMinText = "-";
+	private string _yMaxText = "-";
+
+	protected override void OnParametersSet()
+	{
+		_pathD = null;
+		_yMinText = "-";
+		_yMaxText = "-";
+
+		if (Points.Count < 2)
+		{
+			return;
+		}
+
+		var xs = Points.Select(p => p.X);
+		var ys = Points.Select(p => p.Y);
+		var xMin = xs.Min();
+		var xMax = xs.Max();
+		var yMin = ys.Min();
+		var yMax = ys.Max();
+
+		if (double.IsNaN(xMin) || double.IsNaN(xMax) || double.IsNaN(yMin) || double.IsNaN(yMax))
+		{
+			return;
+		}
+
+		// Prevent a flat-line range from collapsing.
+		if (Math.Abs(yMax - yMin) < 1e-9)
+		{
+			yMax = yMin + 1.0;
+		}
+
+		_yMinText = yMin.ToString(YFormat, CultureInfo.InvariantCulture);
+		_yMaxText = yMax.ToString(YFormat, CultureInfo.InvariantCulture);
+
+		const double padL = 42;
+		const double padR = 12;
+		const double padT = 10;
+		const double padB = 22;
+
+		var w = Math.Max(1.0, Width - padL - padR);
+		var h = Math.Max(1.0, Height - padT - padB);
+
+		double MapX(double x) => padL + (x - xMin) / (xMax - xMin) * w;
+		double MapY(double y) => padT + (yMax - y) / (yMax - yMin) * h;
+
+		var sb = new System.Text.StringBuilder();
+		for (var i = 0; i < Points.Count; i++)
+		{
+			var p = Points[i];
+			var sx = MapX(p.X);
+			var sy = MapY(p.Y);
+			if (double.IsNaN(sx) || double.IsNaN(sy) || double.IsInfinity(sx) || double.IsInfinity(sy))
+			{
+				continue;
+			}
+
+			var cmd = sb.Length == 0 ? 'M' : 'L';
+			sb.Append(cmd);
+			sb.Append(sx.ToString("0.###", CultureInfo.InvariantCulture));
+			sb.Append(',');
+			sb.Append(sy.ToString("0.###", CultureInfo.InvariantCulture));
+		}
+
+		_pathD = sb.Length == 0 ? null : sb.ToString();
+	}
+}
