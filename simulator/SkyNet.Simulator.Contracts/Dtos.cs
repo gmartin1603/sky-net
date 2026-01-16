@@ -1,4 +1,4 @@
-﻿namespace SkyNet.Simulator.Contracts;
+namespace SkyNet.Simulator.Contracts;
 
 public sealed record TelemetrySnapshot(
 	int SchemaVersion,

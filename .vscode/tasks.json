@@ -1,0 +1,60 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["build", "SkyNet.sln", "-c", "Debug"],
+      "group": "build",
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["test", "SkyNet.sln", "-c", "Debug"],
+      "group": "test",
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "label": "run: cli",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["run", "--project", "simulator/SkyNet.Simulator.Cli"],
+      "problemMatcher": []
+    },
+    {
+      "label": "run: daemon (http)",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["run", "--project", "simulator/SkyNet.Simulator.Daemon", "--launch-profile", "http"],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "daemon",
+        "pattern": [{ "regexp": "^(.*)$" }],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Now listening on:"
+        }
+      }
+    },
+    {
+      "label": "run: dashboard (http)",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["run", "--project", "simulator/SkyNet.Simulator.Dashboard", "--launch-profile", "http"],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "dashboard",
+        "pattern": [{ "regexp": "^(.*)$" }],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Now listening on:"
+        }
+      }
+    }
+  ]
+}
