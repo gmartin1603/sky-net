@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SkyNet.Simulator.Core\SkyNet.Simulator.Core.csproj" />
+	<ProjectReference Include="..\SkyNet.Simulator.Contracts\SkyNet.Simulator.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

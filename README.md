@@ -14,7 +14,18 @@ I'm thinking c# since it's fast and I need more practice with it.
 
 - Build: `dotnet build SkyNet.sln`
 - Run CLI: `dotnet run --project simulator/SkyNet.Simulator.Cli`
+- Run headless daemon: `dotnet run --project simulator/SkyNet.Simulator.Daemon`
+- Run web dashboard: `dotnet run --project simulator/SkyNet.Simulator.Dashboard`
 - Tests: `dotnet test SkyNet.sln`
+
+### Web dashboard
+
+1) Start the daemon, then start the dashboard.
+2) Open `http://localhost:5170`.
+
+Defaults:
+- Daemon: `http://localhost:5070` (SignalR hub at `/simhub`)
+- Dashboard: `http://localhost:5170` (configured to connect to the daemon)
 
 ### CLI usage
 
