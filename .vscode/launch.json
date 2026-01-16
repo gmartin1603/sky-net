@@ -1,0 +1,76 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug CLI",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/simulator/SkyNet.Simulator.Cli/bin/Debug/net9.0/SkyNet.Simulator.Cli.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "stopAtEntry": false
+    },
+    {
+      "name": "Debug Daemon (http://localhost:5070)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/simulator/SkyNet.Simulator.Daemon/bin/Debug/net9.0/SkyNet.Simulator.Daemon.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5070"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Now listening on: (https?://\\S+)"
+      },
+      "console": "integratedTerminal",
+      "stopAtEntry": false
+    },
+    {
+      "name": "Debug Dashboard (http://localhost:5170)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "simulator/SkyNet.Simulator.Dashboard",
+        "--launch-profile",
+        "http"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5170"
+      },
+      "serverReadyAction": {
+        "action": "debugWithChrome",
+        "pattern": "Now listening on: (https?://\\S+)"
+      },
+      "console": "integratedTerminal",
+      "stopAtEntry": false
+    },
+    {
+      "name": "Open Dashboard (http://localhost:5170)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5170",
+      "webRoot": "${workspaceFolder}/simulator/SkyNet.Simulator.Dashboard"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Start Daemon + Dashboard",
+      "configurations": [
+        "Debug Daemon (http://localhost:5070)",
+        "Debug Dashboard (http://localhost:5170)"
+      ]
+    }
+  ]
+}

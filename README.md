@@ -14,9 +14,20 @@ I'm thinking c# since it's fast and I need more practice with it.
 
 - Build: `dotnet build SkyNet.sln`
 - Run CLI: `dotnet run --project simulator/SkyNet.Simulator.Cli`
-- Run headless daemon: `dotnet run --project simulator/SkyNet.Simulator.Daemon`
-- Run web dashboard: `dotnet run --project simulator/SkyNet.Simulator.Dashboard`
+- Run headless daemon (HTTP): `dotnet run --project simulator/SkyNet.Simulator.Daemon --launch-profile http`
+- Run web dashboard (HTTP): `dotnet run --project simulator/SkyNet.Simulator.Dashboard --launch-profile http`
 - Tests: `dotnet test SkyNet.sln`
+
+## VS Code
+
+- Tasks: Build/Test and run targets are in `.vscode/tasks.json`.
+- Launch: Debug profiles (CLI/Daemon) + a compound Daemon+Dashboard launcher are in `.vscode/launch.json`.
+
+## CI / PR gating
+
+A GitHub Actions workflow runs `dotnet restore`, `dotnet build`, and `dotnet test` on PRs to `main`.
+
+To *enforce* “green builds only” before merging, enable branch protection on `main` and require the CI status check.
 
 ### Web dashboard
 
