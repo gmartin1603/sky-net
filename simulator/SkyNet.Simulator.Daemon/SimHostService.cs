@@ -52,7 +52,7 @@ public sealed class SimHostService : BackgroundService
 					await _hub.Clients.All.SendAsync("snapshot", snapshot, stoppingToken).ConfigureAwait(false);
 				}
 
-				await Task.Delay(50, stoppingToken).ConfigureAwait(false);
+				await Task.Delay(100, stoppingToken).ConfigureAwait(false);
 			}
 		}
 		catch (OperationCanceledException)
