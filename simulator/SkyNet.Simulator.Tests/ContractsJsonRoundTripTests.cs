@@ -9,7 +9,8 @@ public sealed class ContractsJsonRoundTripTests
 	public void TelemetrySnapshot_RoundTrips_Json()
 	{
 		var snapshot = new TelemetrySnapshot(
-			SchemaVersion: 1,
+			SimId: "hydraulic-training",
+			SchemaVersion: 2,
 			Tick: 123,
 			TimeSeconds: 2.05,
 			Parameters: new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
@@ -27,6 +28,7 @@ public sealed class ContractsJsonRoundTripTests
 		var parsed = JsonSerializer.Deserialize<TelemetrySnapshot>(json);
 
 		Assert.NotNull(parsed);
+		Assert.Equal(snapshot.SimId, parsed!.SimId);
 		Assert.Equal(snapshot.SchemaVersion, parsed!.SchemaVersion);
 		Assert.Equal(snapshot.Tick, parsed.Tick);
 		Assert.Equal(snapshot.TimeSeconds, parsed.TimeSeconds);
