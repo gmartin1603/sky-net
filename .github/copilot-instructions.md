@@ -1,76 +1,36 @@
-# Sky Net Platform - AI Agent Instructions
+# Sky Net (SkyNet) - Copilot Coding Agent Instructions
 
-## Project Overview
+## Big picture
+SkyNet is a training-grade simulation sandbox built around a deterministic fixed-step runner (default 60Hz) plus optional real-time pacing. “Systems” expose runtime-adjustable parameters and observable signals, and are composed from small components wired via a dependency graph.
 
-Sky Net is a training-grade simulation platform for mechanical processes, designed to model real-world systems with real-time adjustable parameters. The goal is to create realistic simulations where users can modify inputs during runtime and observe downstream effects on the system.
+Projects under `simulator/`:
+- `SkyNet.Simulator.Core`: engine primitives (parameters, signals, units, runner, component graph)
+- `SkyNet.Simulator.Cli`: CLI REPL to run/step/pause and edit parameters live
+- `SkyNet.Simulator.Daemon`: ASP.NET Core host exposing HTTP APIs + SignalR telemetry
+- `SkyNet.Simulator.Dashboard`: Blazor WASM UI consuming HTTP + SignalR
+- `SkyNet.Simulator.Contracts`: shared DTOs for daemon↔dashboard (`TelemetrySnapshot`, etc.)
 
-## Technology Stack
+## Core architecture & patterns (follow these)
+- **Fixed step time**: simulation time advances only via `SimulationRunner.StepOnce/Step` ([simulator/SkyNet.Simulator.Core/Simulation/SimulationRunner.cs](simulator/SkyNet.Simulator.Core/Simulation/SimulationRunner.cs)). `RunRealTimeAsync` is best-effort pacing and may fall behind (see `LateTicks/MaxBehindSeconds`).
+- **Systems** implement `ISimSystem` and surface `Parameters` + `Signals` (see `HydraulicTrainingSystem`). Prefer building systems from components via `SimSystemBuilder`.
+- **Component graph**: components implement `ISimComponent` and declare `Reads`/`Writes` with `(Name, UnitType)` dependencies ([simulator/SkyNet.Simulator.Core/Components/ISimComponent.cs](simulator/SkyNet.Simulator.Core/Components/ISimComponent.cs)). `SimSystemBuilder` topologically sorts components and enforces:
+  - single writer per signal name
+  - unit-type match between writers/readers
+  - cycle detection
+- **Typed units & keys**: prefer `SignalKey<TUnit>` + `ParameterKey<TUnit>` and unit structs in `Core/Units/`. Example names in `HydraulicTrainingSystem`: `SupplyPressurePsi`, `ValveOpening`, `DownstreamPressurePsi`.
+- **Parameter validation**: define parameters with metadata (`default/min/max/description`) and rely on `ParameterStore.Set` to clamp and emit `ParameterChanged` with requested vs applied values ([simulator/SkyNet.Simulator.Core/Parameters/ParameterStore.cs](simulator/SkyNet.Simulator.Core/Parameters/ParameterStore.cs)).
+- **Signals**: `SignalBus` stores raw doubles keyed by name; typed `Get/Set` wrap unit conversions ([simulator/SkyNet.Simulator.Core/Signals/SignalBus.cs](simulator/SkyNet.Simulator.Core/Signals/SignalBus.cs)).
 
-- **Language**: C# (chosen for performance and learning objectives)
-- **Target**: .NET simulation framework with interactive parameter control
-- **Focus Systems**: Hydraulic and pneumatic mechanical processes
-- **UI Approach**: CLI first for core functionality, 3D GUI to follow
-- **Performance Target**: 60Hz update rate for real-time simulation
+## Daemon ↔ Dashboard integration
+- Daemon HTTP endpoints live in [simulator/SkyNet.Simulator.Daemon/Program.cs](simulator/SkyNet.Simulator.Daemon/Program.cs) (`/api/status`, `/api/parameters/*`, `/api/signals`, `/api/pause|resume|step`). `POST /api/step` requires the runner to be paused.
+- Real-time telemetry uses SignalR hub `/simhub`; daemon pushes `TelemetrySnapshot` via event name `"snapshot"` ([simulator/SkyNet.Simulator.Daemon/SimHostService.cs](simulator/SkyNet.Simulator.Daemon/SimHostService.cs)). Contracts are in [simulator/SkyNet.Simulator.Contracts/Dtos.cs](simulator/SkyNet.Simulator.Contracts/Dtos.cs).
 
-## Project Structure
+## Dev workflows (Windows/.NET)
+- Build: `dotnet build SkyNet.sln -c Debug`
+- Tests: `dotnet test SkyNet.sln -c Debug` (includes a golden snapshot test for `HydraulicTrainingSystem` behavior drift)
+- Run CLI: `dotnet run --project simulator/SkyNet.Simulator.Cli`
+- Run daemon: `dotnet run --project simulator/SkyNet.Simulator.Daemon --launch-profile http`
+- Run dashboard: `dotnet run --project simulator/SkyNet.Simulator.Dashboard --launch-profile http` (expects daemon at `http://localhost:5070` by default)
 
-```
-sky-net/
-├── simulator/          # Core simulation engine (planned)
-└── README.md          # Project requirements and vision
-```
-
-## Development Principles
-
-### Core Requirements
-- **Real-time Parameter Adjustment**: All simulations must support modifying inputs while running
-- **Observable Effects**: Changes should propagate through the system with visible downstream impacts
-- **Training Grade**: Simulations should be educational, balancing realism with clarity
-
-### Planned Architecture (To Be Implemented)
-- Simulation engine with 60Hz time-stepped physics/process models
-- Input parameter system supporting runtime modification
-- Observable output streams for monitoring system state
-- Modular mechanical process components:
-  - **Hydraulic**: Pumps, valves, cylinders, accumulators, pressure sensors
-  - **Pneumatic**: Compressors, air valves, pneumatic actuators, pressure regulators
-- CLI interface for initial parameter control and monitoring
-- Future 3D GUI with interactive assets that respond to simulation state
-
-## Code Conventions (When Implementing)
-
-### C# Standards
-- Follow standard C# naming conventions (PascalCase for public members, camelCase for private)
-- Use modern C# features (records, pattern matching, async/await where appropriate)
-- Prefer composition over inheritance for mechanical component modeling
-
-### Simulation Design Patterns
-- **Component-based architecture**: Each mechanical element should be an independent, composable unit
-- **State management**: Track simulation state explicitly for reproducibility and debugging
-- **Time-step integration**: Use consistent time-stepping for predictable behavior
-- **Parameter observers**: Implement observable pattern for inputs to trigger recalculations
-
-## Key Workflows (To Be Established)
-
-When implementing, consider:
-- How to hot-reload parameter changes without restarting the simulation
-- CLI command structure for real-time parameter adjustment during simulation
-- Logging strategy for observing system behavior (preparing for 3D visualization)
-- Testing strategy for verifying hydraulic/pneumatic process accuracy
-- Performance profiling to maintain 60Hz update rate
-- 3D asset integration points for future GUI (position, rotation, state updates)
-
-## Next Steps for Development
-
-1. Set up C# project structure (.sln, .csproj files)
-2. Design core simulation loop with 60Hz time-stepping mechanism
-3. Implement first hydraulic or pneumatic component as proof-of-concept
-4. Create CLI interface for runtime parameter modification
-5. Add console-based output monitoring for system state
-6. Implement additional hydraulic/pneumatic components
-7. Design 3D asset state interface for future GUI integration
-8. Add 3D visualization with interactive custom assets
-
----
-
-*Note: This is an early-stage project. Update these instructions as patterns emerge and the codebase matures.*
+## When changing sim behavior
+- If you change the deterministic behavior of `HydraulicTrainingSystem`, update the golden values intentionally in [simulator/SkyNet.Simulator.Tests/HydraulicTrainingSystemGoldenSnapshotTests.cs](simulator/SkyNet.Simulator.Tests/HydraulicTrainingSystemGoldenSnapshotTests.cs).
