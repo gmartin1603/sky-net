@@ -83,8 +83,7 @@
     {
       "label": "open: dashboard",
       "type": "shell",
-      "command": "xdg-open",
-      "args": ["http://localhost:5170"],
+
       "linux": {
         "command": "xdg-open",
         "args": ["http://localhost:5170"]
