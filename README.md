@@ -18,6 +18,31 @@ I'm thinking c# since it's fast and I need more practice with it.
 - Run web dashboard (HTTP): `dotnet run --project simulator/SkyNet.Simulator.Dashboard --launch-profile http`
 - Tests: `dotnet test SkyNet.sln`
 
+## Docker (end-to-end)
+
+This repo includes a Docker Compose setup that runs:
+- Postgres (persistent volume)
+- Daemon (HTTP + SignalR)
+- Dashboard (nginx serving the WASM app + reverse-proxying `/api` and `/simhub` to the daemon)
+
+Run:
+- `docker compose up --build`
+
+Open:
+- Dashboard: `http://localhost:8080`
+- Daemon (direct, optional): `http://localhost:5070`
+- Postgres (optional): `localhost:5432` (db/user/pass all `skynet` by default)
+
+Telemetry persistence:
+- Enabled in Compose via env var `TelemetryStore__Enabled=true`
+- Connection string via `ConnectionStrings__SimulatorDb`
+- Size-based pruning/warnings via `TelemetryStore__MaxRowsTotal`, `TelemetryStore__WarnAtFraction`, `TelemetryStore__PruneBatchSize`
+
+Telemetry query endpoints (JSON snapshots):
+- `/api/telemetry/{simId}/latest`
+- `/api/telemetry/{simId}/recent?take=200`
+- `/api/telemetry/stats`
+
 ## VS Code
 
 - Tasks: Build/Test and run targets are in `.vscode/tasks.json`.

@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: skynet
+      POSTGRES_USER: skynet
+      POSTGRES_PASSWORD: skynet
+    ports:
+      - "5432:5432"
+    volumes:
+      - skynet_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skynet -d skynet"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  daemon:
+    build:
+      context: .
+      dockerfile: simulator/SkyNet.Simulator.Daemon/Dockerfile
+    environment:
+      urls: http://0.0.0.0:5070
+      ConnectionStrings__SimulatorDb: Host=db;Port=5432;Database=skynet;Username=skynet;Password=skynet;Include Error Detail=true
+      TelemetryStore__Enabled: "true"
+      TelemetryStore__MaxRowsTotal: "200000"
+      TelemetryStore__WarnAtFraction: "0.9"
+      TelemetryStore__PruneBatchSize: "10000"
+      TelemetryStore__MaintenanceIntervalSeconds: "30"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5070:5070"
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: simulator/SkyNet.Simulator.Dashboard/Dockerfile
+    depends_on:
+      - daemon
+    ports:
+      - "8080:80"
+
+volumes:
+  skynet_db:

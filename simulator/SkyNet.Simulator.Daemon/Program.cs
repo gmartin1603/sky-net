@@ -3,10 +3,16 @@ using SkyNet.Simulator.Core.Parameters;
 using SkyNet.Simulator.Core.Simulation;
 using SkyNet.Simulator.Core.Systems;
 using SkyNet.Simulator.Daemon;
+using SkyNet.Simulator.Daemon.Telemetry;
+
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls(builder.Configuration["urls"] ?? "http://localhost:5070");
+var urls = builder.Configuration["urls"]
+	?? builder.Configuration["ASPNETCORE_URLS"]
+	?? "http://localhost:5070";
+builder.WebHost.UseUrls(urls);
 
 builder.Services.AddCors(options =>
 {
@@ -18,6 +24,41 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddSignalR();
+
+builder.Services.AddOptions<TelemetryStoreOptions>()
+	.Bind(builder.Configuration.GetSection(TelemetryStoreOptions.SectionName))
+	.ValidateDataAnnotations();
+
+builder.Services.AddSingleton(sp =>
+{
+	var configuration = sp.GetRequiredService<IConfiguration>();
+	var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<TelemetryStoreOptions>>().Value;
+	if (!options.Enabled)
+	{
+		return NpgsqlDataSource.Create("Host=localhost;Database=disabled;Username=disabled;Password=disabled");
+	}
+
+	var cs = configuration.GetConnectionString("SimulatorDb");
+	if (string.IsNullOrWhiteSpace(cs))
+	{
+		throw new InvalidOperationException("TelemetryStore is enabled but ConnectionStrings:SimulatorDb is not set.");
+	}
+
+	return NpgsqlDataSource.Create(cs);
+});
+
+builder.Services.AddSingleton<ITelemetrySnapshotStore>(sp =>
+{
+	var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<TelemetryStoreOptions>>().Value;
+	if (!options.Enabled)
+	{
+		return new NullTelemetrySnapshotStore();
+	}
+
+	return ActivatorUtilities.CreateInstance<PostgresTelemetrySnapshotStore>(sp);
+});
+
+builder.Services.AddHostedService<PostgresTelemetrySchemaInitializer>();
 
 builder.Services.AddSingleton(sp =>
 {
@@ -212,6 +253,25 @@ app.MapGet("/api/logs", (string? simId, long? after, int? take, SimulationRegist
 		return Results.NotFound(new { error = $"Unknown simulation '{targetId}'." });
 	}
 	return Results.Ok(slot.Logs.Get(after.GetValueOrDefault(0), take.GetValueOrDefault(200)));
+});
+
+// Telemetry snapshots (persisted, JSON-backed)
+app.MapGet("/api/telemetry/{simId}/latest", async (string simId, ITelemetrySnapshotStore store, CancellationToken ct) =>
+{
+	var snap = await store.GetLatestAsync(simId, ct).ConfigureAwait(false);
+	return snap is null ? Results.NotFound() : Results.Ok(snap);
+});
+
+app.MapGet("/api/telemetry/{simId}/recent", async (string simId, int? take, ITelemetrySnapshotStore store, CancellationToken ct) =>
+{
+	var list = await store.GetRecentAsync(simId, take.GetValueOrDefault(200), ct).ConfigureAwait(false);
+	return Results.Ok(list);
+});
+
+app.MapGet("/api/telemetry/stats", async (ITelemetrySnapshotStore store, CancellationToken ct) =>
+{
+	var stats = await store.GetStatsAsync(ct).ConfigureAwait(false);
+	return Results.Ok(stats);
 });
 
 app.MapGet("/api/status", (SimulationRegistry registry) =>

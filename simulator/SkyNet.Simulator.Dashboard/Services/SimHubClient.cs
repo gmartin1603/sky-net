@@ -36,8 +36,9 @@ public sealed class SimHubClient : IAsyncDisposable
 
 	private HubConnection CreateConnection()
 	{
+		var hubUri = new Uri(_options.BaseUri, "simhub");
 		var conn = new HubConnectionBuilder()
-			.WithUrl($"{_options.BaseUrl.TrimEnd('/')}/simhub")
+			.WithUrl(hubUri)
 			.WithAutomaticReconnect()
 			.Build();
 
@@ -87,6 +88,13 @@ public sealed class SimHubClient : IAsyncDisposable
 			await StartAsync(cancellationToken).ConfigureAwait(false);
 		}
 
+		if (_connection is null)
+		{
+			throw new InvalidOperationException("Hub connection not initialized.");
+		}
+
+		HubConnection conn = _connection!;
+
 		if (!string.IsNullOrWhiteSpace(_joinedSimId) && string.Equals(_joinedSimId, simId, StringComparison.OrdinalIgnoreCase))
 		{
 			return;
@@ -94,10 +102,10 @@ public sealed class SimHubClient : IAsyncDisposable
 
 		if (!string.IsNullOrWhiteSpace(_joinedSimId))
 		{
-			try { await _connection.InvokeAsync("LeaveSim", _joinedSimId, cancellationToken).ConfigureAwait(false); } catch { /* ignore */ }
+			try { await conn.InvokeAsync("LeaveSim", new object?[] { _joinedSimId }, cancellationToken).ConfigureAwait(false); } catch { /* ignore */ }
 		}
 
-		await _connection.InvokeAsync("JoinSim", simId, cancellationToken).ConfigureAwait(false);
+		await conn.InvokeAsync("JoinSim", new object?[] { simId }, cancellationToken).ConfigureAwait(false);
 		_joinedSimId = simId;
 	}
 
@@ -109,6 +117,8 @@ public sealed class SimHubClient : IAsyncDisposable
 			return;
 		}
 
+		HubConnection conn = _connection!;
+
 		if (string.IsNullOrWhiteSpace(_joinedSimId))
 		{
 			return;
@@ -116,7 +126,7 @@ public sealed class SimHubClient : IAsyncDisposable
 
 		try
 		{
-			await _connection.InvokeAsync("LeaveSim", _joinedSimId, cancellationToken).ConfigureAwait(false);
+			await conn.InvokeAsync("LeaveSim", new object?[] { _joinedSimId }, cancellationToken).ConfigureAwait(false);
 		}
 		catch
 		{
