@@ -49,6 +49,7 @@ public sealed class InMemoryLogStore
 		// Best-effort trimming.
 		while (_entries.Count > _maxEntries && _entries.TryDequeue(out _))
 		{
+			// Intentionally discard dequeued entries.
 		}
 	}
 }

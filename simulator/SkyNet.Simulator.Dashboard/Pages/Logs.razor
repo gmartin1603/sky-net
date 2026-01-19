@@ -113,9 +113,5 @@
 			try { cts.Cancel(); } catch { /* ignore */ }
 			cts.Dispose();
 		}
-		if (_pollTask is not null)
-		{
-			try { _pollTask.GetAwaiter().GetResult(); } catch { /* ignore */ }
-		}
 	}
 }

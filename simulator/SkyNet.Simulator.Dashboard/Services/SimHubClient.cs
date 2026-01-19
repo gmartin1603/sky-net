@@ -43,11 +43,13 @@ public sealed class SimHubClient : IAsyncDisposable
 
 		conn.On<TelemetrySnapshot>("snapshot", s =>
 		{
+			Action<TelemetrySnapshot>? handler;
 			lock (_latestLock)
 			{
 				_latestBySimId[s.SimId] = s;
+				handler = SnapshotReceived;
 			}
-			SnapshotReceived?.Invoke(s);
+			handler?.Invoke(s);
 		});
 		return conn;
 	}
@@ -68,9 +70,10 @@ public sealed class SimHubClient : IAsyncDisposable
 		{
 			await _connection.StartAsync(cancellationToken).ConfigureAwait(false);
 		}
-		catch (ObjectDisposedException)
+		catch (ObjectDisposedException ex)
 		{
-			// If some component disposed the connection, recreate and retry.
+			// If some component disposed the connection, log, recreate, and retry.
+			System.Console.Error.WriteLine($"[{nameof(SimHubClient)}] HubConnection was disposed; recreating connection. Exception: {ex}");
 			_connection = CreateConnection();
 			await _connection.StartAsync(cancellationToken).ConfigureAwait(false);
 		}
@@ -82,11 +85,6 @@ public sealed class SimHubClient : IAsyncDisposable
 		if (_connection is null)
 		{
 			await StartAsync(cancellationToken).ConfigureAwait(false);
-		}
-
-		if (_connection is null)
-		{
-			throw new InvalidOperationException("Hub connection not initialized.");
 		}
 
 		if (!string.IsNullOrWhiteSpace(_joinedSimId) && string.Equals(_joinedSimId, simId, StringComparison.OrdinalIgnoreCase))
