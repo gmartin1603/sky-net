@@ -29,6 +29,13 @@
       "type": "shell",
       "command": "dotnet",
       "args": ["run", "--project", "simulator/SkyNet.Simulator.Daemon", "--launch-profile", "http"],
+      "options": {
+        "env": {
+          "ASPNETCORE_ENVIRONMENT": "Development",
+          "DOTNET_ROLL_FORWARD": "Major",
+          "ASPNETCORE_URLS": "http://localhost:5070"
+        }
+      },
       "isBackground": true,
       "problemMatcher": [
         {
@@ -36,7 +43,7 @@
           "pattern": [{ "regexp": "^(.*)$", "message": 1 }],
           "background": {
             "activeOnStart": true,
-            "beginsPattern": "^\\s*Building\\.\\.\\.$",
+            "beginsPattern": "^(\\s*Building\\.\\.\\.|\\s*Determining projects to restore\\.|\\s*info: Microsoft\\.Hosting\\.Lifetime\\[\\d+\\].*)$",
             "endsPattern": "^\\s*Now listening on:.*$"
           }
         }
@@ -47,6 +54,13 @@
       "type": "shell",
       "command": "dotnet",
       "args": ["run", "--project", "simulator/SkyNet.Simulator.Dashboard", "--launch-profile", "http"],
+      "options": {
+        "env": {
+          "ASPNETCORE_ENVIRONMENT": "Development",
+          "DOTNET_ROLL_FORWARD": "Major",
+          "ASPNETCORE_URLS": "http://localhost:5170"
+        }
+      },
       "isBackground": true,
       "problemMatcher": [
         {
@@ -54,11 +68,41 @@
           "pattern": [{ "regexp": "^(.*)$", "message": 1 }],
           "background": {
             "activeOnStart": true,
-            "beginsPattern": "^\\s*Building\\.\\.\\.$",
+            "beginsPattern": "^(\\s*Building\\.\\.\\.|\\s*Determining projects to restore\\.|\\s*info: Microsoft\\.Hosting\\.Lifetime\\[\\d+\\].*)$",
             "endsPattern": "^\\s*Now listening on:.*$"
           }
         }
       ]
+    },
+    {
+      "label": "run: daemon + dashboard (http)",
+      "dependsOn": ["run: daemon (http)", "run: dashboard (http)"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "open: dashboard",
+      "type": "shell",
+
+      "linux": {
+        "command": "xdg-open",
+        "args": ["http://localhost:5170"]
+      },
+      "osx": {
+        "command": "open",
+        "args": ["http://localhost:5170"]
+      },
+      "windows": {
+        "command": "cmd",
+        "args": ["/c", "start", "http://localhost:5170"]
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "run: daemon + dashboard + open (http)",
+      "dependsOn": ["run: daemon + dashboard (http)", "open: dashboard"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
     }
   ]
 }
