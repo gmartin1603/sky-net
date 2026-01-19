@@ -13,5 +13,6 @@ builder.Services.AddSingleton(new DaemonClientOptions(daemonBaseUrl));
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(daemonBaseUrl, UriKind.Absolute) });
 builder.Services.AddScoped<SimApiClient>();
 builder.Services.AddScoped<SimHubClient>();
+builder.Services.AddScoped<SimViewCache>();
 
 await builder.Build().RunAsync();

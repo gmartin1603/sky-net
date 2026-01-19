@@ -1,0 +1,117 @@
+@page "/logs"
+
+@using SkyNet.Simulator.Contracts
+@using SkyNet.Simulator.Dashboard.Services
+@implements IDisposable
+
+@inject SimApiClient Api
+
+<PageTitle>Logs</PageTitle>
+
+<h1>Logs</h1>
+
+<div style="display:flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+	<label>
+		SimId (optional):
+		<input style="width: 220px; margin-left: 0.25rem;" @bind="_simId" />
+	</label>
+	<button @onclick="Refresh">Refresh</button>
+	<button @onclick="ToggleAuto">@(_auto ? "Stop" : "Auto")</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+	<p style="color: darkred;"><b>Error:</b> @_error</p>
+}
+
+<table class="table">
+	<thead>
+		<tr>
+			<th>Seq</th>
+			<th>Time (UTC)</th>
+			<th>SimId</th>
+			<th>Level</th>
+			<th>Message</th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var e in _entries)
+		{
+			<tr>
+				<td><code>@e.Seq</code></td>
+				<td>@e.Timestamp.ToString("u")</td>
+				<td><code>@e.SimId</code></td>
+				<td>@e.Level</td>
+				<td>@e.Message</td>
+			</tr>
+		}
+	</tbody>
+</table>
+
+@code {
+	private string? _simId;
+	private string? _error;
+	private bool _auto = true;
+	private long _after;
+	private readonly List<LogEntryDto> _entries = new();
+	private CancellationTokenSource? _cts;
+	private Task? _pollTask;
+
+	protected override Task OnInitializedAsync()
+	{
+		_cts = new CancellationTokenSource();
+		_pollTask = PollAsync(_cts.Token);
+		return Task.CompletedTask;
+	}
+
+	private async Task PollAsync(CancellationToken cancellationToken)
+	{
+		using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(750));
+		while (!cancellationToken.IsCancellationRequested)
+		{
+			if (_auto)
+			{
+				await Refresh().ConfigureAwait(false);
+			}
+
+			await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private void ToggleAuto() => _auto = !_auto;
+
+	private async Task Refresh()
+	{
+		_error = null;
+		try
+		{
+			var batch = await Api.GetLogsAsync(_simId, _after, take: 200);
+			if (batch.Entries.Count > 0)
+			{
+				_entries.AddRange(batch.Entries);
+				_after = batch.NextAfter;
+				if (_entries.Count > 1500)
+				{
+					_entries.RemoveRange(0, _entries.Count - 1500);
+				}
+			}
+
+			await InvokeAsync(StateHasChanged);
+		}
+		catch (Exception ex)
+		{
+			_error = ex.Message;
+			await InvokeAsync(StateHasChanged);
+		}
+	}
+
+	public void Dispose()
+	{
+		var cts = Interlocked.Exchange(ref _cts, null);
+		if (cts is not null)
+		{
+			try { cts.Cancel(); } catch { /* ignore */ }
+			cts.Dispose();
+		}
+	}
+}

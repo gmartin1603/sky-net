@@ -1,12 +1,18 @@
 ﻿@inherits LayoutComponentBase
+
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    @* Sidebar removed; nav is now in the top bar *@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <div class="top-nav">
+                <a class="top-brand" href="">SkyNet.Simulator.Dashboard</a>
+                <NavMenu />
+            </div>
+
+            <div class="top-links">
+                <a href="about">About</a>
+            </div>
         </div>
 
         <article class="content px-4">
