@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using SkyNet.Simulator.Contracts;
 using SkyNet.Simulator.Core.Simulation;
 using SkyNet.Simulator.Core.Systems;
+using SkyNet.Simulator.Daemon.Telemetry;
 
 namespace SkyNet.Simulator.Daemon;
 
@@ -9,15 +10,18 @@ public sealed class SimHostService : BackgroundService
 {
 	private readonly SimulationRegistry _registry;
 	private readonly IHubContext<SimHub> _hub;
+	private readonly ITelemetrySnapshotStore _telemetry;
 	private readonly ILogger<SimHostService> _logger;
 
 	public SimHostService(
 		SimulationRegistry registry,
 		IHubContext<SimHub> hub,
+		ITelemetrySnapshotStore telemetry,
 		ILogger<SimHostService> logger)
 	{
 		_registry = registry;
 		_hub = hub;
+		_telemetry = telemetry;
 		_logger = logger;
 	}
 
@@ -65,6 +69,15 @@ public sealed class SimHostService : BackgroundService
 						TimeSeconds: slot.Runner.Time.TotalSeconds,
 						Parameters: slot.System.Parameters.Snapshot(),
 						Signals: slot.System.Signals.Snapshot());
+
+					try
+					{
+						await _telemetry.AppendAsync(snapshot, stoppingToken).ConfigureAwait(false);
+					}
+					catch (Exception ex)
+					{
+						_logger.LogWarning(ex, "Failed to persist telemetry snapshot.");
+					}
 
 					// New: per-sim group
 					await _hub.Clients.Group($"sim:{sim.Id}").SendAsync("snapshot", snapshot, stoppingToken).ConfigureAwait(false);

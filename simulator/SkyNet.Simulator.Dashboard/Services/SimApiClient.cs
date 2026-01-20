@@ -5,6 +5,18 @@ namespace SkyNet.Simulator.Dashboard.Services;
 
 public sealed class SimApiClient(HttpClient http)
 {
+	private static async Task EnsureSuccessAsync(HttpResponseMessage response)
+	{
+		if (response.IsSuccessStatusCode)
+		{
+			return;
+		}
+
+		var body = string.Empty;
+		try { body = await response.Content.ReadAsStringAsync().ConfigureAwait(false); } catch { /* ignore */ }
+		throw new HttpRequestException(
+			$"Request failed: {(int)response.StatusCode} {response.ReasonPhrase}{(string.IsNullOrWhiteSpace(body) ? string.Empty : $" - {body}")}");
+	}
 	public async Task<SimulationInfoDto[]> GetSimulationsAsync(CancellationToken cancellationToken = default) =>
 		await http.GetFromJsonAsync<SimulationInfoDto[]>("/api/sims", cancellationToken).ConfigureAwait(false)
 		?? throw new InvalidOperationException("Missing response body from /api/sims.");
@@ -17,7 +29,13 @@ public sealed class SimApiClient(HttpClient http)
 	}
 
 	public Task SelectSimulationAsync(string simId, CancellationToken cancellationToken = default) =>
-		http.PostAsync($"/api/sims/{Uri.EscapeDataString(simId)}/select", content: null, cancellationToken);
+		http.PostAsync($"/api/sims/{Uri.EscapeDataString(simId)}/select", content: null, cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
 
 	public async Task<LogBatchDto> GetLogsAsync(string? simId = null, long after = 0, int take = 200, CancellationToken cancellationToken = default)
 	{
@@ -64,26 +82,74 @@ public sealed class SimApiClient(HttpClient http)
 		?? throw new InvalidOperationException($"Missing response body from /api/sims/{simId}/signals.");
 
 	public Task PauseAsync(CancellationToken cancellationToken = default) =>
-		http.PostAsync("/api/pause", content: null, cancellationToken);
+		http.PostAsync("/api/pause", content: null, cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
 
 	public Task PauseAsync(string simId, CancellationToken cancellationToken = default) =>
-		http.PostAsync($"/api/sims/{Uri.EscapeDataString(simId)}/pause", content: null, cancellationToken);
+		http.PostAsync($"/api/sims/{Uri.EscapeDataString(simId)}/pause", content: null, cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
 
 	public Task ResumeAsync(CancellationToken cancellationToken = default) =>
-		http.PostAsync("/api/resume", content: null, cancellationToken);
+		http.PostAsync("/api/resume", content: null, cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
 
 	public Task ResumeAsync(string simId, CancellationToken cancellationToken = default) =>
-		http.PostAsync($"/api/sims/{Uri.EscapeDataString(simId)}/resume", content: null, cancellationToken);
+		http.PostAsync($"/api/sims/{Uri.EscapeDataString(simId)}/resume", content: null, cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
 
 	public Task StepAsync(int steps, CancellationToken cancellationToken = default) =>
-		http.PostAsync($"/api/step?n={steps}", content: null, cancellationToken);
+		http.PostAsync($"/api/step?n={steps}", content: null, cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
 
 	public Task StepAsync(string simId, int steps, CancellationToken cancellationToken = default) =>
-		http.PostAsync($"/api/sims/{Uri.EscapeDataString(simId)}/step?n={steps}", content: null, cancellationToken);
+		http.PostAsync($"/api/sims/{Uri.EscapeDataString(simId)}/step?n={steps}", content: null, cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
 
 	public Task SetParameterAsync(string name, double value, CancellationToken cancellationToken = default) =>
-		http.PostAsJsonAsync($"/api/parameters/{Uri.EscapeDataString(name)}", new SetParameterRequest(value), cancellationToken);
+		http.PostAsJsonAsync($"/api/parameters/{Uri.EscapeDataString(name)}", new SetParameterRequest(value), cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
 
 	public Task SetParameterAsync(string simId, string name, double value, CancellationToken cancellationToken = default) =>
-		http.PostAsJsonAsync($"/api/sims/{Uri.EscapeDataString(simId)}/parameters/{Uri.EscapeDataString(name)}", new SetParameterRequest(value), cancellationToken);
+		http.PostAsJsonAsync($"/api/sims/{Uri.EscapeDataString(simId)}/parameters/{Uri.EscapeDataString(name)}", new SetParameterRequest(value), cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
 }
