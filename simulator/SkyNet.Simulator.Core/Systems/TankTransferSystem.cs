@@ -296,6 +296,8 @@ public sealed class TankTransferSystem : ISimSystem
 			{
 				new SignalDependency(SignalKeys.BlowlinePressureCommandPsi.Name, typeof(PressurePsi)),
 				new SignalDependency(SignalKeys.TransferRateLbPerSec.Name, typeof(MassRateLbPerSec)),
+				new SignalDependency(SignalKeys.AirlockSpeedHz.Name, typeof(FrequencyHz)),
+				new SignalDependency(SignalKeys.AirlockRunning.Name, typeof(Ratio)),
 				new SignalDependency(SignalKeys.BlowerRunning.Name, typeof(Ratio)),
 			};
 
@@ -315,12 +317,16 @@ public sealed class TankTransferSystem : ISimSystem
 			}
 
 			var pCmd = Math.Max(0, signals.Get(SignalKeys.BlowlinePressureCommandPsi).Value);
-			var flow = Math.Max(0, signals.Get(SignalKeys.TransferRateLbPerSec).Value);
+			var airlockHz = Math.Max(0, signals.Get(SignalKeys.AirlockSpeedHz).Value);
+			var airlockRunning = signals.Get(SignalKeys.AirlockRunning).Value >= 0.5;
 
-			// Simple load-induced drop: higher flow reduces achieved pressure.
-			// Scaled so that at ~30 lb/s you might lose a few psi.
-			var dropPsi = Math.Min(pCmd * 0.6, flow * 0.12);
-			var target = Math.Max(0, pCmd - dropPsi);
+			// Training-grade behavior: achieved pressure increases with airlock speed (conveying demand).
+			// When the airlock is off, pressure is intentionally kept at the lowest level.
+			const double maxHz = 30.0;
+			var speedNorm = Math.Clamp(airlockHz / maxHz, 0, 1);
+			var minFactor = airlockRunning ? 0.20 : 0.05;
+			var speedFactor = minFactor + (1.0 - minFactor) * speedNorm;
+			var target = pCmd * speedFactor;
 
 			const double tauSeconds = 0.9;
 			var alpha = 1.0 - Math.Exp(-dtSeconds / tauSeconds);
