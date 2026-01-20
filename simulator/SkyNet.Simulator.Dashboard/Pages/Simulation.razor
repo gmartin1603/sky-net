@@ -57,6 +57,12 @@ else
 		}
 	</div>
 
+	@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
+	{
+		<h2>Schematic</h2>
+		<TankTransferSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
+	}
+
 	<h2>Trends</h2>
 	<div style="display:flex; gap: 1rem; flex-wrap: wrap;">
 		<LineChart Title="@_chart1Title" SubTitle="@_chart1Unit" Stroke="#d62728" Points="@_pressureSeries" YFormat="@_chart1Format" />

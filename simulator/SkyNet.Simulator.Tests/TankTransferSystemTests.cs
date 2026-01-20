@@ -22,6 +22,8 @@ public class TankTransferSystemTests
 
 		parameters.Set(TankTransferSystem.ParameterKeys.AirlockSpeedCommandHz.Name, airlockHz);
 		parameters.Set(TankTransferSystem.ParameterKeys.BlowlinePressureCommandPsi.Name, blowlinePsi);
+		parameters.Set(TankTransferSystem.ParameterKeys.BlowerEnable.Name, 1);
+		parameters.Set(TankTransferSystem.ParameterKeys.AirlockEnable.Name, 1);
 
 		for (var i = 0; i < steps; i++)
 		{
@@ -76,6 +78,8 @@ public class TankTransferSystemTests
 		parameters.Set(TankTransferSystem.ParameterKeys.DestinationTankCapacityLb.Name, 20);
 		parameters.Set(TankTransferSystem.ParameterKeys.AirlockSpeedCommandHz.Name, 20);
 		parameters.Set(TankTransferSystem.ParameterKeys.BlowlinePressureCommandPsi.Name, 15);
+		parameters.Set(TankTransferSystem.ParameterKeys.BlowerEnable.Name, 1);
+		parameters.Set(TankTransferSystem.ParameterKeys.AirlockEnable.Name, 1);
 
 		for (var i = 0; i < 600; i++)
 		{

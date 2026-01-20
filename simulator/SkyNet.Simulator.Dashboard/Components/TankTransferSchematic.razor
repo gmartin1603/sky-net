@@ -1,0 +1,132 @@
+@using SkyNet.Simulator.Contracts
+@using SkyNet.Simulator.Dashboard.Services
+
+@inject SimApiClient Api
+
+@if (Snapshot is null)
+{
+	<div>Waiting for telemetry...</div>
+}
+else
+{
+	<div style="position: relative; max-width: 1100px;">
+		<svg viewBox="0 0 1100 420" style="position:absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
+			<defs>
+				<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+					<path d="M0,0 L10,3 L0,6 z" fill="currentColor"></path>
+				</marker>
+			</defs>
+
+			@{
+				var permitted = TransferPermitted; // user requested arrows represent 'permitted flow'
+				var color = permitted ? "#1f77b4" : "#bbb";
+				var strokeWidth = permitted ? 4 : 3;
+			}
+
+			<g style="color: @color;">
+				<!-- Source -> Airlock -->
+				<path d="M190 125 L190 215" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
+				<!-- Airlock -> Blowline -->
+				<path d="M300 270 L500 270" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
+				<!-- Blowline -> Destination -->
+				<path d="M760 225 L900 145" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
+			</g>
+		</svg>
+
+		<div style="display:grid; grid-template-columns: 260px 1fr 260px; grid-template-rows: 180px 200px; gap: 1rem; align-items: start;">
+			<div style="grid-column: 1; grid-row: 1;">
+				<SchematicBox Title="Source Tank" IsOn="@TransferPermitted" IsClickable="false" Lines="@SourceTankLines" />
+			</div>
+
+			<div style="grid-column: 1; grid-row: 2;">
+				<SchematicBox Title="Rotary Airlock" IsOn="@AirlockRunning" StatusText="@AirlockStatus" OnClick="@(() => ToggleAsync(ParamAirlockEnable))" Lines="@AirlockLines" />
+			</div>
+
+			<div style="grid-column: 2; grid-row: 2; align-self: center;">
+				<SchematicBox Title="Blowline" IsOn="@BlowerRunning" IsClickable="false" Lines="@BlowlineLines" />
+			</div>
+
+			<div style="grid-column: 3; grid-row: 1;">
+				<SchematicBox Title="Destination Tank" IsOn="@TransferPermitted" IsClickable="false" Lines="@DestinationTankLines" />
+			</div>
+
+			<div style="grid-column: 3; grid-row: 2;">
+				<SchematicBox Title="Blower" IsOn="@BlowerRunning" StatusText="@BlowerStatus" OnClick="@(() => ToggleAsync(ParamBlowerEnable))" Lines="@BlowerLines" />
+			</div>
+		</div>
+	</div>
+}
+
+@code {
+	[Parameter] public string SimId { get; set; } = string.Empty;
+	[Parameter] public TelemetrySnapshot? Snapshot { get; set; }
+
+	private const string ParamBlowerEnable = "BlowerEnable";
+	private const string ParamAirlockEnable = "AirlockEnable";
+
+	private async Task ToggleAsync(string parameterName)
+	{
+		if (Snapshot is null || string.IsNullOrWhiteSpace(SimId))
+		{
+			return;
+		}
+
+		if (!Snapshot.Parameters.TryGetValue(parameterName, out var current))
+		{
+			current = 0;
+		}
+
+		var next = current >= 0.5 ? 0.0 : 1.0;
+		await Api.SetParameterAsync(SimId, parameterName, next);
+	}
+
+	private double GetSignal(string name) => Snapshot?.Signals.TryGetValue(name, out var v) == true ? v : double.NaN;
+
+	private bool BlowerRunning => GetSignal("BlowerRunning") >= 0.5;
+	private bool AirlockRunning => GetSignal("AirlockRunning") >= 0.5;
+	private bool TransferPermitted => BlowerRunning; // matches arrow logic
+	private string BlowerStatus => BlowerRunning ? "Running" : "Stopped";
+	private string AirlockStatus => AirlockRunning ? "Running" : "Stopped";
+
+	private double SourceTankWeight => GetSignal("SourceTankWeightLb");
+	private double DestinationTankWeight => GetSignal("DestinationTankWeightLb");
+	private double TransferRateLbPerSec => GetSignal("TransferRateLbPerSec");
+	private double BlowlinePressurePsi => GetSignal("BlowlinePressurePsi");
+	private double BlowlinePressureCmdPsi => GetSignal("BlowlinePressureCommandPsi");
+	private double AirlockSpeedHz => GetSignal("AirlockSpeedHz");
+	private double BlowerMotorPercentFla => GetSignal("BlowerMotorPercentFla");
+
+	private bool IsStarved => GetSignal("IsStarved") >= 0.5;
+	private bool IsFull => GetSignal("IsFull") >= 0.5;
+
+	private SchematicBox.Line[] SourceTankLines =>
+	[
+		new("Weight", $"{SourceTankWeight:0.#} lb"),
+		new("Starved", IsStarved ? "YES" : "no"),
+	];
+
+	private SchematicBox.Line[] AirlockLines =>
+	[
+		new("Enable", AirlockRunning ? "1" : "0"),
+		new("Speed", $"{AirlockSpeedHz:0.0} Hz"),
+	];
+
+	private SchematicBox.Line[] BlowlineLines =>
+	[
+		new("Pressure", $"{BlowlinePressurePsi:0.0} psi"),
+		new("Transfer", $"{TransferRateLbPerSec:0.0} lb/s"),
+	];
+
+	private SchematicBox.Line[] DestinationTankLines =>
+	[
+		new("Weight", $"{DestinationTankWeight:0.#} lb"),
+		new("Full", IsFull ? "YES" : "no"),
+	];
+
+	private SchematicBox.Line[] BlowerLines =>
+	[
+		new("Enable", BlowerRunning ? "1" : "0"),
+		new("Load", $"{BlowerMotorPercentFla:0.0}%"),
+		new("P cmd", $"{BlowlinePressureCmdPsi:0.0} psi"),
+	];
+}
