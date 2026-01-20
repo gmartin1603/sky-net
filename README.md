@@ -43,6 +43,31 @@ Telemetry query endpoints (JSON snapshots):
 - `/api/telemetry/{simId}/recent?take=200`
 - `/api/telemetry/stats`
 
+### Docker live rebuild/watch (dev)
+
+Docker containers can’t “pull the latest build” of your *local* code changes automatically.
+Pulling only updates images from a registry; for local edits you either need to rebuild the image, or mount your source into a container and rebuild inside it.
+
+This repo includes an opt-in dev override file `docker-compose.dev.yml` that runs `dotnet watch` inside SDK containers:
+
+- Start dev watch stack: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build`
+- Open dashboard (dev): `http://localhost:5170`
+
+Note: `docker-compose.dev.yml` runs the dev containers as your host user (`UID/GID`) to avoid root-owned build artifacts on bind mounts. On Linux this is automatic; if needed you can set `UID`/`GID` in your shell environment.
+
+In this mode the *containers stay running* — `dotnet watch` recompiles/restarts the app process inside the container when files change. For UI changes you typically just refresh the browser; you shouldn’t need to `docker compose down/up` for every edit.
+
+### Debugging from a container (daemon)
+
+The dev watch daemon image includes `vsdbg`, so you can attach VS Code to the running process:
+
+- Start/attach: use the VS Code launch profile **Attach Daemon (docker dev watch)**.
+- It will start the dev watch stack (if needed) and prompt you to pick the `dotnet` process inside the container.
+
+If you prefer VS Code tasks:
+- `docker: up (stack) + open dashboard` (prod-style compose, dashboard on `:8080`)
+- `docker: up (stack, dev watch) + open dashboard` (dev watch compose, dashboard on `:5170`)
+
 ## VS Code
 
 - Tasks: Build/Test and run targets are in `.vscode/tasks.json`.
