@@ -59,53 +59,72 @@ else
 
 	<h2>Trends</h2>
 	<div style="display:flex; gap: 1rem; flex-wrap: wrap;">
-		<LineChart Title="Downstream Pressure" SubTitle="psi" Stroke="#d62728" Points="@_pressureSeries" YFormat="0.0" />
-		<LineChart Title="Actuator Position" SubTitle="pos" Stroke="#1f77b4" Points="@_positionSeries" YFormat="0.000" />
-		<LineChart Title="Valve Flow" SubTitle="gpm" Stroke="#2ca02c" Points="@_flowSeries" YFormat="0.0" />
+		<LineChart Title="@_chart1Title" SubTitle="@_chart1Unit" Stroke="#d62728" Points="@_pressureSeries" YFormat="@_chart1Format" />
+		<LineChart Title="@_chart2Title" SubTitle="@_chart2Unit" Stroke="#1f77b4" Points="@_positionSeries" YFormat="@_chart2Format" />
+		<LineChart Title="@_chart3Title" SubTitle="@_chart3Unit" Stroke="#2ca02c" Points="@_flowSeries" YFormat="@_chart3Format" />
 	</div>
+}
 
-	<h2>Parameters</h2>
-	@if (_parameterDefinitions is null)
-	{
-		<p>Loading parameter definitions...</p>
-	}
-	else
-	{
-		<table class="table">
-			<thead>
-				<tr>
-					<th>Name</th>
-					<th>Value</th>
-					<th>Min</th>
-					<th>Max</th>
-					<th>Set</th>
-					<th>Description</th>
-				</tr>
-			</thead>
-			<tbody>
-				@foreach (var def in _parameterDefinitions)
+<h2>Parameters</h2>
+@if (_parameterDefinitions is null)
+{
+	<p>Loading parameter definitions...</p>
+}
+else
+{
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th>Value</th>
+				<th>Min</th>
+				<th>Max</th>
+				<th>Set</th>
+				<th>Description</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var def in _parameterDefinitions)
+			{
+				var snap = _tableSnapshot ?? _uiSnapshot;
+				double current;
+				if (snap is not null && snap.Parameters.TryGetValue(def.Name, out var vSnap))
 				{
-					var snap = _tableSnapshot ?? _uiSnapshot;
-					var current = snap.Parameters.TryGetValue(def.Name, out var v) ? v : double.NaN;
-					_parameterEdits.TryGetValue(def.Name, out var edit);
-
-					<tr>
-						<td><code>@def.Name</code></td>
-						<td>@current.ToString("0.###")</td>
-						<td>@(def.MinValue?.ToString("0.###") ?? "-")</td>
-						<td>@(def.MaxValue?.ToString("0.###") ?? "-")</td>
-						<td style="white-space: nowrap;">
-							<input type="number" step="any" style="width: 120px;" value="@edit" @onchange="e => OnEditChanged(def.Name, e)" />
-							<button style="margin-left: 0.25rem;" @onclick="() => ApplyParameter(def.Name)">Set</button>
-						</td>
-						<td>@def.Description</td>
-					</tr>
+					current = vSnap;
 				}
-			</tbody>
-		</table>
-	}
+				else if (_lastParameterValues.TryGetValue(def.Name, out var vPoll))
+				{
+					current = vPoll;
+				}
+				else
+				{
+					current = double.NaN;
+				}
+				_parameterEdits.TryGetValue(def.Name, out var edit);
 
-	<h2>All Signals</h2>
+				<tr>
+					<td><code>@def.Name</code></td>
+					<td>@current.ToString("0.###")</td>
+					<td>@(def.MinValue?.ToString("0.###") ?? "-")</td>
+					<td>@(def.MaxValue?.ToString("0.###") ?? "-")</td>
+					<td style="white-space: nowrap;">
+						<input type="number" step="any" style="width: 120px;" value="@edit" @onchange="e => OnEditChanged(def.Name, e)" />
+						<button style="margin-left: 0.25rem;" @onclick="() => ApplyParameter(def.Name)">Set</button>
+					</td>
+					<td>@def.Description</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+<h2>All Signals</h2>
+@if (_sortedSignals.Length == 0)
+{
+	<p>No signals yet.</p>
+}
+else
+{
 	<table class="table">
 		<thead>
 			<tr>
@@ -131,7 +150,7 @@ else
 	private readonly object _seriesLock = new();
 	private const int MaxPoints = 600; // ~30s at ~20Hz telemetry
 
-	private readonly string[] _keySignals =
+	private string[] _keySignals =
 	[
 		"DownstreamPressurePsi",
 		"DownstreamPressureSensorPsi",
@@ -139,6 +158,21 @@ else
 		"ActuatorPosition",
 		"ActuatorVelocity",
 	];
+
+	private string _chart1Title = "Downstream Pressure";
+	private string? _chart1Unit = "psi";
+	private string _chart1SignalKey = "DownstreamPressurePsi";
+	private string _chart1Format = "0.0";
+
+	private string _chart2Title = "Actuator Position";
+	private string? _chart2Unit = "pos";
+	private string _chart2SignalKey = "ActuatorPosition";
+	private string _chart2Format = "0.000";
+
+	private string _chart3Title = "Valve Flow";
+	private string? _chart3Unit = "gpm";
+	private string _chart3SignalKey = "ValveFlowGpm";
+	private string _chart3Format = "0.0";
 
 	private LineChart.Point[] _pressureSeries = Array.Empty<LineChart.Point>();
 	private LineChart.Point[] _positionSeries = Array.Empty<LineChart.Point>();
@@ -148,14 +182,19 @@ else
 	private readonly List<LineChart.Point> _flowPoints = new(MaxPoints);
 
 	private TelemetrySnapshot? _latestSnapshot;
+	private long _latestSnapshotSeq;
 	private TelemetrySnapshot? _uiSnapshot;
 	private TelemetrySnapshot? _tableSnapshot;
+	private DateTimeOffset _lastSnapshotAt = DateTimeOffset.MinValue;
 	private long _lastUiTick = -1;
+	private long _lastRenderedSnapshotSeq = -1;
 	private DateTimeOffset _lastTableRefreshAt = DateTimeOffset.MinValue;
 	private KeyValuePair<string, double>[] _sortedSignals = Array.Empty<KeyValuePair<string, double>>();
 	private SimStatus? _status;
 	private ParameterDefinitionDto[]? _parameterDefinitions;
 	private readonly Dictionary<string, double> _parameterEdits = new(StringComparer.OrdinalIgnoreCase);
+	private readonly Dictionary<string, double> _lastParameterValues = new(StringComparer.OrdinalIgnoreCase);
+	private readonly Dictionary<string, double> _lastSignalValues = new(StringComparer.OrdinalIgnoreCase);
 	private string? _error;
 	private CancellationTokenSource? _cts;
 	private Task? _pollTask;
@@ -185,6 +224,16 @@ else
 
 		_currentSimId = SimId;
 		_error = null;
+		_uiSnapshot = null;
+		_tableSnapshot = null;
+		_sortedSignals = Array.Empty<KeyValuePair<string, double>>();
+		Volatile.Write(ref _latestSnapshot, null);
+		Volatile.Write(ref _latestSnapshotSeq, 0);
+		_lastSnapshotAt = DateTimeOffset.MinValue;
+		_lastUiTick = -1;
+		_lastRenderedSnapshotSeq = -1;
+
+		ConfigureViewForSim(SimId);
 
 		// If we have cached UI state, show it immediately (useful when sim is paused).
 		if (ViewCache.TryGet(SimId, out var state))
@@ -201,6 +250,7 @@ else
 			if (snap.LatestSnapshot is not null)
 			{
 				Volatile.Write(ref _latestSnapshot, snap.LatestSnapshot);
+				Interlocked.Increment(ref _latestSnapshotSeq);
 				_uiSnapshot = snap.LatestSnapshot;
 				_tableSnapshot = snap.LatestSnapshot;
 				_lastUiTick = snap.LatestSnapshot.Tick;
@@ -214,6 +264,7 @@ else
 		else if (Hub.TryGetLatestSnapshot(SimId, out var cachedHubSnapshot))
 		{
 			Volatile.Write(ref _latestSnapshot, cachedHubSnapshot);
+			Interlocked.Increment(ref _latestSnapshotSeq);
 			_uiSnapshot = cachedHubSnapshot;
 			_tableSnapshot = cachedHubSnapshot;
 			_lastUiTick = cachedHubSnapshot.Tick;
@@ -230,6 +281,38 @@ else
 		{
 			_parameterDefinitions = await Api.GetParameterDefinitionsAsync(SimId, _cts.Token);
 			var values = await Api.GetParameterValuesAsync(SimId, _cts.Token);
+			var signals = await Api.GetSignalsAsync(SimId, _cts.Token);
+
+			_lastParameterValues.Clear();
+			foreach (var kvp in values)
+			{
+				_lastParameterValues[kvp.Key] = kvp.Value;
+			}
+
+			_lastSignalValues.Clear();
+			foreach (var kvp in signals)
+			{
+				_lastSignalValues[kvp.Key] = kvp.Value;
+			}
+
+			_sortedSignals = signals
+				.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase)
+				.ToArray();
+
+			// If SignalR is down or the sim is paused, still render a snapshot based on polled data.
+			try { _status = await Api.GetStatusAsync(SimId, _cts.Token); } catch { /* ignore */ }
+			var polledSnapshot = new TelemetrySnapshot(
+				SimId: SimId,
+				SchemaVersion: 0,
+				Tick: _status?.Tick ?? 0,
+				TimeSeconds: _status?.TimeSeconds ?? 0,
+				Parameters: values,
+				Signals: signals);
+			Volatile.Write(ref _latestSnapshot, polledSnapshot);
+			Interlocked.Increment(ref _latestSnapshotSeq);
+			_uiSnapshot = polledSnapshot;
+			_tableSnapshot = polledSnapshot;
+			_lastTableRefreshAt = DateTimeOffset.UtcNow;
 
 			// Merge server values into cached edits (but keep any user-entered drafts).
 			var viewState = ViewCache.GetOrCreate(SimId);
@@ -267,6 +350,8 @@ else
 			return;
 		}
 		Volatile.Write(ref _latestSnapshot, snapshot);
+		Interlocked.Increment(ref _latestSnapshotSeq);
+		_lastSnapshotAt = DateTimeOffset.UtcNow;
 		ViewCache.GetOrCreate(snapshot.SimId).SetSnapshot(snapshot);
 	}
 
@@ -278,15 +363,18 @@ else
 			while (await timer.WaitForNextTickAsync(cancellationToken))
 			{
 				var snapshot = Volatile.Read(ref _latestSnapshot);
+				var seq = Volatile.Read(ref _latestSnapshotSeq);
 				if (snapshot is null)
 				{
 					continue;
 				}
 
-				if (snapshot.Tick == _lastUiTick)
+				if (seq == _lastRenderedSnapshotSeq)
 				{
 					continue;
 				}
+
+				_lastRenderedSnapshotSeq = seq;
 
 				_lastUiTick = snapshot.Tick;
 				_uiSnapshot = snapshot;
@@ -294,9 +382,9 @@ else
 				lock (_seriesLock)
 				{
 					var t = snapshot.TimeSeconds;
-					Append(_pressurePoints, t, snapshot.Signals.GetValueOrDefault("DownstreamPressurePsi"));
-					Append(_positionPoints, t, snapshot.Signals.GetValueOrDefault("ActuatorPosition"));
-					Append(_flowPoints, t, snapshot.Signals.GetValueOrDefault("ValveFlowGpm"));
+					Append(_pressurePoints, t, snapshot.Signals.GetValueOrDefault(_chart1SignalKey));
+					Append(_positionPoints, t, snapshot.Signals.GetValueOrDefault(_chart2SignalKey));
+					Append(_flowPoints, t, snapshot.Signals.GetValueOrDefault(_chart3SignalKey));
 
 					_pressureSeries = _pressurePoints.ToArray();
 					_positionSeries = _positionPoints.ToArray();
@@ -352,6 +440,43 @@ else
 				if (!string.IsNullOrWhiteSpace(simId))
 				{
 					_status = await Api.GetStatusAsync(simId, cancellationToken);
+
+					// Fallback: if live snapshots aren't arriving, poll so the page stays live.
+					if ((DateTimeOffset.UtcNow - _lastSnapshotAt) > TimeSpan.FromSeconds(1))
+					{
+						var parameters = await Api.GetParameterValuesAsync(simId, cancellationToken);
+						var signals = await Api.GetSignalsAsync(simId, cancellationToken);
+
+						_lastParameterValues.Clear();
+						foreach (var kvp in parameters)
+						{
+							_lastParameterValues[kvp.Key] = kvp.Value;
+						}
+
+						_lastSignalValues.Clear();
+						foreach (var kvp in signals)
+						{
+							_lastSignalValues[kvp.Key] = kvp.Value;
+						}
+
+						_sortedSignals = signals
+							.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase)
+							.ToArray();
+
+						var polledSnapshot = new TelemetrySnapshot(
+							SimId: simId,
+							SchemaVersion: 0,
+							Tick: _status.Tick,
+							TimeSeconds: _status.TimeSeconds,
+							Parameters: parameters,
+							Signals: signals);
+
+						Volatile.Write(ref _latestSnapshot, polledSnapshot);
+						Interlocked.Increment(ref _latestSnapshotSeq);
+						_uiSnapshot = polledSnapshot;
+						_tableSnapshot = polledSnapshot;
+						_lastSnapshotAt = DateTimeOffset.UtcNow;
+					}
 				}
 				await InvokeAsync(StateHasChanged);
 			}
@@ -361,6 +486,65 @@ else
 			}
 
 			await Task.Delay(500, cancellationToken);
+		}
+	}
+
+	private void ConfigureViewForSim(string simId)
+	{
+		if (string.Equals(simId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
+		{
+			_keySignals =
+			[
+				"BlowlinePressurePsi",
+				"AirlockSpeedHz",
+				"TransferRateLbPerSec",
+				"SourceTankWeightLb",
+				"DestinationTankWeightLb",
+				"BlowerMotorPercentFla",
+				"IsStarved",
+				"IsFull",
+			];
+
+			_chart1Title = "Blowline Pressure";
+			_chart1Unit = "psi";
+			_chart1SignalKey = "BlowlinePressurePsi";
+			_chart1Format = "0.0";
+
+			_chart2Title = "Transfer Rate";
+			_chart2Unit = "lb/s";
+			_chart2SignalKey = "TransferRateLbPerSec";
+			_chart2Format = "0.0";
+
+			_chart3Title = "Blower Motor";
+			_chart3Unit = "% FLA";
+			_chart3SignalKey = "BlowerMotorPercentFla";
+			_chart3Format = "0.0";
+		}
+		else
+		{
+			_keySignals =
+			[
+				"DownstreamPressurePsi",
+				"DownstreamPressureSensorPsi",
+				"ValveFlowGpm",
+				"ActuatorPosition",
+				"ActuatorVelocity",
+			];
+
+			_chart1Title = "Downstream Pressure";
+			_chart1Unit = "psi";
+			_chart1SignalKey = "DownstreamPressurePsi";
+			_chart1Format = "0.0";
+
+			_chart2Title = "Actuator Position";
+			_chart2Unit = "pos";
+			_chart2SignalKey = "ActuatorPosition";
+			_chart2Format = "0.000";
+
+			_chart3Title = "Valve Flow";
+			_chart3Unit = "gpm";
+			_chart3SignalKey = "ValveFlowGpm";
+			_chart3Format = "0.0";
 		}
 	}
 

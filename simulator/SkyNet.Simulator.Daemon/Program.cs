@@ -93,6 +93,12 @@ builder.Services.AddSingleton(sp =>
 		description: "Minimal demo system used for quick validation.",
 		createSystem: ps => new DemoHydraulicSystem(ps)));
 
+	sims.Add(Create(
+		id: "tank-transfer",
+		name: "Tank Transfer",
+		description: "Granular transfer through rotary airlock into a blowline with blower load.",
+		createSystem: ps => new TankTransferSystem(ps)));
+
 	return new SimulationRegistry(sims, defaultActiveId: "hydraulic-training");
 });
 
