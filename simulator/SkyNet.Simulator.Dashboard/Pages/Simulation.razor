@@ -345,7 +345,9 @@ else
 		}
 		catch (Exception ex)
 		{
-			_error = ex.Message;
+			_error = ex.InnerException is null
+				? ex.Message
+				: $"{ex.Message} - {ex.InnerException.Message}";
 		}
 	}
 

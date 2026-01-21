@@ -10,6 +10,7 @@ public sealed class SimHubClient : IAsyncDisposable
 	private string? _joinedSimId;
 	private readonly Dictionary<string, TelemetrySnapshot> _latestBySimId = new(StringComparer.OrdinalIgnoreCase);
 	private readonly object _latestLock = new();
+	private static readonly TimeSpan DefaultConnectTimeout = TimeSpan.FromSeconds(5);
 
 	public SimHubClient(DaemonClientOptions options)
 	{
@@ -67,6 +68,12 @@ public sealed class SimHubClient : IAsyncDisposable
 			return;
 		}
 
+		// Only an explicitly disconnected connection can be started.
+		if (_connection.State != HubConnectionState.Disconnected)
+		{
+			return;
+		}
+
 		try
 		{
 			await _connection.StartAsync(cancellationToken).ConfigureAwait(false);
@@ -80,18 +87,38 @@ public sealed class SimHubClient : IAsyncDisposable
 		}
 	}
 
-	public async Task JoinSimulationAsync(string simId, CancellationToken cancellationToken = default)
+	private async Task EnsureConnectedAsync(CancellationToken cancellationToken)
 	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(simId);
-		if (_connection is null)
-		{
-			await StartAsync(cancellationToken).ConfigureAwait(false);
-		}
+		await StartAsync(cancellationToken).ConfigureAwait(false);
 
 		if (_connection is null)
 		{
 			throw new InvalidOperationException("Hub connection not initialized.");
 		}
+
+		if (_connection.State == HubConnectionState.Connected)
+		{
+			return;
+		}
+
+		var startedAt = DateTimeOffset.UtcNow;
+		while (_connection.State != HubConnectionState.Connected)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+
+			if (DateTimeOffset.UtcNow - startedAt > DefaultConnectTimeout)
+			{
+				throw new TimeoutException($"Timed out waiting for SignalR connection to connect. State={_connection.State}.");
+			}
+
+			await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	public async Task JoinSimulationAsync(string simId, CancellationToken cancellationToken = default)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(simId);
+		await EnsureConnectedAsync(cancellationToken).ConfigureAwait(false);
 
 		HubConnection conn = _connection!;
 
