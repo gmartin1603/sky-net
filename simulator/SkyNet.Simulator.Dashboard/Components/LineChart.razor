@@ -2,7 +2,7 @@
 
 @using System.Globalization
 
-<div style="border: 1px solid #ddd; border-radius: 6px; padding: 0.75rem;">
+<div class="chart-panel">
 	<div style="display:flex; justify-content: space-between; align-items: baseline; gap: 1rem;">
 		<div>
 			<b>@Title</b>
@@ -20,7 +20,7 @@
 	</div>
 
 	<svg width="@Width" height="@Height" viewBox="0 0 @Width @Height" xmlns:svg="http://www.w3.org/2000/svg" style="display:block; margin-top: 0.5rem;">
-		<rect x="0" y="0" width="@Width" height="@Height" fill="white" />
+		<rect x="0" y="0" width="@Width" height="@Height" fill="var(--chart-bg)" />
 
 		@{
 			const double padL = 42;
@@ -33,14 +33,14 @@
 		}
 
 		<!-- Axes -->
-		<line x1="@padL" y1="@padT" x2="@padL" y2="@(Height - padB)" stroke="#bbb" stroke-width="1" />
-		<line x1="@padL" y1="@(Height - padB)" x2="@(Width - padR)" y2="@(Height - padB)" stroke="#bbb" stroke-width="1" />
+		<line x1="@padL" y1="@padT" x2="@padL" y2="@(Height - padB)" stroke="var(--chart-axis)" stroke-width="1" />
+		<line x1="@padL" y1="@(Height - padB)" x2="@(Width - padR)" y2="@(Height - padB)" stroke="var(--chart-axis)" stroke-width="1" />
 
 		<!-- Y labels -->
 		@if (Points.Count > 0)
 		{
-			<svg:text x="@padL" y="@(padT + 10)" text-anchor="end" font-size="10" fill="#666">@_yMaxText</svg:text>
-			<svg:text x="@padL" y="@(Height - padB)" text-anchor="end" font-size="10" fill="#666">@_yMinText</svg:text>
+			<svg:text x="@padL" y="@(padT + 10)" text-anchor="end" font-size="10" fill="var(--chart-label)">@_yMaxText</svg:text>
+			<svg:text x="@padL" y="@(Height - padB)" text-anchor="end" font-size="10" fill="var(--chart-label)">@_yMinText</svg:text>
 		}
 
 		<!-- Line -->

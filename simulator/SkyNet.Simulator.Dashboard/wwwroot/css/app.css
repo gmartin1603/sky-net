@@ -1,5 +1,55 @@
+:root {
+    --app-bg: #ffffff;
+    --app-fg: #212529;
+    --app-muted: #6c757d;
+    --app-link: #0071c1;
+
+    --app-surface: #f8f9fa;
+    --app-border: rgba(0, 0, 0, 0.12);
+
+    --schematic-bg-on: #f3fff5;
+    --schematic-bg-off: #ffffff;
+    --schematic-border-on: #2ca02c;
+    --schematic-border-off: #bbbbbb;
+    --schematic-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --schematic-flow-on: #1f77b4;
+    --schematic-flow-off: #bbbbbb;
+
+    --chart-bg: #ffffff;
+    --chart-border: rgba(0, 0, 0, 0.15);
+    --chart-axis: #bbbbbb;
+    --chart-label: #666666;
+}
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+
+    --app-bg: #0b1220;
+    --app-fg: #e6eaf2;
+    --app-muted: #a7b0c0;
+    --app-link: #7db4ff;
+
+    --app-surface: #111b2e;
+    --app-border: rgba(255, 255, 255, 0.14);
+
+    --schematic-bg-on: rgba(46, 204, 113, 0.10);
+    --schematic-bg-off: rgba(255, 255, 255, 0.04);
+    --schematic-border-on: rgba(46, 204, 113, 0.85);
+    --schematic-border-off: rgba(255, 255, 255, 0.20);
+    --schematic-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    --schematic-flow-on: #7db4ff;
+    --schematic-flow-off: rgba(255, 255, 255, 0.28);
+
+    --chart-bg: rgba(255, 255, 255, 0.03);
+    --chart-border: rgba(255, 255, 255, 0.14);
+    --chart-axis: rgba(255, 255, 255, 0.22);
+    --chart-label: rgba(255, 255, 255, 0.70);
+}
+
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: var(--app-bg);
+    color: var(--app-fg);
 }
 
 h1:focus {
@@ -7,7 +57,73 @@ h1:focus {
 }
 
 a, .btn-link {
-    color: #0071c1;
+    color: var(--app-link);
+}
+
+/* Bootstrap surface tweaks for dark mode */
+:root[data-theme='dark'] .card,
+:root[data-theme='dark'] .modal-content,
+:root[data-theme='dark'] .dropdown-menu {
+    background-color: var(--app-surface);
+    border-color: var(--app-border);
+    color: var(--app-fg);
+}
+
+:root[data-theme='dark'] .table {
+    color: var(--app-fg);
+}
+
+:root[data-theme='dark'] .form-control,
+:root[data-theme='dark'] .form-select {
+    background-color: rgba(17, 27, 46, 0.85);
+    border-color: var(--app-border);
+    color: var(--app-fg);
+}
+
+:root[data-theme='dark'] .form-control::placeholder {
+    color: var(--app-muted);
+}
+
+:root[data-theme='dark'] .text-muted {
+    color: var(--app-muted) !important;
+}
+
+/* Schematic boxes */
+.schematic-box {
+    border: 2px solid var(--schematic-border-off);
+    border-radius: 10px;
+    padding: 0.75rem;
+    background: var(--schematic-bg-off);
+    box-shadow: var(--schematic-shadow);
+    user-select: none;
+    min-width: 220px;
+    color: var(--app-fg);
+}
+
+.schematic-box.schematic-on {
+    border-color: var(--schematic-border-on);
+    background: var(--schematic-bg-on);
+}
+
+.schematic-box.schematic-clickable:hover {
+    filter: brightness(1.03);
+}
+
+/* Charts */
+.chart-panel {
+    border: 1px solid var(--chart-border);
+    border-radius: 6px;
+    padding: 0.75rem;
+    background: transparent;
+}
+
+/* Key signal tiles */
+.signal-tile {
+    border: 1px solid var(--app-border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    min-width: 200px;
+    background: var(--app-surface);
 }
 
 .btn-primary {

@@ -62,6 +62,29 @@
       "request": "launch",
       "url": "http://localhost:5170",
       "webRoot": "${workspaceFolder}/simulator/SkyNet.Simulator.Dashboard"
+    },
+    {
+      "name": "Open Dashboard (docker, http://localhost:8080)",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "docker: up (stack)",
+      "url": "http://localhost:8080",
+      "webRoot": "${workspaceFolder}/simulator/SkyNet.Simulator.Dashboard"
+    },
+    {
+      "name": "Attach Daemon (docker dev watch)",
+      "type": "coreclr",
+      "request": "attach",
+      "preLaunchTask": "docker: up (stack, dev watch)",
+      "processId": "${command:pickRemoteProcess}",
+      "pipeTransport": {
+        "pipeProgram": "docker",
+        "pipeArgs": ["exec", "-i", "skynet-daemon"],
+        "debuggerPath": "/vsdbg/vsdbg"
+      },
+      "sourceFileMap": {
+        "/src": "${workspaceFolder}"
+      }
     }
   ],
   "compounds": [

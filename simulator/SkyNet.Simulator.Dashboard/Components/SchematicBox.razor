@@ -1,0 +1,46 @@
+<div class="schematic-box @(IsOn ? "schematic-on" : "schematic-off") @(IsClickable && OnClick.HasDelegate ? "schematic-clickable" : "")" style="@BoxStyle" @onclick="HandleClick">
+	<div style="display:flex; justify-content: space-between; align-items: baseline; gap: 0.5rem;">
+		<div style="font-weight: 700;">@Title</div>
+		@if (!string.IsNullOrWhiteSpace(StatusText))
+		{
+			<div style="font-size: 0.85rem; opacity: 0.8;">@StatusText</div>
+		}
+	</div>
+
+	@if (Lines is not null && Lines.Length > 0)
+	{
+		<div style="margin-top: 0.5rem; display: grid; gap: 0.25rem;">
+			@foreach (var line in Lines)
+			{
+				<div style="display:flex; justify-content: space-between; gap: 0.75rem; font-size: 0.9rem;">
+					<div style="opacity: 0.8;">@line.Label</div>
+					<div style="font-variant-numeric: tabular-nums;">@line.Value</div>
+				</div>
+			}
+		</div>
+	}
+</div>
+
+@code {
+	[Parameter] public string Title { get; set; } = string.Empty;
+	[Parameter] public string? StatusText { get; set; }
+	[Parameter] public bool IsOn { get; set; }
+	[Parameter] public bool IsClickable { get; set; } = true;
+	[Parameter] public EventCallback OnClick { get; set; }
+	[Parameter] public Line[]? Lines { get; set; }
+
+	private string BoxStyle
+		=> $"cursor: {(IsClickable && OnClick.HasDelegate ? "pointer" : "default")};";
+
+	private async Task HandleClick()
+	{
+		if (!IsClickable || !OnClick.HasDelegate)
+		{
+			return;
+		}
+
+		await OnClick.InvokeAsync();
+	}
+
+	public sealed record Line(string Label, string Value);
+}

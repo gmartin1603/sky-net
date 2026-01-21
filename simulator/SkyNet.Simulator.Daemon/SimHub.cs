@@ -18,12 +18,14 @@ public sealed class SimHub : Hub
 	{
 		if (string.IsNullOrWhiteSpace(simId))
 		{
+			_logger.LogWarning("JoinSim called with empty simId. ConnectionId={ConnectionId}", Context.ConnectionId);
 			throw new HubException("simId is required.");
 		}
 
 		simId = simId.Trim();
 		if (!_registry.TryGet(simId, out var slot))
 		{
+			_logger.LogWarning("JoinSim called with unknown simId {SimId}. ConnectionId={ConnectionId}", simId, Context.ConnectionId);
 			throw new HubException($"Unknown simulation '{simId}'.");
 		}
 

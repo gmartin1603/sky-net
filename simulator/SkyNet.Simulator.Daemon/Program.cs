@@ -23,7 +23,10 @@ builder.Services.AddCors(options =>
 		.AllowCredentials());
 });
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+	options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+});
 
 builder.Services.AddOptions<TelemetryStoreOptions>()
 	.Bind(builder.Configuration.GetSection(TelemetryStoreOptions.SectionName))

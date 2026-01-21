@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@inject SkyNet.Simulator.Dashboard.Services.ThemeService ThemeService
 
 <div class="page">
     @* Sidebar removed; nav is now in the top bar *@
@@ -11,6 +12,9 @@
             </div>
 
             <div class="top-links">
+                <button type="button" class="btn btn-sm btn-outline-light" @onclick="ToggleTheme">
+                    @(_isDark ? "Light mode" : "Dark mode")
+                </button>
                 <a href="about">About</a>
             </div>
         </div>
@@ -20,3 +24,25 @@
         </article>
     </main>
 </div>
+
+@code {
+    private bool _isDark;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        var theme = await ThemeService.GetAsync();
+        _isDark = string.Equals(theme, "dark", StringComparison.OrdinalIgnoreCase);
+        StateHasChanged();
+    }
+
+    private async Task ToggleTheme()
+    {
+        var theme = await ThemeService.ToggleAsync();
+        _isDark = string.Equals(theme, "dark", StringComparison.OrdinalIgnoreCase);
+    }
+}
