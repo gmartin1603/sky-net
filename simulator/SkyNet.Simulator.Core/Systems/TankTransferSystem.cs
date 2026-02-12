@@ -295,7 +295,6 @@ public sealed class TankTransferSystem : ISimSystem
 			new[]
 			{
 				new SignalDependency(SignalKeys.BlowlinePressureCommandPsi.Name, typeof(PressurePsi)),
-				new SignalDependency(SignalKeys.TransferRateLbPerSec.Name, typeof(MassRateLbPerSec)),
 				new SignalDependency(SignalKeys.AirlockSpeedHz.Name, typeof(FrequencyHz)),
 				new SignalDependency(SignalKeys.AirlockRunning.Name, typeof(Ratio)),
 				new SignalDependency(SignalKeys.BlowerRunning.Name, typeof(Ratio)),
