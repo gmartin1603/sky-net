@@ -1,0 +1,61 @@
+# Development overrides for docker-compose.yml
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# This replaces the production-style images with SDK containers running `dotnet watch`
+# so code changes rebuild/restart automatically.
+
+services:
+  daemon:
+    container_name: skynet-daemon
+    build:
+      context: .
+      dockerfile: simulator/SkyNet.Simulator.Daemon/Dockerfile.dev
+    working_dir: /src
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ./:/src
+      - skynet_nuget:/tmp/nuget
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      DOTNET_CLI_HOME: /tmp/dotnet_cli
+      NUGET_PACKAGES: /tmp/nuget
+      urls: http://0.0.0.0:5070
+      ConnectionStrings__SimulatorDb: Host=db;Port=5432;Database=skynet;Username=skynet;Password=skynet;Include Error Detail=true
+      TelemetryStore__Enabled: "true"
+      TelemetryStore__MaxRowsTotal: "200000"
+      TelemetryStore__WarnAtFraction: "0.9"
+      TelemetryStore__PruneBatchSize: "10000"
+      TelemetryStore__MaintenanceIntervalSeconds: "30"
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      ["dotnet", "watch", "--project", "simulator/SkyNet.Simulator.Daemon", "run", "--urls", "http://0.0.0.0:5070"]
+
+  dashboard:
+    container_name: skynet-dashboard
+    build:
+      context: .
+      dockerfile: simulator/SkyNet.Simulator.Dashboard/Dockerfile.dev
+    working_dir: /src
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ./:/src
+      - skynet_nuget:/tmp/nuget
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      DOTNET_CLI_HOME: /tmp/dotnet_cli
+      NUGET_PACKAGES: /tmp/nuget
+      ASPNETCORE_URLS: http://0.0.0.0:5170
+      DOTNET_ROLL_FORWARD: Major
+    ports:
+      - "5170:5170"
+    command:
+      ["dotnet", "watch", "--project", "simulator/SkyNet.Simulator.Dashboard", "run", "--urls", "http://0.0.0.0:5170"]
+
+volumes:
+  skynet_nuget:

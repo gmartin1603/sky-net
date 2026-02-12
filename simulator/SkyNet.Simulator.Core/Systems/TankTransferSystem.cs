@@ -23,6 +23,10 @@ public sealed class TankTransferSystem : ISimSystem
 		public static readonly ParameterKey<WeightLb> DestinationTankWeightLb = new("DestinationTankWeightLb");
 		public static readonly ParameterKey<WeightLb> DestinationTankCapacityLb = new("DestinationTankCapacityLb");
 
+		// Operator enable flags (0 or 1)
+		public static readonly ParameterKey<Ratio> BlowerEnable = new("BlowerEnable");
+		public static readonly ParameterKey<Ratio> AirlockEnable = new("AirlockEnable");
+
 		public static readonly ParameterKey<PressurePsi> BlowlinePressureCommandPsi = new("BlowlinePressureCommandPsi");
 		public static readonly ParameterKey<FrequencyHz> AirlockSpeedCommandHz = new("AirlockSpeedCommandHz");
 	}
@@ -43,6 +47,10 @@ public sealed class TankTransferSystem : ISimSystem
 
 		public static readonly SignalKey<Percent> BlowerMotorPercentFla = new("BlowerMotorPercentFla");
 
+		// Operator status flags (0 or 1)
+		public static readonly SignalKey<Ratio> BlowerRunning = new("BlowerRunning");
+		public static readonly SignalKey<Ratio> AirlockRunning = new("AirlockRunning");
+
 		// Flags (0 or 1)
 		public static readonly SignalKey<Ratio> IsStarved = new("IsStarved");
 		public static readonly SignalKey<Ratio> IsFull = new("IsFull");
@@ -56,6 +64,9 @@ public sealed class TankTransferSystem : ISimSystem
 		Parameters.Define(ParameterKeys.SourceTankWeightLb, WeightLb.From(20000), minValue: WeightLb.From(0), description: "Source tank inventory (lb). Can be adjusted live.");
 		Parameters.Define(ParameterKeys.DestinationTankWeightLb, WeightLb.From(5000), minValue: WeightLb.From(0), description: "Destination tank inventory (lb). Can be adjusted live.");
 		Parameters.Define(ParameterKeys.DestinationTankCapacityLb, WeightLb.From(40000), minValue: WeightLb.From(0), description: "Destination tank capacity (lb). Used for IsFull + clamping.");
+
+		Parameters.Define(ParameterKeys.BlowerEnable, Ratio.From(0), minValue: Ratio.From(0), maxValue: Ratio.From(1), description: "Operator blower enable (0..1). When disabled, blowline pressure decays and blower load is 0.");
+		Parameters.Define(ParameterKeys.AirlockEnable, Ratio.From(0), minValue: Ratio.From(0), maxValue: Ratio.From(1), description: "Operator airlock enable (0..1). When disabled, airlock speed decays and transfer stops.");
 
 		Parameters.Define(ParameterKeys.BlowlinePressureCommandPsi, PressurePsi.From(8), minValue: PressurePsi.From(0), maxValue: PressurePsi.From(25), description: "Blowline pressure setpoint (psi).");
 		Parameters.Define(ParameterKeys.AirlockSpeedCommandHz, FrequencyHz.From(8), minValue: FrequencyHz.From(0), maxValue: FrequencyHz.From(30), description: "Rotary airlock speed setpoint (Hz).");
@@ -72,11 +83,14 @@ public sealed class TankTransferSystem : ISimSystem
 		Signals.Set(SignalKeys.TransferRateCommandLbPerSec, MassRateLbPerSec.From(0));
 		Signals.Set(SignalKeys.TransferRateLbPerSec, MassRateLbPerSec.From(0));
 		Signals.Set(SignalKeys.BlowerMotorPercentFla, Percent.From(0));
+		Signals.Set(SignalKeys.BlowerRunning, Ratio.From(0));
+		Signals.Set(SignalKeys.AirlockRunning, Ratio.From(0));
 		Signals.Set(SignalKeys.IsStarved, Ratio.From(0));
 		Signals.Set(SignalKeys.IsFull, Ratio.From(0));
 
 		_system = new SimSystemBuilder()
 			.Add(new CommandSignalsComponent(Parameters, Signals))
+			.Add(new RunStateSignalsComponent(Parameters, Signals))
 			.Add(new AirlockDriveComponent(Signals))
 			.Add(new TransferSetpointComponent(Signals))
 			.Add(new TankInventoryComponent(Parameters, Signals))
@@ -106,19 +120,42 @@ public sealed class TankTransferSystem : ISimSystem
 		}
 	}
 
+	private sealed class RunStateSignalsComponent(ParameterStore parameters, SignalBus signals) : ISimComponent
+	{
+		public IReadOnlyCollection<SignalDependency> Writes { get; } =
+			new[]
+			{
+				new SignalDependency(SignalKeys.BlowerRunning.Name, typeof(Ratio)),
+				new SignalDependency(SignalKeys.AirlockRunning.Name, typeof(Ratio)),
+			};
+
+		public void Tick(SimTime time, double dtSeconds)
+		{
+			var blowerEnable = parameters.Get(ParameterKeys.BlowerEnable).Value >= 0.5 ? 1.0 : 0.0;
+			var airlockEnable = parameters.Get(ParameterKeys.AirlockEnable).Value >= 0.5 ? 1.0 : 0.0;
+			signals.Set(SignalKeys.BlowerRunning, Ratio.From(blowerEnable));
+			signals.Set(SignalKeys.AirlockRunning, Ratio.From(airlockEnable));
+		}
+	}
+
 	private sealed class AirlockDriveComponent(SignalBus signals) : ISimComponent
 	{
 		private double _speedHz;
 
 		public IReadOnlyCollection<SignalDependency> Reads { get; } =
-			new[] { new SignalDependency(SignalKeys.AirlockSpeedCommandHz.Name, typeof(FrequencyHz)) };
+			new[]
+			{
+				new SignalDependency(SignalKeys.AirlockSpeedCommandHz.Name, typeof(FrequencyHz)),
+				new SignalDependency(SignalKeys.AirlockRunning.Name, typeof(Ratio)),
+			};
 
 		public IReadOnlyCollection<SignalDependency> Writes { get; } =
 			new[] { new SignalDependency(SignalKeys.AirlockSpeedHz.Name, typeof(FrequencyHz)) };
 
 		public void Tick(SimTime time, double dtSeconds)
 		{
-			var cmd = signals.Get(SignalKeys.AirlockSpeedCommandHz).Value;
+			var running = signals.Get(SignalKeys.AirlockRunning).Value >= 0.5;
+			var cmd = running ? signals.Get(SignalKeys.AirlockSpeedCommandHz).Value : 0.0;
 
 			// First-order lag to represent drive inertia.
 			const double tauSeconds = 0.6;
@@ -137,6 +174,8 @@ public sealed class TankTransferSystem : ISimSystem
 			{
 				new SignalDependency(SignalKeys.AirlockSpeedHz.Name, typeof(FrequencyHz)),
 				new SignalDependency(SignalKeys.BlowlinePressureCommandPsi.Name, typeof(PressurePsi)),
+				new SignalDependency(SignalKeys.AirlockRunning.Name, typeof(Ratio)),
+				new SignalDependency(SignalKeys.BlowerRunning.Name, typeof(Ratio)),
 			};
 
 		public IReadOnlyCollection<SignalDependency> Writes { get; } =
@@ -144,6 +183,14 @@ public sealed class TankTransferSystem : ISimSystem
 
 		public void Tick(SimTime time, double dtSeconds)
 		{
+			var airlockRunning = signals.Get(SignalKeys.AirlockRunning).Value >= 0.5;
+			var blowerRunning = signals.Get(SignalKeys.BlowerRunning).Value >= 0.5;
+			if (!airlockRunning || !blowerRunning)
+			{
+				signals.Set(SignalKeys.TransferRateCommandLbPerSec, MassRateLbPerSec.From(0));
+				return;
+			}
+
 			var airlockHz = signals.Get(SignalKeys.AirlockSpeedHz).Value;
 			var pCmd = signals.Get(SignalKeys.BlowlinePressureCommandPsi).Value;
 
@@ -248,7 +295,9 @@ public sealed class TankTransferSystem : ISimSystem
 			new[]
 			{
 				new SignalDependency(SignalKeys.BlowlinePressureCommandPsi.Name, typeof(PressurePsi)),
-				new SignalDependency(SignalKeys.TransferRateLbPerSec.Name, typeof(MassRateLbPerSec)),
+				new SignalDependency(SignalKeys.AirlockSpeedHz.Name, typeof(FrequencyHz)),
+				new SignalDependency(SignalKeys.AirlockRunning.Name, typeof(Ratio)),
+				new SignalDependency(SignalKeys.BlowerRunning.Name, typeof(Ratio)),
 			};
 
 		public IReadOnlyCollection<SignalDependency> Writes { get; } =
@@ -256,13 +305,27 @@ public sealed class TankTransferSystem : ISimSystem
 
 		public void Tick(SimTime time, double dtSeconds)
 		{
-			var pCmd = Math.Max(0, signals.Get(SignalKeys.BlowlinePressureCommandPsi).Value);
-			var flow = Math.Max(0, signals.Get(SignalKeys.TransferRateLbPerSec).Value);
+			var blowerRunning = signals.Get(SignalKeys.BlowerRunning).Value >= 0.5;
+			if (!blowerRunning)
+			{
+				const double tauSecondsOff = 0.9;
+				var alphaOff = 1.0 - Math.Exp(-dtSeconds / tauSecondsOff);
+				_pressurePsi += (0.0 - _pressurePsi) * alphaOff;
+				signals.Set(SignalKeys.BlowlinePressurePsi, PressurePsi.From(_pressurePsi));
+				return;
+			}
 
-			// Simple load-induced drop: higher flow reduces achieved pressure.
-			// Scaled so that at ~30 lb/s you might lose a few psi.
-			var dropPsi = Math.Min(pCmd * 0.6, flow * 0.12);
-			var target = Math.Max(0, pCmd - dropPsi);
+			var pCmd = Math.Max(0, signals.Get(SignalKeys.BlowlinePressureCommandPsi).Value);
+			var airlockHz = Math.Max(0, signals.Get(SignalKeys.AirlockSpeedHz).Value);
+			var airlockRunning = signals.Get(SignalKeys.AirlockRunning).Value >= 0.5;
+
+			// Training-grade behavior: achieved pressure increases with airlock speed (conveying demand).
+			// When the airlock is off, pressure is intentionally kept at the lowest level.
+			const double maxHz = 30.0;
+			var speedNorm = Math.Clamp(airlockHz / maxHz, 0, 1);
+			var minFactor = airlockRunning ? 0.20 : 0.05;
+			var speedFactor = minFactor + (1.0 - minFactor) * speedNorm;
+			var target = pCmd * speedFactor;
 
 			const double tauSeconds = 0.9;
 			var alpha = 1.0 - Math.Exp(-dtSeconds / tauSeconds);
@@ -279,6 +342,7 @@ public sealed class TankTransferSystem : ISimSystem
 			{
 				new SignalDependency(SignalKeys.BlowlinePressurePsi.Name, typeof(PressurePsi)),
 				new SignalDependency(SignalKeys.TransferRateLbPerSec.Name, typeof(MassRateLbPerSec)),
+				new SignalDependency(SignalKeys.BlowerRunning.Name, typeof(Ratio)),
 			};
 
 		public IReadOnlyCollection<SignalDependency> Writes { get; } =
@@ -286,6 +350,13 @@ public sealed class TankTransferSystem : ISimSystem
 
 		public void Tick(SimTime time, double dtSeconds)
 		{
+			var blowerRunning = signals.Get(SignalKeys.BlowerRunning).Value >= 0.5;
+			if (!blowerRunning)
+			{
+				signals.Set(SignalKeys.BlowerMotorPercentFla, Percent.From(0));
+				return;
+			}
+
 			var p = Math.Max(0, signals.Get(SignalKeys.BlowlinePressurePsi).Value);
 			var flow = Math.Max(0, signals.Get(SignalKeys.TransferRateLbPerSec).Value);
 
