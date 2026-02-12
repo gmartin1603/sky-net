@@ -30,7 +30,8 @@
 	[Parameter] public Line[]? Lines { get; set; }
 
 	private string BoxStyle
-		=> $"border: 2px solid {(IsOn ? "#2ca02c" : "#bbb")}; border-radius: 10px; padding: 0.75rem; background: {(IsOn ? "#f3fff5" : "#fff")}; box-shadow: 0 1px 2px rgba(0,0,0,0.08); cursor: {(IsClickable && OnClick.HasDelegate ? "pointer" : "default")}; user-select: none; min-width: 220px; cursor: {(IsClickable && OnClick.HasDelegate ? "pointer" : "default")};";
+		=> $"border: 2px solid {(IsOn ? "#2ca02c" : "var(--mud-palette-divider)")}; border-radius: 10px; padding: 0.75rem; background: {(IsOn ? "var(--mud-palette-success-lighten, --mud-palette-surface)" : "var(--mud-palette-surface)")}; box-shadow: 0 1px 2px rgba(0,0,0,0.08); cursor: {(IsClickable && OnClick.HasDelegate ? "pointer" : "default")}; user-select: none; min-width: 220px;";
+
 
 	private async Task HandleClick()
 	{
