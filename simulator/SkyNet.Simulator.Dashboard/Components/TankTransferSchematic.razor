@@ -19,7 +19,7 @@ else
 
 			@{
 				var permitted = TransferPermitted; // user requested arrows represent 'permitted flow'
-				var color = permitted ? "#1f77b4" : "#bbb";
+				var color = permitted ? "var(--schematic-flow-on)" : "var(--schematic-flow-off)";
 				var strokeWidth = permitted ? 4 : 3;
 			}
 

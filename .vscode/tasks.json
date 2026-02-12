@@ -25,65 +25,86 @@
       "problemMatcher": []
     },
     {
-      "label": "run: daemon (http)",
+      "label": "docker: up (daemon)",
       "type": "shell",
-      "command": "dotnet",
-      "args": ["run", "--project", "simulator/SkyNet.Simulator.Daemon", "--launch-profile", "http"],
-      "options": {
-        "env": {
-          "ASPNETCORE_ENVIRONMENT": "Development",
-          "DOTNET_ROLL_FORWARD": "Major",
-          "ASPNETCORE_URLS": "http://localhost:5070"
-        }
-      },
+      "command": "docker",
+      "args": ["compose", "up", "--build", "daemon"],
       "isBackground": true,
-      "problemMatcher": [
-        {
-          "owner": "daemon",
-          "pattern": [{ "regexp": "^(.*)$", "message": 1 }],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": "^(\\s*Building\\.\\.\\.|\\s*Determining projects to restore\\.|\\s*info: Microsoft\\.Hosting\\.Lifetime\\[\\d+\\].*)$",
-            "endsPattern": "^\\s*Now listening on:.*$"
-          }
-        }
-      ]
+      "problemMatcher": []
     },
     {
-      "label": "run: dashboard (http)",
+      "label": "docker: up (dashboard)",
       "type": "shell",
-      "command": "dotnet",
-      "args": ["run", "--project", "simulator/SkyNet.Simulator.Dashboard", "--launch-profile", "http"],
-      "options": {
-        "env": {
-          "ASPNETCORE_ENVIRONMENT": "Development",
-          "DOTNET_ROLL_FORWARD": "Major",
-          "ASPNETCORE_URLS": "http://localhost:5170"
-        }
-      },
+      "command": "docker",
+      "args": ["compose", "up", "--build", "dashboard"],
       "isBackground": true,
-      "problemMatcher": [
-        {
-          "owner": "dashboard",
-          "pattern": [{ "regexp": "^(.*)$", "message": 1 }],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": "^(\\s*Building\\.\\.\\.|\\s*Determining projects to restore\\.|\\s*info: Microsoft\\.Hosting\\.Lifetime\\[\\d+\\].*)$",
-            "endsPattern": "^\\s*Now listening on:.*$"
-          }
-        }
-      ]
+      "problemMatcher": []
     },
     {
-      "label": "run: daemon + dashboard (http)",
-      "dependsOn": ["run: daemon (http)", "run: dashboard (http)"],
-      "dependsOrder": "parallel",
+      "label": "docker: up (stack)",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "up", "--build"],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: down",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "down"],
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: logs (follow)",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "logs", "-f", "--tail", "200"],
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: shell (daemon dev)",
+      "type": "shell",
+      "command": "docker",
+      "args": ["exec", "-it", "skynet-daemon", "bash"],
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: up (stack, dev watch)",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "-f", "docker-compose.yml", "-f", "docker-compose.dev.yml", "up", "--build"],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: down (dev watch)",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "-f", "docker-compose.yml", "-f", "docker-compose.dev.yml", "down"],
       "problemMatcher": []
     },
     {
       "label": "open: dashboard",
       "type": "shell",
 
+      "linux": {
+        "command": "xdg-open",
+        "args": ["http://localhost:8080"]
+      },
+      "osx": {
+        "command": "open",
+        "args": ["http://localhost:8080"]
+      },
+      "windows": {
+        "command": "cmd",
+        "args": ["/c", "start", "http://localhost:8080"]
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "open: dashboard (dev watch)",
+      "type": "shell",
       "linux": {
         "command": "xdg-open",
         "args": ["http://localhost:5170"]
@@ -99,8 +120,14 @@
       "problemMatcher": []
     },
     {
-      "label": "run: daemon + dashboard + open (http)",
-      "dependsOn": ["run: daemon + dashboard (http)", "open: dashboard"],
+      "label": "docker: up (stack) + open dashboard",
+      "dependsOn": ["docker: up (stack)", "open: dashboard"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: up (stack, dev watch) + open dashboard",
+      "dependsOn": ["docker: up (stack, dev watch)", "open: dashboard (dev watch)"],
       "dependsOrder": "sequence",
       "problemMatcher": []
     }

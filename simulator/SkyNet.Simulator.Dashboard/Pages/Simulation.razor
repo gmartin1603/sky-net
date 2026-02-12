@@ -50,7 +50,7 @@ else
 		@foreach (var key in _keySignals)
 		{
 			var value = _uiSnapshot.Signals.TryGetValue(key, out var v) ? v : double.NaN;
-			<div style="border: 1px solid #ccc; padding: 0.75rem; min-width: 200px;">
+			<div class="signal-tile">
 				<div style="font-size: 0.9rem; opacity: 0.8;">@key</div>
 				<div style="font-size: 1.5rem;"><b>@value.ToString("0.###")</b></div>
 			</div>
@@ -345,7 +345,9 @@ else
 		}
 		catch (Exception ex)
 		{
-			_error = ex.Message;
+			_error = ex.InnerException is null
+				? ex.Message
+				: $"{ex.Message} - {ex.InnerException.Message}";
 		}
 	}
 
