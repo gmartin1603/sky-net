@@ -29,6 +29,9 @@ services:
       TelemetryStore__WarnAtFraction: "0.9"
       TelemetryStore__PruneBatchSize: "10000"
       TelemetryStore__MaintenanceIntervalSeconds: "30"
+    depends_on:
+      db:
+        condition: service_healthy
     command:
       ["dotnet", "watch", "--project", "simulator/SkyNet.Simulator.Daemon", "run", "--urls", "http://0.0.0.0:5070"]
 
