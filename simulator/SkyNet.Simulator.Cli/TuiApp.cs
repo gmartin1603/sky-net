@@ -7,17 +7,63 @@ namespace SkyNet.Simulator.Cli;
 
 public sealed class TuiApp
 {
+	private enum ColorMode
+	{
+		Auto,
+		On,
+		Off,
+	}
+
+	private readonly record struct StyledSegment(string Text, ConsoleColor? Foreground);
+
+	private sealed class StyledLine
+	{
+		public StyledLine(params StyledSegment[] segments)
+		{
+			Segments = segments;
+			PlainText = string.Concat(segments.Select(segment => segment.Text));
+		}
+
+		public IReadOnlyList<StyledSegment> Segments { get; }
+
+		public string PlainText { get; }
+	}
+
+	private readonly record struct GaugeBarVisual(string Text, double Normalized);
+
 	private readonly SimApiClient _api;
 	private readonly SimHubClient _hub;
+	private readonly ColorMode _colorMode;
+	private readonly bool _colorEnabled;
 	private readonly object _snapshotLock = new();
+	private readonly Dictionary<string, GaugeRange> _signalGaugeRanges = new(StringComparer.OrdinalIgnoreCase);
 	private string[] _lastFrame = Array.Empty<string>();
 	private bool _frameInitialized;
 	private TelemetrySnapshot? _latestSnapshot;
+
+	private readonly record struct GaugeRange(double Min, double Max)
+	{
+		public GaugeRange Include(double value)
+		{
+			var min = Math.Min(Min, value);
+			var max = Math.Max(Max, value);
+			if (Math.Abs(max - min) < 1e-9)
+			{
+				var delta = Math.Max(Math.Abs(value) * 0.05, 0.001);
+				min = value - delta;
+				max = value + delta;
+			}
+
+			return new GaugeRange(min, max);
+		}
+	}
 
 	public TuiApp(SimApiClient api, SimHubClient hub)
 	{
 		_api = api;
 		_hub = hub;
+		_colorMode = ParseColorMode(Environment.GetEnvironmentVariable("SKYNET_TUI_COLOR"));
+		_colorEnabled = ResolveColorEnabled(_colorMode);
 	}
 
 	public async Task<int> RunAsync(CancellationToken cancellationToken = default)
@@ -105,6 +151,7 @@ public sealed class TuiApp
 	private async Task ShowSimulationScreenAsync(SimulationInfoDto simulation, CancellationToken cancellationToken)
 	{
 		ResetFrame();
+		_signalGaugeRanges.Clear();
 		var selectedParamIndex = 0;
 		string? notice = null;
 		DateTimeOffset? noticeUntil = null;
@@ -454,29 +501,35 @@ public sealed class TuiApp
 		int selectedIndex,
 		string? error)
 	{
-		var lines = new List<string>
+		var lines = new List<StyledLine>
 		{
-			"SkyNet Simulator TUI",
-			string.Empty,
-			"Select a simulation:",
-			string.Empty,
+			new StyledLine(Segment("SkyNet Simulator TUI", ConsoleColor.Cyan)),
+			new StyledLine(Segment(string.Empty)),
+			new StyledLine(Segment("Select a simulation:", ConsoleColor.Cyan)),
+			new StyledLine(Segment(string.Empty)),
 		};
 
 		for (var i = 0; i < simulations.Count; i++)
 		{
 			var sim = simulations[i];
-			var marker = i == selectedIndex ? ">" : " ";
+			var marker = i == selectedIndex
+				? Segment(">", ConsoleColor.Yellow)
+				: Segment(" ");
 			var activeTag = string.Equals(sim.Id, activeId, StringComparison.OrdinalIgnoreCase) ? " [active]" : string.Empty;
 			var description = string.IsNullOrWhiteSpace(sim.Description) ? string.Empty : $" - {sim.Description}";
-			lines.Add($"{marker} {sim.Name} ({sim.Id}){activeTag}{description}");
+			lines.Add(new StyledLine(
+				marker,
+				Segment($" {sim.Name} ({sim.Id})"),
+				Segment(activeTag, ConsoleColor.Green),
+				Segment(description)));
 		}
 
-		lines.Add(string.Empty);
-		lines.Add("Controls: Up/Down=Move  Enter=Open  R=Refresh  Q/Esc=Quit");
+		lines.Add(new StyledLine(Segment(string.Empty)));
+		lines.Add(new StyledLine(Segment("Controls: Up/Down=Move  Enter=Open  R=Refresh  Q/Esc=Quit", ConsoleColor.DarkGray)));
 		if (!string.IsNullOrWhiteSpace(error))
 		{
-			lines.Add(string.Empty);
-			lines.Add($"Error: {error}");
+			lines.Add(new StyledLine(Segment(string.Empty)));
+			lines.Add(new StyledLine(Segment($"Error: {error}", ConsoleColor.Red)));
 		}
 
 		RenderFrame(lines);
@@ -491,51 +544,98 @@ public sealed class TuiApp
 		int selectedParamIndex,
 		string? notice)
 	{
-		var lines = new List<string>
-		{
-			$"Simulation: {simulation.Name} ({simulation.Id})",
-			$"Tick: {status.Tick}  Time: {status.TimeSeconds:0.000}s  Step: {status.StepSeconds:0.000000}s  State: {(status.IsPaused ? "Paused" : "Running")}",
-			string.Empty,
-		};
+		var lines = new List<StyledLine>();
+		lines.Add(new StyledLine(Segment($"Simulation: {simulation.Name} ({simulation.Id})", ConsoleColor.Cyan)));
+		lines.Add(new StyledLine(
+			Segment($"Tick: {status.Tick}  Time: {status.TimeSeconds:0.000}s  Step: {status.StepSeconds:0.000000}s  State: "),
+			Segment(status.IsPaused ? "Paused" : "Running", status.IsPaused ? ConsoleColor.Yellow : ConsoleColor.Green)));
+		lines.Add(new StyledLine(Segment(string.Empty)));
+
+		UpdateSignalGaugeRanges(signalValues);
 
 		var topSignals = signalValues
 			.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase)
 			.Take(12)
 			.ToArray();
 
-		lines.Add("Signals");
+		lines.Add(new StyledLine(Segment("Signals", ConsoleColor.Cyan)));
 		foreach (var signal in topSignals)
 		{
-			lines.Add($"  {signal.Key,-30} {signal.Value,12:0.###}");
+			lines.Add(new StyledLine(Segment($"  {signal.Key,-30} {signal.Value,12:0.###}")));
 		}
 
 		if (signalValues.Count > topSignals.Length)
 		{
-			lines.Add($"  ... {signalValues.Count - topSignals.Length} more signal(s)");
+			lines.Add(new StyledLine(Segment($"  ... {signalValues.Count - topSignals.Length} more signal(s)", ConsoleColor.DarkGray)));
 		}
 
-		lines.Add(string.Empty);
-		lines.Add("Parameters");
+		lines.Add(new StyledLine(Segment(string.Empty)));
+		lines.Add(new StyledLine(Segment("Signal Gauges (auto-scale)", ConsoleColor.Cyan)));
+		foreach (var signal in topSignals.Take(6))
+		{
+			if (_signalGaugeRanges.TryGetValue(signal.Key, out var range))
+			{
+				var gauge = BuildGaugeBar(signal.Value, range.Min, range.Max, 22);
+				lines.Add(new StyledLine(
+					Segment($"  {signal.Key,-22} "),
+					Segment(gauge.Text, SelectGaugeColor(gauge.Normalized)),
+					Segment($" {signal.Value,10:0.###}", ConsoleColor.DarkGray)));
+			}
+		}
+
+		if (parameterDefinitions.Count > 0)
+		{
+			var selectedDefinition = parameterDefinitions[selectedParamIndex];
+			parameterValues.TryGetValue(selectedDefinition.Name, out var selectedValue);
+			lines.Add(new StyledLine(Segment(string.Empty)));
+			lines.Add(new StyledLine(
+				Segment("Selected Parameter Gauge: ", ConsoleColor.Cyan),
+				Segment(selectedDefinition.Name, ConsoleColor.Yellow)));
+			if (selectedDefinition.MinValue.HasValue && selectedDefinition.MaxValue.HasValue && selectedDefinition.MaxValue.Value > selectedDefinition.MinValue.Value)
+			{
+				var gauge = BuildGaugeBar(selectedValue, selectedDefinition.MinValue.Value, selectedDefinition.MaxValue.Value, 28);
+				lines.Add(new StyledLine(
+					Segment("  "),
+					Segment(gauge.Text, SelectGaugeColor(gauge.Normalized)),
+					Segment($" {selectedValue:0.###}", ConsoleColor.DarkGray)));
+			}
+			else
+			{
+				lines.Add(new StyledLine(
+					Segment("  [range unavailable] ", ConsoleColor.DarkYellow),
+					Segment($"{selectedValue:0.###}", ConsoleColor.DarkGray)));
+			}
+		}
+
+		lines.Add(new StyledLine(Segment(string.Empty)));
+		lines.Add(new StyledLine(Segment("Parameters", ConsoleColor.Cyan)));
 		for (var i = 0; i < parameterDefinitions.Count; i++)
 		{
 			var definition = parameterDefinitions[i];
 			parameterValues.TryGetValue(definition.Name, out var value);
-			var marker = i == selectedParamIndex ? ">" : " ";
+			var marker = i == selectedParamIndex
+				? Segment(">", ConsoleColor.Yellow)
+				: Segment(" ");
 			var range = BuildRange(definition.MinValue, definition.MaxValue);
-			lines.Add($"{marker} {definition.Name,-30} {value,12:0.###}   {range}");
+			lines.Add(new StyledLine(
+				marker,
+				Segment($" {definition.Name,-30} {value,12:0.###}   {range}")));
 		}
 
-		lines.Add(string.Empty);
-		lines.Add("Controls: Up/Down=Select Param  Left/Right=Adjust  Enter/E=Edit  P=Pause/Resume  S=Step (paused)  R=Refresh  Q/Esc=Back");
+		lines.Add(new StyledLine(Segment(string.Empty)));
+		lines.Add(new StyledLine(Segment("Controls: Up/Down=Select Param  Left/Right=Adjust  Enter/E=Edit  P=Pause/Resume  S=Step (paused)  R=Refresh  Q/Esc=Back", ConsoleColor.DarkGray)));
 		if (!string.IsNullOrWhiteSpace(notice))
 		{
-			lines.Add($"Notice: {notice}");
+			var noticeColor = IsNoticeError(notice) ? ConsoleColor.Red : ConsoleColor.Green;
+			lines.Add(new StyledLine(
+				Segment("Notice: ", noticeColor),
+				Segment(notice, noticeColor)));
 		}
 
 		RenderFrame(lines);
 	}
 
-	private static void RenderEditPrompt(ParameterDefinitionDto definition, IReadOnlyDictionary<string, double> parameterValues)
+	private void RenderEditPrompt(ParameterDefinitionDto definition, IReadOnlyDictionary<string, double> parameterValues)
 	{
 		Console.Clear();
 		parameterValues.TryGetValue(definition.Name, out var current);
@@ -553,18 +653,18 @@ public sealed class TuiApp
 		sb.AppendLine();
 		sb.AppendLine("Enter new value (blank cancels):");
 
-		Console.Write(sb.ToString());
+		WriteWithColor(sb.ToString(), ConsoleColor.Cyan);
 	}
 
-	private static void RenderError(string message)
+	private void RenderError(string message)
 	{
 		Console.Clear();
-		Console.WriteLine("SkyNet Simulator TUI");
+		WriteLineWithColor("SkyNet Simulator TUI", ConsoleColor.Cyan);
 		Console.WriteLine();
-		Console.WriteLine("Error");
-		Console.WriteLine(message);
+		WriteLineWithColor("Error", ConsoleColor.Red);
+		WriteLineWithColor(message, ConsoleColor.Red);
 		Console.WriteLine();
-		Console.WriteLine("Press any key to return to menu.");
+		WriteLineWithColor("Press any key to return to menu.", ConsoleColor.DarkGray);
 	}
 
 	private static string BuildRange(double? min, double? max)
@@ -574,13 +674,75 @@ public sealed class TuiApp
 		return $"[{minText}, {maxText}]";
 	}
 
+	private void UpdateSignalGaugeRanges(IReadOnlyDictionary<string, double> signalValues)
+	{
+		foreach (var (name, value) in signalValues)
+		{
+			if (_signalGaugeRanges.TryGetValue(name, out var range))
+			{
+				_signalGaugeRanges[name] = range.Include(value);
+			}
+			else
+			{
+				var delta = Math.Max(Math.Abs(value) * 0.05, 0.001);
+				_signalGaugeRanges[name] = new GaugeRange(value - delta, value + delta);
+			}
+		}
+	}
+
+	private static GaugeBarVisual BuildGaugeBar(double value, double min, double max, int width)
+	{
+		if (width < 4)
+		{
+			width = 4;
+		}
+
+		var span = max - min;
+		if (span <= 0)
+		{
+			span = 1;
+		}
+
+		var normalized = (value - min) / span;
+		normalized = Math.Clamp(normalized, 0.0, 1.0);
+		var filled = (int)Math.Round(normalized * width, MidpointRounding.AwayFromZero);
+		filled = Math.Clamp(filled, 0, width);
+
+		var text = $"[{new string('#', filled)}{new string('-', width - filled)}] {(normalized * 100):0}%";
+		return new GaugeBarVisual(text, normalized);
+	}
+
+	private static ConsoleColor SelectGaugeColor(double normalized)
+	{
+		if (normalized >= 0.85)
+		{
+			return ConsoleColor.Red;
+		}
+
+		if (normalized >= 0.65)
+		{
+			return ConsoleColor.Yellow;
+		}
+
+		return ConsoleColor.Green;
+	}
+
 	private void ResetFrame()
 	{
 		_frameInitialized = false;
 		_lastFrame = Array.Empty<string>();
+		if (_colorEnabled)
+		{
+			try { Console.ResetColor(); } catch { }
+		}
 	}
 
 	private void RenderFrame(IReadOnlyList<string> lines)
+	{
+		RenderFrame(lines.Select(line => new StyledLine(Segment(line))).ToArray());
+	}
+
+	private void RenderFrame(IReadOnlyList<StyledLine> lines)
 	{
 		var width = Math.Max(2, Console.WindowWidth);
 		var maxTextWidth = width - 1;
@@ -592,7 +754,7 @@ public sealed class TuiApp
 			_frameInitialized = true;
 		}
 
-		var normalized = lines.Select(line => NormalizeLine(line, maxTextWidth)).ToArray();
+		var normalized = lines.Select(line => NormalizeLine(line.PlainText, maxTextWidth)).ToArray();
 		var maxLines = Math.Max(normalized.Length, _lastFrame.Length);
 
 		for (var row = 0; row < maxLines; row++)
@@ -610,11 +772,166 @@ public sealed class TuiApp
 			}
 
 			Console.SetCursorPosition(0, row);
-			Console.Write(next);
+			if (row < lines.Count)
+			{
+				WriteStyledLine(lines[row], maxTextWidth);
+			}
+			else
+			{
+				Console.Write(next);
+			}
 		}
 
 		_lastFrame = normalized;
+		if (_colorEnabled)
+		{
+			try { Console.ResetColor(); } catch { }
+		}
 		Console.SetCursorPosition(0, Math.Min(maxLines, Math.Max(0, Console.BufferHeight - 1)));
+	}
+
+	private void WriteStyledLine(StyledLine line, int width)
+	{
+		var remaining = width;
+		foreach (var segment in line.Segments)
+		{
+			if (remaining <= 0)
+			{
+				break;
+			}
+
+			var text = segment.Text ?? string.Empty;
+			if (text.Length > remaining)
+			{
+				text = text[..remaining];
+			}
+
+			if (_colorEnabled)
+			{
+				if (segment.Foreground.HasValue)
+				{
+					Console.ForegroundColor = segment.Foreground.Value;
+				}
+				else
+				{
+					Console.ResetColor();
+				}
+			}
+
+			Console.Write(text);
+			remaining -= text.Length;
+		}
+
+		if (_colorEnabled)
+		{
+			Console.ResetColor();
+		}
+
+		if (remaining > 0)
+		{
+			Console.Write(new string(' ', remaining));
+		}
+	}
+
+	private StyledSegment Segment(string text, ConsoleColor? color = null)
+	{
+		return new StyledSegment(text, color.HasValue && _colorEnabled ? color.Value : null);
+	}
+
+	private void WriteWithColor(string text, ConsoleColor color)
+	{
+		if (_colorEnabled)
+		{
+			Console.ForegroundColor = color;
+			Console.Write(text);
+			Console.ResetColor();
+			return;
+		}
+
+		Console.Write(text);
+	}
+
+	private void WriteLineWithColor(string text, ConsoleColor color)
+	{
+		if (_colorEnabled)
+		{
+			Console.ForegroundColor = color;
+			Console.WriteLine(text);
+			Console.ResetColor();
+			return;
+		}
+
+		Console.WriteLine(text);
+	}
+
+	private static bool IsNoticeError(string notice)
+	{
+		return notice.Contains("error", StringComparison.OrdinalIgnoreCase)
+			|| notice.Contains("failed", StringComparison.OrdinalIgnoreCase)
+			|| notice.Contains("exception", StringComparison.OrdinalIgnoreCase)
+			|| notice.Contains("unavailable", StringComparison.OrdinalIgnoreCase);
+	}
+
+	private static ColorMode ParseColorMode(string? raw)
+	{
+		if (string.IsNullOrWhiteSpace(raw))
+		{
+			return ColorMode.Auto;
+		}
+
+		switch (raw.Trim().ToLowerInvariant())
+		{
+			case "on":
+			case "true":
+			case "1":
+			case "yes":
+				return ColorMode.On;
+			case "off":
+			case "false":
+			case "0":
+			case "no":
+				return ColorMode.Off;
+			default:
+				return ColorMode.Auto;
+		}
+	}
+
+	private static bool ResolveColorEnabled(ColorMode colorMode)
+	{
+		if (colorMode == ColorMode.On)
+		{
+			return true;
+		}
+
+		if (colorMode == ColorMode.Off)
+		{
+			return false;
+		}
+
+		if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NO_COLOR")))
+		{
+			return false;
+		}
+
+		var colorForce = Environment.GetEnvironmentVariable("CLICOLOR_FORCE");
+		if (string.Equals(colorForce, "1", StringComparison.OrdinalIgnoreCase)
+			|| string.Equals(colorForce, "true", StringComparison.OrdinalIgnoreCase))
+		{
+			return true;
+		}
+
+		if (Console.IsOutputRedirected)
+		{
+			return false;
+		}
+
+		var term = Environment.GetEnvironmentVariable("TERM");
+		if (string.Equals(term, "dumb", StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 	private static string NormalizeLine(string line, int width)
