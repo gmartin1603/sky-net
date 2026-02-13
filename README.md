@@ -88,11 +88,26 @@ Defaults:
 - Daemon: `http://localhost:5070` (SignalR hub at `/simhub`)
 - Dashboard: `http://localhost:5170` (configured to connect to the daemon)
 
-### CLI usage
+### TUI usage
 
-Commands: `start`, `stop`, `list`, `get <name>`, `set <name> <value>`, `status`, `help`, `quit`
+Run TUI:
+- `dotnet run --project simulator/SkyNet.Simulator.Cli`
 
-Demo parameters:
-- `SupplyPressurePsi`
-- `ValveOpening` (0..1)
-- `LoadForce`
+Optional daemon URL override:
+- `SKYNET_DAEMON_URL=http://localhost:5070 dotnet run --project simulator/SkyNet.Simulator.Cli`
+
+Selection screen:
+- `Up/Down`: move selection
+- `Enter`: open simulation
+- `R`: refresh simulation list
+- `Q` or `Esc`: quit
+
+Simulation screen:
+- `Up/Down`: select parameter
+- `Left/Right`: decrement/increment selected parameter
+	- enable/disable flags (0..1) toggle between `0` and `1`
+- `Enter` or `E`: edit selected parameter
+- `P`: pause/resume
+- `S`: step 1 tick (daemon enforces paused stepping)
+- `R`: refresh status/parameters/signals
+- `Q` or `Esc`: close simulation and return to selection (sends stop/reset-to-defaults)

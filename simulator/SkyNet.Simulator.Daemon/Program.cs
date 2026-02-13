@@ -230,6 +230,24 @@ app.MapPost("/api/sims/{id}/resume", (string id, SimulationRegistry registry) =>
 	return Results.NoContent();
 });
 
+app.MapPost("/api/sims/{id}/stop", (string id, SimulationRegistry registry) =>
+{
+	if (!registry.TryGet(id, out var slot))
+	{
+		return Results.NotFound(new { error = $"Unknown simulation '{id}'." });
+	}
+
+	slot.Runner.Pause();
+	var definitions = slot.System.Parameters.SnapshotDefinitions();
+	foreach (var definition in definitions.Values)
+	{
+		slot.System.Parameters.Set(definition.Name, definition.DefaultValue);
+	}
+
+	slot.Logs.Add(slot.Info.Id, "Info", "Stopped and reset parameters to defaults");
+	return Results.NoContent();
+});
+
 app.MapPost("/api/sims/{id}/step", (string id, int? n, SimulationRegistry registry) =>
 {
 	if (!registry.TryGet(id, out var slot))
@@ -348,6 +366,20 @@ app.MapPost("/api/resume", (SimulationRegistry registry) =>
 	var runner = active.Runner;
 	runner.Resume();
 	active.Logs.Add(active.Info.Id, "Info", "Resumed");
+	return Results.NoContent();
+});
+
+app.MapPost("/api/stop", (SimulationRegistry registry) =>
+{
+	var active = registry.GetActive();
+	active.Runner.Pause();
+	var definitions = active.System.Parameters.SnapshotDefinitions();
+	foreach (var definition in definitions.Values)
+	{
+		active.System.Parameters.Set(definition.Name, definition.DefaultValue);
+	}
+
+	active.Logs.Add(active.Info.Id, "Info", "Stopped and reset parameters to defaults");
 	return Results.NoContent();
 });
 
