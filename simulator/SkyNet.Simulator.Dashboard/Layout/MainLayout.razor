@@ -12,7 +12,7 @@
             </div>
 
             <div class="top-links">
-                <button type="button" class="btn btn-sm btn-outline-light" @onclick="ToggleTheme">
+                <button type="button" class="btn btn-sm @(_isDark ? "btn-outline-light" : "btn-outline-info")" @onclick="ToggleTheme">
                     @(_isDark ? "Light mode" : "Dark mode")
                 </button>
                 <a href="about">About</a>

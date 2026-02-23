@@ -1,4 +1,6 @@
 :root {
+    color-scheme: light;
+
     --app-bg: #ffffff;
     --app-fg: #212529;
     --app-muted: #6c757d;
@@ -71,6 +73,25 @@ a, .btn-link {
 
 :root[data-theme='dark'] .table {
     color: var(--app-fg);
+    --bs-table-color: var(--app-fg);
+    --bs-table-bg: var(--app-surface);
+    --bs-table-border-color: var(--app-border);
+    --bs-table-striped-color: var(--app-fg);
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+    --bs-table-hover-color: var(--app-fg);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.06);
+    --bs-table-active-color: var(--app-fg);
+    --bs-table-active-bg: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme='dark'] .table > :not(caption) > * > * {
+    background-color: var(--app-surface);
+    border-bottom-color: var(--app-border);
+    color: var(--app-fg);
+}
+
+:root[data-theme='dark'] .table > thead {
+    --bs-table-bg: rgba(255, 255, 255, 0.04);
 }
 
 :root[data-theme='dark'] .form-control,
@@ -114,7 +135,7 @@ a, .btn-link {
     border: 1px solid var(--chart-border);
     border-radius: 6px;
     padding: 0.75rem;
-    background: transparent;
+    background: var(--chart-bg);
 }
 
 /* Key signal tiles */

@@ -28,7 +28,7 @@
 
 @if (!string.IsNullOrWhiteSpace(_error))
 {
-	<p style="color: darkred;"><b>Error:</b> @_error</p>
+	<p class="text-danger"><b>Error:</b> @_error</p>
 }
 
 @if (_uiSnapshot is null)
@@ -78,7 +78,8 @@ else
 }
 else
 {
-	<table class="table">
+	<div class="table-responsive">
+	<table class="table table-sm align-middle">
 		<thead>
 			<tr>
 				<th>Name</th>
@@ -114,14 +115,15 @@ else
 					<td>@(def.MinValue?.ToString("0.###") ?? "-")</td>
 					<td>@(def.MaxValue?.ToString("0.###") ?? "-")</td>
 					<td style="white-space: nowrap;">
-						<input type="number" step="any" style="width: 120px;" value="@edit" @onchange="e => OnEditChanged(def.Name, e)" />
-						<button style="margin-left: 0.25rem;" @onclick="() => ApplyParameter(def.Name)">Set</button>
+						<input class="form-control form-control-sm d-inline-block" type="number" step="any" style="width: 120px;" value="@edit" @onchange="e => OnEditChanged(def.Name, e)" />
+						<button class="btn btn-sm btn-primary" style="margin-left: 0.25rem;" @onclick="() => ApplyParameter(def.Name)">Set</button>
 					</td>
 					<td>@def.Description</td>
 				</tr>
 			}
 		</tbody>
 	</table>
+	</div>
 }
 
 <h2>All Signals</h2>
@@ -131,7 +133,8 @@ else
 }
 else
 {
-	<table class="table">
+	<div class="table-responsive">
+	<table class="table table-sm align-middle">
 		<thead>
 			<tr>
 				<th>Name</th>
@@ -148,6 +151,7 @@ else
 			}
 		</tbody>
 	</table>
+	</div>
 }
 
 @code {
