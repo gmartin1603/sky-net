@@ -4,6 +4,7 @@ using SkyNet.Simulator.Core.Simulation;
 using SkyNet.Simulator.Core.Systems;
 using SkyNet.Simulator.Daemon;
 using SkyNet.Simulator.Daemon.Telemetry;
+using SkyNet.Simulator.Daemon.ViewLayouts;
 
 using Npgsql;
 
@@ -62,6 +63,7 @@ builder.Services.AddSingleton<ITelemetrySnapshotStore>(sp =>
 });
 
 builder.Services.AddHostedService<PostgresTelemetrySchemaInitializer>();
+builder.Services.AddSingleton<ISimulationViewLayoutStore, SqliteSimulationViewLayoutStore>();
 
 builder.Services.AddSingleton(sp =>
 {
@@ -204,6 +206,52 @@ app.MapGet("/api/sims/{id}/signals", (string id, SimulationRegistry registry) =>
 	}
 
 	return Results.Ok(slot.System.Signals.Snapshot());
+});
+
+app.MapGet("/api/sims/{id}/view-layout/tank-transfer", async (
+	string id,
+	SimulationRegistry registry,
+	ISimulationViewLayoutStore store,
+	CancellationToken ct) =>
+{
+	if (!registry.TryGet(id, out _))
+	{
+		return Results.NotFound(new { error = $"Unknown simulation '{id}'." });
+	}
+
+	var layout = await store.GetTankTransferLayoutAsync(id, ct).ConfigureAwait(false);
+	return Results.Ok(layout);
+});
+
+app.MapPut("/api/sims/{id}/view-layout/tank-transfer", async (
+	string id,
+	TankTransferSchematicLayout request,
+	SimulationRegistry registry,
+	ISimulationViewLayoutStore store,
+	CancellationToken ct) =>
+{
+	if (!registry.TryGet(id, out _))
+	{
+		return Results.NotFound(new { error = $"Unknown simulation '{id}'." });
+	}
+
+	await store.SaveTankTransferLayoutAsync(id, request, ct).ConfigureAwait(false);
+	return Results.NoContent();
+});
+
+app.MapDelete("/api/sims/{id}/view-layout/tank-transfer", async (
+	string id,
+	SimulationRegistry registry,
+	ISimulationViewLayoutStore store,
+	CancellationToken ct) =>
+{
+	if (!registry.TryGet(id, out _))
+	{
+		return Results.NotFound(new { error = $"Unknown simulation '{id}'." });
+	}
+
+	await store.ResetTankTransferLayoutAsync(id, ct).ConfigureAwait(false);
+	return Results.NoContent();
 });
 
 app.MapPost("/api/sims/{id}/pause", (string id, SimulationRegistry registry) =>

@@ -9,8 +9,23 @@
 }
 else
 {
-	<div style="position: relative; max-width: 1160px; margin: 0 auto;">
-		<svg viewBox="0 0 1160 420" style="position:absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
+	var layout = Layout ?? TankTransferSchematicLayout.Default;
+	var sourceCenterX = layout.SourceX + (layout.BoxWidth / 2.0);
+	var sourceBottomY = layout.TopRowY + layout.TankBottomAnchorY;
+	var airlockTopY = layout.BottomRowY + layout.EquipmentTopAnchorY;
+	var equipmentMidY = layout.BottomRowY + layout.EquipmentMidAnchorY;
+	var blowerRightX = layout.BlowerX + layout.BoxWidth;
+	var airlockLeftX = layout.AirlockX;
+	var airlockRightX = layout.AirlockX + layout.BoxWidth;
+	var blowlineLeftX = layout.BlowlineX;
+	var blowlineRightX = layout.BlowlineX + layout.BoxWidth;
+	var destinationInletX = layout.DestinationX + layout.DestinationInletOffsetX;
+	var destinationInletY = layout.TopRowY + layout.DestinationInletAnchorY;
+	var canvasWidth = layout.CanvasWidth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+	var canvasHeight = layout.CanvasHeight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+	<div style="position: relative; max-width: @(layout.CanvasWidth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; height: @(layout.CanvasHeight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; margin: 0 auto;">
+		<svg viewBox="@($"0 0 {canvasWidth} {canvasHeight}")" style="position:absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
 			<defs>
 				<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
 					<path d="M0,0 L10,3 L0,6 z" fill="currentColor"></path>
@@ -24,37 +39,31 @@ else
 			}
 
 			<g style="color: @color;">
-				<!-- Source -> Airlock (airlock is below source tank) -->
-				<path d="M360 135 L360 222" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
-				<!-- Blower -> Airlock (blower blows into airlock) -->
-				<path d="M220 300 L230 300" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
-				<!-- Airlock -> Blowline -->
-				<path d="M480 300 L560 300" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
-				<!-- Blowline -> Destination -->
-				<path d="M920 300 L1020 155" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
+				<path d="M@sourceCenterX @sourceBottomY L@sourceCenterX @airlockTopY" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
+				<path d="M@blowerRightX @equipmentMidY L@airlockLeftX @equipmentMidY" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
+				<path d="M@airlockRightX @equipmentMidY L@blowlineLeftX @equipmentMidY" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
+				<path d="M@blowlineRightX @equipmentMidY L@destinationInletX @destinationInletY" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
 			</g>
 		</svg>
 
-		<div style="display:grid; grid-template-columns: 240px 240px 440px 240px; grid-template-rows: 180px 200px; gap: 1rem; align-items: start; justify-content: center;">
-			<div style="grid-column: 2; grid-row: 1;">
+		<div style="position: absolute; left: @(layout.SourceX.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; top: @(layout.TopRowY.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; width: @(layout.BoxWidth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px;">
 				<SchematicBox Title="Source Tank" IsOn="@TransferPermitted" IsClickable="false" Lines="@SourceTankLines" />
-			</div>
+		</div>
 
-			<div style="grid-column: 4; grid-row: 1;">
+		<div style="position: absolute; left: @(layout.DestinationX.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; top: @(layout.TopRowY.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; width: @(layout.BoxWidth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px;">
 				<SchematicBox Title="Destination Tank" IsOn="@TransferPermitted" IsClickable="false" Lines="@DestinationTankLines" />
-			</div>
+		</div>
 
-			<div style="grid-column: 1; grid-row: 2; margin-right: 74px;">
+		<div style="position: absolute; left: @(layout.BlowerX.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; top: @(layout.BottomRowY.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; width: @(layout.BoxWidth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px;">
 				<SchematicBox Title="Blower" IsOn="@BlowerRunning" StatusText="@BlowerStatus" OnClick="@(() => ToggleAsync(ParamBlowerEnable))" Lines="@BlowerLines" />
-			</div>
+		</div>
 
-			<div style="grid-column: 2; grid-row: 2;">
+		<div style="position: absolute; left: @(layout.AirlockX.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; top: @(layout.BottomRowY.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; width: @(layout.BoxWidth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px;">
 				<SchematicBox Title="Rotary Airlock" IsOn="@AirlockRunning" StatusText="@AirlockStatus" OnClick="@(() => ToggleAsync(ParamAirlockEnable))" Lines="@AirlockLines" />
-			</div>
+		</div>
 
-			<div style="grid-column: 3; grid-row: 2; align-self: center;">
+		<div style="position: absolute; left: @(layout.BlowlineX.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; top: @(layout.BottomRowY.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; width: @(layout.BoxWidth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px;">
 				<SchematicBox Title="Blowline" IsOn="@TransferPermitted" IsClickable="false" Lines="@BlowlineLines" />
-			</div>
 		</div>
 	</div>
 }
@@ -62,6 +71,7 @@ else
 @code {
 	[Parameter] public string SimId { get; set; } = string.Empty;
 	[Parameter] public TelemetrySnapshot? Snapshot { get; set; }
+	[Parameter] public TankTransferSchematicLayout? Layout { get; set; }
 
 	private const string ParamBlowerEnable = "BlowerEnable";
 	private const string ParamAirlockEnable = "AirlockEnable";

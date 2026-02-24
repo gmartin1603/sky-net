@@ -147,6 +147,40 @@ a, .btn-link {
     background: var(--app-surface);
 }
 
+.layout-editor-canvas {
+    position: relative;
+    border: 1px dashed var(--app-border);
+    border-radius: 10px;
+    background: var(--app-surface);
+    overflow: hidden;
+}
+
+.layout-drag-box {
+    position: absolute;
+    border: 2px solid var(--schematic-border-off);
+    border-radius: 8px;
+    background: var(--schematic-bg-off);
+    box-shadow: var(--schematic-shadow);
+    color: var(--app-fg);
+    user-select: none;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.9rem;
+    cursor: grab;
+}
+
+.layout-drag-box:active {
+    cursor: grabbing;
+}
+
+.layout-drag-box-title {
+    font-weight: 700;
+}
+
+.layout-drag-box-sub {
+    opacity: 0.75;
+    font-size: 0.8rem;
+}
+
 .btn-primary {
     color: #fff;
     background-color: #1b6ec2;

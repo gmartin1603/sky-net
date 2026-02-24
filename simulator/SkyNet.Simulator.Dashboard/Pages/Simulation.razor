@@ -9,6 +9,7 @@
 @inject SimHubClient Hub
 @inject DaemonClientOptions Options
 @inject SimViewCache ViewCache
+@inject SimulationViewLayoutStore LayoutStore
 
 <PageTitle>Simulation</PageTitle>
 
@@ -59,8 +60,11 @@ else
 
 	@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
 	{
-		<h2>Schematic</h2>
-		<TankTransferSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
+		<div style="display:flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+			<h2 style="margin: 0;">Schematic</h2>
+			<a href="@($"sim/{Uri.EscapeDataString(SimId)}/creator")">Edit view</a>
+		</div>
+		<TankTransferSchematic SimId="@SimId" Snapshot="@_uiSnapshot" Layout="@_tankTransferLayout" />
 	}
 
 	<h2>Trends</h2>
@@ -205,6 +209,7 @@ else
 	private readonly Dictionary<string, double> _parameterEdits = new(StringComparer.OrdinalIgnoreCase);
 	private readonly Dictionary<string, double> _lastParameterValues = new(StringComparer.OrdinalIgnoreCase);
 	private readonly Dictionary<string, double> _lastSignalValues = new(StringComparer.OrdinalIgnoreCase);
+	private TankTransferSchematicLayout _tankTransferLayout = TankTransferSchematicLayout.Default;
 	private string? _error;
 	private CancellationTokenSource? _cts;
 	private Task? _pollTask;
@@ -244,6 +249,7 @@ else
 		_lastRenderedSnapshotSeq = -1;
 
 		ConfigureViewForSim(SimId);
+		_tankTransferLayout = await LayoutStore.GetTankTransferLayoutAsync(SimId, _cts.Token);
 
 		// If we have cached UI state, show it immediately (useful when sim is paused).
 		if (ViewCache.TryGet(SimId, out var state))

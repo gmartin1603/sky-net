@@ -1,0 +1,297 @@
+@page "/sim/{SimId}/creator"
+
+@using System.Text.Json
+@using Microsoft.JSInterop
+@using SkyNet.Simulator.Contracts
+@using SkyNet.Simulator.Dashboard.Components
+@using SkyNet.Simulator.Dashboard.Services
+
+@inject SimulationViewLayoutStore LayoutStore
+@inject IJSRuntime Js
+
+<PageTitle>View Creator</PageTitle>
+
+<h1>View Creator</h1>
+<p>
+	<b>SimId:</b> <code>@SimId</code>
+	|
+	<a href="@($"/sim/{Uri.EscapeDataString(SimId)}")">Back to simulation</a>
+</p>
+
+@if (!IsTankTransfer)
+{
+	<p>This MVP creator currently supports only <code>tank-transfer</code>.</p>
+}
+else
+{
+	<p>Tune schematic spacing by editing coordinates, then save to apply in the live simulation view.</p>
+
+	<h2>Drag & Drop</h2>
+	<p class="text-muted">Drag boxes in the canvas to set positions. Top-row boxes update <code>TopRowY</code>; bottom-row boxes update <code>BottomRowY</code>.</p>
+	<div
+		@ref="_editorCanvas"
+		class="layout-editor-canvas"
+		style="width: @(_layout.CanvasWidth.ToString("0.#"))px; height: @(_layout.CanvasHeight.ToString("0.#"))px;"
+		@ondragover="OnCanvasDragOver"
+		@ondragover:preventDefault="true"
+		@ondrop="OnCanvasDrop"
+		@ondrop:preventDefault="true">
+		<div class="layout-drag-box"
+			 style="left: @(_layout.SourceX.ToString("0.#"))px; top: @(_layout.TopRowY.ToString("0.#"))px; width: @(_layout.BoxWidth.ToString("0.#"))px;"
+			 draggable="true"
+			 @ondragstart="() => OnDragStart(BoxId.Source)">
+			<div class="layout-drag-box-title">Source Tank</div>
+			<div class="layout-drag-box-sub">Top row</div>
+		</div>
+
+		<div class="layout-drag-box"
+			 style="left: @(_layout.DestinationX.ToString("0.#"))px; top: @(_layout.TopRowY.ToString("0.#"))px; width: @(_layout.BoxWidth.ToString("0.#"))px;"
+			 draggable="true"
+			 @ondragstart="() => OnDragStart(BoxId.Destination)">
+			<div class="layout-drag-box-title">Destination Tank</div>
+			<div class="layout-drag-box-sub">Top row</div>
+		</div>
+
+		<div class="layout-drag-box"
+			 style="left: @(_layout.BlowerX.ToString("0.#"))px; top: @(_layout.BottomRowY.ToString("0.#"))px; width: @(_layout.BoxWidth.ToString("0.#"))px;"
+			 draggable="true"
+			 @ondragstart="() => OnDragStart(BoxId.Blower)">
+			<div class="layout-drag-box-title">Blower</div>
+			<div class="layout-drag-box-sub">Bottom row</div>
+		</div>
+
+		<div class="layout-drag-box"
+			 style="left: @(_layout.AirlockX.ToString("0.#"))px; top: @(_layout.BottomRowY.ToString("0.#"))px; width: @(_layout.BoxWidth.ToString("0.#"))px;"
+			 draggable="true"
+			 @ondragstart="() => OnDragStart(BoxId.Airlock)">
+			<div class="layout-drag-box-title">Rotary Airlock</div>
+			<div class="layout-drag-box-sub">Bottom row</div>
+		</div>
+
+		<div class="layout-drag-box"
+			 style="left: @(_layout.BlowlineX.ToString("0.#"))px; top: @(_layout.BottomRowY.ToString("0.#"))px; width: @(_layout.BoxWidth.ToString("0.#"))px;"
+			 draggable="true"
+			 @ondragstart="() => OnDragStart(BoxId.Blowline)">
+			<div class="layout-drag-box-title">Blowline</div>
+			<div class="layout-drag-box-sub">Bottom row</div>
+		</div>
+	</div>
+
+	<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; max-width: 980px;">
+		<div>
+			<label class="form-label">Canvas width</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.CanvasWidth" />
+		</div>
+		<div>
+			<label class="form-label">Canvas height</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.CanvasHeight" />
+		</div>
+		<div>
+			<label class="form-label">Box width</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.BoxWidth" />
+		</div>
+		<div>
+			<label class="form-label">Top row Y</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.TopRowY" />
+		</div>
+		<div>
+			<label class="form-label">Bottom row Y</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.BottomRowY" />
+		</div>
+		<div>
+			<label class="form-label">Blower X</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.BlowerX" />
+		</div>
+		<div>
+			<label class="form-label">Airlock X</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.AirlockX" />
+		</div>
+		<div>
+			<label class="form-label">Blowline X</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.BlowlineX" />
+		</div>
+		<div>
+			<label class="form-label">Source tank X</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.SourceX" />
+		</div>
+		<div>
+			<label class="form-label">Destination tank X</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.DestinationX" />
+		</div>
+		<div>
+			<label class="form-label">Equip top anchor Y</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.EquipmentTopAnchorY" />
+		</div>
+		<div>
+			<label class="form-label">Equip mid anchor Y</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.EquipmentMidAnchorY" />
+		</div>
+		<div>
+			<label class="form-label">Tank bottom anchor Y</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.TankBottomAnchorY" />
+		</div>
+		<div>
+			<label class="form-label">Dest inlet anchor Y</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.DestinationInletAnchorY" />
+		</div>
+		<div>
+			<label class="form-label">Dest inlet offset X</label>
+			<input class="form-control form-control-sm" type="number" step="1" @bind="_layout.DestinationInletOffsetX" />
+		</div>
+	</div>
+
+	<div style="display:flex; gap: 0.5rem; margin-top: 0.9rem;">
+		<button class="btn btn-sm btn-primary" @onclick="SaveLayout">Save layout</button>
+		<button class="btn btn-sm btn-secondary" @onclick="ResetLayout">Reset default</button>
+	</div>
+
+	@if (!string.IsNullOrWhiteSpace(_status))
+	{
+		<p class="text-muted" style="margin-top: 0.5rem;">@_status</p>
+	}
+
+	<h2>Preview</h2>
+	<TankTransferSchematic SimId="@SimId" Snapshot="@_previewSnapshot" Layout="@_layout" />
+
+	<h2>Layout JSON</h2>
+	<pre>@LayoutJson</pre>
+}
+
+@code {
+	[Parameter] public string SimId { get; set; } = string.Empty;
+
+	private TankTransferSchematicLayout _layout = TankTransferSchematicLayout.Default;
+	private string? _status;
+	private string? _draggingBox;
+	private ElementReference _editorCanvas;
+	private const double EditorBoxHeight = 72;
+
+	private bool IsTankTransfer => string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase);
+
+	private readonly TelemetrySnapshot _previewSnapshot = new(
+		SimId: "tank-transfer",
+		SchemaVersion: 1,
+		Tick: 1200,
+		TimeSeconds: 20.0,
+		Parameters: new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+		{
+			["BlowerEnable"] = 1,
+			["AirlockEnable"] = 1,
+		},
+		Signals: new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+		{
+			["BlowerRunning"] = 1,
+			["AirlockRunning"] = 0,
+			["SourceTankWeightLb"] = 20000,
+			["DestinationTankWeightLb"] = 5000,
+			["TransferRateLbPerSec"] = 0,
+			["BlowlinePressurePsi"] = 0,
+			["BlowlinePressureCommandPsi"] = 8,
+			["AirlockSpeedHz"] = 0,
+			["BlowerMotorPercentFla"] = 0,
+			["IsStarved"] = 0,
+			["IsFull"] = 0,
+		});
+
+	private string LayoutJson => JsonSerializer.Serialize(_layout, new JsonSerializerOptions { WriteIndented = true });
+
+	protected override async Task OnParametersSetAsync()
+	{
+		if (!IsTankTransfer)
+		{
+			return;
+		}
+
+		_layout = await LayoutStore.GetTankTransferLayoutAsync(SimId);
+	}
+
+	private async Task SaveLayout()
+	{
+		await LayoutStore.SetTankTransferLayoutAsync(SimId, _layout);
+		_status = $"Saved at {DateTime.Now:T}";
+	}
+
+	private async Task ResetLayout()
+	{
+		await LayoutStore.ResetTankTransferLayoutAsync(SimId);
+		_layout = await LayoutStore.GetTankTransferLayoutAsync(SimId);
+		_status = "Reset to defaults.";
+	}
+
+	private void OnDragStart(string boxId)
+	{
+		_draggingBox = boxId;
+		_status = null;
+	}
+
+	private static void OnCanvasDragOver(DragEventArgs _)
+	{
+		// prevent default in markup to allow drop
+	}
+
+	private async Task OnCanvasDrop(DragEventArgs e)
+	{
+		if (string.IsNullOrWhiteSpace(_draggingBox))
+		{
+			return;
+		}
+
+		var rect = await Js.InvokeAsync<ClientRect?>("skynetLayoutEditor.getElementClientRect", _editorCanvas);
+		if (rect is null)
+		{
+			return;
+		}
+
+		var localX = e.ClientX - rect.Left - (_layout.BoxWidth / 2.0);
+		var localY = e.ClientY - rect.Top - (EditorBoxHeight / 2.0);
+
+		var maxX = Math.Max(0, _layout.CanvasWidth - _layout.BoxWidth);
+		var maxY = Math.Max(0, _layout.CanvasHeight - EditorBoxHeight);
+
+		var clampedX = Math.Clamp(localX, 0, maxX);
+		var clampedY = Math.Clamp(localY, 0, maxY);
+
+		switch (_draggingBox)
+		{
+			case BoxId.Source:
+				_layout.SourceX = clampedX;
+				_layout.TopRowY = clampedY;
+				break;
+			case BoxId.Destination:
+				_layout.DestinationX = clampedX;
+				_layout.TopRowY = clampedY;
+				break;
+			case BoxId.Blower:
+				_layout.BlowerX = clampedX;
+				_layout.BottomRowY = clampedY;
+				break;
+			case BoxId.Airlock:
+				_layout.AirlockX = clampedX;
+				_layout.BottomRowY = clampedY;
+				break;
+			case BoxId.Blowline:
+				_layout.BlowlineX = clampedX;
+				_layout.BottomRowY = clampedY;
+				break;
+		}
+
+		_draggingBox = null;
+	}
+
+	private sealed class ClientRect
+	{
+		public double Left { get; set; }
+		public double Top { get; set; }
+		public double Width { get; set; }
+		public double Height { get; set; }
+	}
+
+	private static class BoxId
+	{
+		public const string Source = "source";
+		public const string Destination = "destination";
+		public const string Blower = "blower";
+		public const string Airlock = "airlock";
+		public const string Blowline = "blowline";
+	}
+}

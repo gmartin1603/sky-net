@@ -152,4 +152,26 @@ public sealed class SimApiClient(HttpClient http)
 				await EnsureSuccessAsync(resp).ConfigureAwait(false);
 			}, cancellationToken)
 			.Unwrap();
+
+	public async Task<TankTransferSchematicLayout> GetTankTransferLayoutAsync(string simId, CancellationToken cancellationToken = default) =>
+		await http.GetFromJsonAsync<TankTransferSchematicLayout>($"/api/sims/{Uri.EscapeDataString(simId)}/view-layout/tank-transfer", cancellationToken).ConfigureAwait(false)
+		?? TankTransferSchematicLayout.Default;
+
+	public Task SetTankTransferLayoutAsync(string simId, TankTransferSchematicLayout layout, CancellationToken cancellationToken = default) =>
+		http.PutAsJsonAsync($"/api/sims/{Uri.EscapeDataString(simId)}/view-layout/tank-transfer", layout, cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
+
+	public Task ResetTankTransferLayoutAsync(string simId, CancellationToken cancellationToken = default) =>
+		http.DeleteAsync($"/api/sims/{Uri.EscapeDataString(simId)}/view-layout/tank-transfer", cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
 }

@@ -88,6 +88,11 @@ Defaults:
 - Daemon: `http://localhost:5070` (SignalR hub at `/simhub`)
 - Dashboard: `http://localhost:5170` (configured to connect to the daemon)
 
+View creator persistence:
+- Tank-transfer schematic edits from `/sim/tank-transfer/creator` are persisted by the daemon in SQLite.
+- Database file path: `simulator/SkyNet.Simulator.Daemon/data/view-layouts.sqlite`.
+- Saved layouts survive dashboard refreshes and daemon restarts.
+
 ### TUI usage
 
 Run TUI:

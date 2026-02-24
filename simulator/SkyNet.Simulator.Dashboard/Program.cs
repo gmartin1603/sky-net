@@ -24,6 +24,7 @@ builder.Services.AddScoped(_ => new HttpClient { BaseAddress = daemonBaseUri });
 builder.Services.AddScoped<SimApiClient>();
 builder.Services.AddScoped<SimHubClient>();
 builder.Services.AddScoped<SimViewCache>();
+builder.Services.AddScoped<SimulationViewLayoutStore>();
 builder.Services.AddScoped<ThemeService>();
 
 await builder.Build().RunAsync();
