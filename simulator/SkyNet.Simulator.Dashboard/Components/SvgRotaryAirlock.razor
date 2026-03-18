@@ -1,0 +1,33 @@
+@namespace SkyNet.Simulator.Dashboard.Components
+
+@{
+	var centerX = Width / 2.0;
+	var housingLeft = 48.0;
+	var housingTop = CenterY - 24.0;
+	var housingWidth = 124.0;
+	var housingHeight = 48.0;
+}
+
+<g class="schematic-glyph schematic-airlock">
+	<rect x="58" y="@(CenterY + 33)" width="108" height="12" rx="6" ry="6" fill="var(--node-shell-shadow)" opacity="0.22" />
+	<line x1="@centerX" y1="@TopInletY" x2="@centerX" y2="@(housingTop - 6)" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<path d="M@(centerX - 22) @(housingTop - 6) L@(centerX + 22) @(housingTop - 6) L@(centerX + 36) @housingTop L@(centerX - 36) @housingTop Z" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
+	<path d="M@(centerX - 20) @(housingTop - 3) Q@centerX @(housingTop - 16) @(centerX + 20) @(housingTop - 3)" fill="none" stroke="var(--node-shell-highlight)" stroke-width="2.1" stroke-linecap="round" opacity="0.75" />
+
+	<line x1="10" y1="@CenterY" x2="@housingLeft" y2="@CenterY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<line x1="@(housingLeft + housingWidth)" y1="@CenterY" x2="@(Width - 10)" y2="@CenterY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<rect x="@housingLeft" y="@housingTop" width="@housingWidth" height="@housingHeight" rx="18" ry="18" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
+	<circle cx="@centerX" cy="@CenterY" r="20" fill="@VisualStyle.CoreFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.8" />
+	<path d="M@centerX @(CenterY - 18) L@(centerX + 16) @CenterY L@centerX @(CenterY + 18) L@(centerX - 16) @CenterY Z" fill="@VisualStyle.CoreFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.6" />
+	<circle cx="@(housingLeft + 14)" cy="@CenterY" r="5" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.6" />
+	<circle cx="@(housingLeft + housingWidth - 14)" cy="@CenterY" r="5" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.6" />
+	<circle cx="@centerX" cy="@CenterY" r="4.5" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="2" />
+	<rect x="64" y="@(CenterY + 30)" width="92" height="10" rx="5" ry="5" fill="@VisualStyle.BaseFill" />
+</g>
+
+@code {
+	[CascadingParameter] public SchematicVisualStyle VisualStyle { get; set; } = SchematicVisualStyle.Default;
+	[Parameter] public double Width { get; set; } = 220;
+	[Parameter] public double TopInletY { get; set; } = 26;
+	[Parameter] public double CenterY { get; set; } = 104;
+}

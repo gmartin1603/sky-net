@@ -1,0 +1,23 @@
+@namespace SkyNet.Simulator.Dashboard.Components
+
+@{
+	var topWidth = Width * 0.62;
+	var topLeft = (Width - topWidth) / 2.0;
+	var topY = 16.0;
+	var hopperBottomY = 92.0;
+	var outletX = Width / 2.0;
+}
+
+<g class="schematic-glyph schematic-bin">
+	<rect x="@topLeft" y="@topY" width="@topWidth" height="28" rx="8" ry="8" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
+	<path d="M@topLeft 44 L@(topLeft + topWidth) 44 L@(outletX + 22) @hopperBottomY L@(outletX - 22) @hopperBottomY Z" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
+	<line x1="@outletX" y1="@hopperBottomY" x2="@outletX" y2="@OutletY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<circle cx="@outletX" cy="@OutletY" r="4.5" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="2" />
+	<line x1="@(topLeft + 14)" y1="30" x2="@(topLeft + topWidth - 14)" y2="30" stroke="@VisualStyle.DetailStroke" stroke-width="1.8" stroke-linecap="round" />
+</g>
+
+@code {
+	[CascadingParameter] public SchematicVisualStyle VisualStyle { get; set; } = SchematicVisualStyle.Default;
+	[Parameter] public double Width { get; set; } = 220;
+	[Parameter] public double OutletY { get; set; } = 120;
+}

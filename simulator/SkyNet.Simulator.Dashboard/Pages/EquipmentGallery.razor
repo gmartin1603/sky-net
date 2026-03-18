@@ -1,0 +1,162 @@
+@page "/equipment-gallery"
+
+<PageTitle>Equipment Gallery</PageTitle>
+
+@{
+	const double canvasWidth = 1280;
+	const double canvasHeight = 680;
+	const double boxWidth = 220;
+	var svgPaletteStyle = string.Join(" ",
+	[
+		"--node-shell-fill: var(--schematic-shell-fill);",
+		"--node-shell-shadow: var(--schematic-shell-shadow);",
+		"--node-shell-highlight: var(--schematic-shell-highlight);",
+		"--node-shell-stroke: var(--schematic-shell-stroke);",
+		"--node-core-fill: var(--schematic-core-fill);",
+		"--node-detail-stroke: var(--schematic-detail-stroke);",
+		"--node-base-fill: var(--schematic-base-fill);",
+		"--node-port-cap-fill: var(--schematic-shell-fill);",
+		"--node-tank-fill: var(--schematic-fill);",
+		"--node-alert: var(--schematic-alert);",
+		"--node-panel-fill: var(--schematic-label-bg);",
+		"--node-border-on: var(--schematic-border-on);",
+		"--node-border-off: var(--schematic-border-off);",
+		"--node-panel-divider: var(--schematic-label-divider);",
+		"--node-title-color: var(--schematic-label-text);",
+		"--node-muted-color: var(--schematic-label-muted);",
+		"--node-value-color: var(--schematic-label-value);",
+		"--scene-top: var(--schematic-scene-top);",
+		"--scene-bottom: var(--schematic-scene-bottom);",
+		"--scene-border: var(--schematic-scene-border);",
+		"--scene-grid: var(--schematic-grid);",
+		"--scene-band-fill: var(--schematic-band-fill);",
+		"--scene-band-fill-strong: var(--schematic-band-fill-strong);",
+		"--scene-band-stroke: var(--schematic-band-stroke);",
+		"--scene-label-muted: var(--schematic-label-muted);",
+		"--scene-label-accent: color-mix(in srgb, var(--schematic-label-text) 70%, var(--schematic-flow-on));"
+	]);
+}
+
+<div class="gallery-page">
+	<div class="gallery-header">
+		<div>
+			<h1>Equipment Gallery</h1>
+			<p>Reusable process-equipment SVGs for present and future simulator views.</p>
+		</div>
+		<div class="gallery-legend">
+			<span class="gallery-chip gallery-chip-on">Running</span>
+			<span class="gallery-chip gallery-chip-off">Idle</span>
+			<span class="gallery-chip gallery-chip-alert">Alert</span>
+		</div>
+	</div>
+
+	<svg viewBox="0 0 1280 680" class="gallery-scene" style="@svgPaletteStyle">
+		<defs>
+			<linearGradient id="gallery-scene-bg" x1="0" y1="0" x2="1" y2="1">
+				<stop offset="0%" style="stop-color: var(--scene-top);" />
+				<stop offset="100%" style="stop-color: var(--scene-bottom);" />
+			</linearGradient>
+			<linearGradient id="gallery-row-top" x1="0" y1="0" x2="1" y2="0">
+				<stop offset="0%" style="stop-color: var(--scene-band-fill); stop-opacity: 0.72;" />
+				<stop offset="100%" style="stop-color: var(--scene-band-fill); stop-opacity: 0.12;" />
+			</linearGradient>
+			<linearGradient id="gallery-row-bottom" x1="0" y1="0" x2="1" y2="0">
+				<stop offset="0%" style="stop-color: var(--scene-band-fill-strong); stop-opacity: 0.22;" />
+				<stop offset="100%" style="stop-color: var(--scene-band-fill); stop-opacity: 0.08;" />
+			</linearGradient>
+			<pattern id="gallery-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+				<path d="M32 0 L0 0 0 32" fill="none" stroke="var(--scene-grid)" stroke-width="1" />
+			</pattern>
+		</defs>
+
+		<rect x="18" y="18" width="1244" height="644" rx="30" ry="30" fill="url(#gallery-scene-bg)" stroke="var(--scene-border)" stroke-width="1.4" />
+		<rect x="40" y="40" width="1200" height="600" rx="24" ry="24" fill="url(#gallery-grid)" opacity="0.5" />
+		<rect x="48" y="48" width="1184" height="256" rx="22" ry="22" fill="url(#gallery-row-top)" stroke="var(--scene-band-stroke)" stroke-width="1" />
+		<rect x="48" y="332" width="1184" height="280" rx="22" ry="22" fill="url(#gallery-row-bottom)" stroke="var(--scene-band-stroke)" stroke-width="1" />
+
+		<svg:text x="72" y="78" style="fill: var(--scene-label-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">Storage And Vessels</svg:text>
+		<svg:text x="72" y="362" style="fill: var(--scene-label-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">Equipment And Linework</svg:text>
+
+		<SchematicNode X="90" Y="86" Width="@boxWidth" Title="Source Tank" IsOn="false" IsAlert="false" IsClickable="false" PanelX="14" PanelY="150" PanelWidthOverride="192" Lines="@SourceTankLines">
+			<SvgTank Width="@boxWidth" OutletY="138" />
+		</SchematicNode>
+
+		<SchematicNode X="356" Y="82" Width="@boxWidth" Title="Surge Bin" StatusText="Available" IsOn="true" IsAlert="false" IsClickable="false" PanelX="14" PanelY="142" PanelWidthOverride="192" Lines="@BinLines">
+			<SvgBin Width="@boxWidth" OutletY="128" />
+		</SchematicNode>
+
+		<SchematicNode X="622" Y="86" Width="@boxWidth" Title="Destination Tank" IsOn="true" IsAlert="false" IsClickable="false" PanelX="14" PanelY="150" PanelWidthOverride="192" Lines="@DestinationTankLines">
+			<SvgTank Width="@boxWidth" OutletX="48" OutletY="150" FillRatio="0.64" />
+		</SchematicNode>
+
+		<SchematicNode X="896" Y="82" Width="@boxWidth" Title="Overflow Bin" StatusText="High Level" IsOn="false" IsAlert="true" IsClickable="false" PanelX="14" PanelY="142" PanelWidthOverride="192" Lines="@AlertBinLines">
+			<SvgBin Width="@boxWidth" OutletY="128" />
+		</SchematicNode>
+
+		<SchematicNode X="86" Y="392" Width="@boxWidth" Title="Blower" StatusText="Running" IsOn="true" IsAlert="false" IsClickable="false" PanelX="18" PanelY="128" PanelWidthOverride="184" Lines="@BlowerLines">
+			<SvgBlower CenterY="102" />
+		</SchematicNode>
+
+		<SchematicNode X="334" Y="392" Width="@boxWidth" Title="Rotary Airlock" StatusText="Idle" IsOn="false" IsAlert="false" IsClickable="false" PanelX="12" PanelY="128" PanelWidthOverride="196" Lines="@AirlockLines">
+			<SvgRotaryAirlock Width="@boxWidth" TopInletY="26" CenterY="102" />
+		</SchematicNode>
+
+		<SchematicNode X="594" Y="392" Width="@boxWidth" Title="Blowline" StatusText="Flowing" IsOn="true" IsAlert="false" IsClickable="false" PanelX="14" PanelY="128" PanelWidthOverride="192" Lines="@BlowlineLines">
+			<SvgPipeModule Width="@boxWidth" CenterY="102" />
+		</SchematicNode>
+
+		<SchematicNode X="866" Y="392" Width="@boxWidth" Title="Process Pump" StatusText="Loaded" IsOn="true" IsAlert="false" IsClickable="false" PanelX="12" PanelY="128" PanelWidthOverride="196" Lines="@PumpLines">
+			<SvgPump CenterY="98" />
+		</SchematicNode>
+	</svg>
+</div>
+
+@code {
+	private static SchematicNode.Line[] SourceTankLines =>
+	[
+		new("Weight", "20000 lb"),
+		new("State", "Standby"),
+	];
+
+	private static SchematicNode.Line[] BinLines =>
+	[
+		new("Material", "Pellets"),
+		new("Feed", "Ready"),
+	];
+
+	private static SchematicNode.Line[] DestinationTankLines =>
+	[
+		new("Fill", "64%"),
+		new("State", "Receiving"),
+	];
+
+	private static SchematicNode.Line[] AlertBinLines =>
+	[
+		new("Level", "92%"),
+		new("Alarm", "High"),
+	];
+
+	private static SchematicNode.Line[] BlowerLines =>
+	[
+		new("Load", "56.2%"),
+		new("Discharge", "8.0 psi"),
+	];
+
+	private static SchematicNode.Line[] AirlockLines =>
+	[
+		new("Enable", "0"),
+		new("Speed", "0.0 Hz"),
+	];
+
+	private static SchematicNode.Line[] BlowlineLines =>
+	[
+		new("Pressure", "7.8 psi"),
+		new("Transfer", "14.4 lb/s"),
+	];
+
+	private static SchematicNode.Line[] PumpLines =>
+	[
+		new("Head", "124 ft"),
+		new("Flow", "280 gpm"),
+	];
+}

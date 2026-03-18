@@ -1,0 +1,57 @@
+@namespace SkyNet.Simulator.Dashboard.Components
+
+@{
+	var vesselWidth = Width * 0.52;
+	var vesselLeft = (Width - vesselWidth) / 2.0;
+	var vesselTop = 6.0;
+	var nozzleHeight = 12.0;
+	var vesselBottom = Math.Max(vesselTop + 82.0, OutletY - nozzleHeight);
+	var vesselHeight = vesselBottom - vesselTop;
+	var fillRatio = FillRatio.HasValue ? Math.Clamp(FillRatio.Value, 0.0, 1.0) : (double?)null;
+	var fillInset = 9.0;
+	var fillHeight = fillRatio.HasValue ? Math.Max(0.0, (vesselHeight - 16.0) * fillRatio.Value) : 0.0;
+	var fillY = vesselBottom - 8.0 - fillHeight;
+	var centerX = Width / 2.0;
+	var outletX = OutletX ?? centerX;
+	var legTopY = vesselBottom + 10.0;
+}
+
+<g class="schematic-glyph schematic-tank">
+	<rect x="@(vesselLeft - 18)" y="@(vesselTop + 6)" width="@(vesselWidth + 36)" height="@(vesselHeight + 12)" rx="26" ry="26" fill="var(--node-shell-shadow)" opacity="0.18" />
+	<rect x="@vesselLeft" y="@(vesselTop + 10)" width="@vesselWidth" height="@(vesselHeight - 20)" rx="22" ry="22" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
+	<ellipse cx="@centerX" cy="@(vesselTop + 10)" rx="@(vesselWidth / 2.0)" ry="10" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
+	<ellipse cx="@centerX" cy="@vesselBottom" rx="@(vesselWidth / 2.0)" ry="10" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
+	<path d="M@(vesselLeft + 4) @(vesselTop + 22) Q@centerX @(vesselTop + 8) @(vesselLeft + vesselWidth - 4) @(vesselTop + 22)" fill="none" stroke="var(--node-shell-highlight)" stroke-width="2.2" stroke-linecap="round" opacity="0.75" />
+	<line x1="@(vesselLeft + 12)" y1="@(vesselBottom + 9)" x2="@(vesselLeft + 24)" y2="@(vesselBottom + 17)" stroke="@VisualStyle.DetailStroke" stroke-width="3" stroke-linecap="round" />
+	<line x1="@(vesselLeft + vesselWidth - 12)" y1="@(vesselBottom + 9)" x2="@(vesselLeft + vesselWidth - 24)" y2="@(vesselBottom + 17)" stroke="@VisualStyle.DetailStroke" stroke-width="3" stroke-linecap="round" />
+	<line x1="@(vesselLeft + 24)" y1="@legTopY" x2="@(vesselLeft + 16)" y2="@(legTopY + 18)" stroke="@VisualStyle.DetailStroke" stroke-width="3.2" stroke-linecap="round" />
+	<line x1="@(vesselLeft + vesselWidth - 24)" y1="@legTopY" x2="@(vesselLeft + vesselWidth - 16)" y2="@(legTopY + 18)" stroke="@VisualStyle.DetailStroke" stroke-width="3.2" stroke-linecap="round" />
+	<line x1="@(vesselLeft + 12)" y1="@(legTopY + 18)" x2="@(vesselLeft + vesselWidth - 12)" y2="@(legTopY + 18)" stroke="@VisualStyle.DetailStroke" stroke-width="3" stroke-linecap="round" opacity="0.8" />
+
+	@if (fillRatio.HasValue)
+	{
+		<rect x="@(vesselLeft + fillInset)" y="@fillY" width="@(vesselWidth - (fillInset * 2.0))" height="@fillHeight" rx="14" ry="14" fill="@VisualStyle.TankFill" opacity="0.95" />
+	}
+
+	<line x1="@outletX" y1="@vesselBottom" x2="@outletX" y2="@OutletY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<circle cx="@outletX" cy="@OutletY" r="4.5" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="2" />
+	<rect x="@(outletX - 7)" y="@(vesselBottom - 2)" width="14" height="8" rx="3" ry="3" fill="@VisualStyle.BaseFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.4" />
+
+	<line x1="@(vesselLeft + 16)" y1="@(vesselTop + 26)" x2="@(vesselLeft + vesselWidth - 16)" y2="@(vesselTop + 26)" stroke="@VisualStyle.DetailStroke" stroke-width="1.8" stroke-linecap="round" />
+	<line x1="@(vesselLeft + 16)" y1="@(vesselTop + 46)" x2="@(vesselLeft + vesselWidth - 16)" y2="@(vesselTop + 46)" stroke="@VisualStyle.DetailStroke" stroke-width="1.8" stroke-linecap="round" />
+	<line x1="@(vesselLeft + 16)" y1="@(vesselTop + 66)" x2="@(vesselLeft + vesselWidth - 16)" y2="@(vesselTop + 66)" stroke="@VisualStyle.DetailStroke" stroke-width="1.8" stroke-linecap="round" />
+
+	@if (IsAlert)
+	{
+		<path d="M@(vesselLeft - 6) @(vesselTop + 14) L@(vesselLeft + 10) @(vesselTop + 14) L@(vesselLeft - 6) @(vesselBottom - 14)" fill="@VisualStyle.AlertFill" opacity="0.95" />
+	}
+</g>
+
+@code {
+	[CascadingParameter] public SchematicVisualStyle VisualStyle { get; set; } = SchematicVisualStyle.Default;
+	[Parameter] public double Width { get; set; } = 220;
+	[Parameter] public double OutletY { get; set; } = 135;
+	[Parameter] public double? OutletX { get; set; }
+	[Parameter] public double? FillRatio { get; set; }
+	[Parameter] public bool IsAlert { get; set; }
+}

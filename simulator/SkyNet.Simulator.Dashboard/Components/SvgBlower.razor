@@ -1,0 +1,35 @@
+@namespace SkyNet.Simulator.Dashboard.Components
+
+@{
+	var centerY = CenterY;
+	var shellLeft = 46.0;
+	var shellRight = 138.0;
+	var shellWidth = shellRight - shellLeft;
+	var shellCenterX = shellLeft + (shellWidth / 2.0);
+	var wheelRadius = 34.0;
+	var motorLeft = 146.0;
+	var motorTop = centerY - 21.0;
+}
+
+<g class="schematic-glyph schematic-blower">
+	<rect x="58" y="@(centerY + 37)" width="118" height="12" rx="6" ry="6" fill="var(--node-shell-shadow)" opacity="0.22" />
+	<line x1="10" y1="@centerY" x2="@shellLeft" y2="@centerY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<line x1="@shellRight" y1="@centerY" x2="210" y2="@centerY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<circle cx="@shellCenterX" cy="@centerY" r="@wheelRadius" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
+	<path d="M@shellLeft @centerY A@wheelRadius @wheelRadius 0 0 1 @shellRight @centerY" fill="none" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
+	<path d="M@(shellCenterX - 24) @(centerY - 18) Q@(shellCenterX - 4) @(centerY - 40) @(shellCenterX + 22) @(centerY - 12)" fill="none" stroke="var(--node-shell-highlight)" stroke-width="2.2" stroke-linecap="round" opacity="0.8" />
+	<circle cx="@shellCenterX" cy="@centerY" r="8" fill="@VisualStyle.CoreFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.8" />
+	<path d="M@(shellCenterX - 10) @(centerY - 10) L@(shellCenterX + 10) @centerY L@(shellCenterX - 10) @(centerY + 10) Z" fill="@VisualStyle.CoreFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.6" />
+
+	<rect x="@motorLeft" y="@motorTop" width="44" height="42" rx="10" ry="10" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
+	<line x1="184" y1="@(centerY - 11)" x2="184" y2="@(centerY + 11)" stroke="@VisualStyle.DetailStroke" stroke-width="2" stroke-linecap="round" />
+	<line x1="190" y1="@(centerY - 11)" x2="190" y2="@(centerY + 11)" stroke="@VisualStyle.DetailStroke" stroke-width="2" stroke-linecap="round" />
+	<line x1="196" y1="@(centerY - 11)" x2="196" y2="@(centerY + 11)" stroke="@VisualStyle.DetailStroke" stroke-width="2" stroke-linecap="round" />
+	<line x1="180" y1="@centerY" x2="@motorLeft" y2="@centerY" stroke="@VisualStyle.DetailStroke" stroke-width="2.8" stroke-linecap="round" />
+	<rect x="58" y="@(centerY + 34)" width="124" height="10" rx="5" ry="5" fill="@VisualStyle.BaseFill" />
+</g>
+
+@code {
+	[CascadingParameter] public SchematicVisualStyle VisualStyle { get; set; } = SchematicVisualStyle.Default;
+	[Parameter] public double CenterY { get; set; } = 104;
+}

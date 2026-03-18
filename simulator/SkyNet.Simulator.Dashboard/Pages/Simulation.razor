@@ -66,6 +66,11 @@ else
 		</div>
 		<TankTransferSchematic SimId="@SimId" Snapshot="@_uiSnapshot" Layout="@_tankTransferLayout" />
 	}
+	else if (IsHydraulicSimulation(SimId))
+	{
+		<h2>Hydraulic Schematic</h2>
+		<HydraulicSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
+	}
 
 	<h2>Trends</h2>
 	<div style="display:flex; gap: 1rem; flex-wrap: wrap;">
@@ -538,6 +543,30 @@ else
 			_chart3SignalKey = "BlowerMotorPercentFla";
 			_chart3Format = "0.0";
 		}
+		else if (string.Equals(simId, "hydraulic-demo", StringComparison.OrdinalIgnoreCase))
+		{
+			_keySignals =
+			[
+				"DownstreamPressurePsi",
+				"ActuatorPosition",
+				"ActuatorVelocity",
+			];
+
+			_chart1Title = "Downstream Pressure";
+			_chart1Unit = "psi";
+			_chart1SignalKey = "DownstreamPressurePsi";
+			_chart1Format = "0.0";
+
+			_chart2Title = "Actuator Position";
+			_chart2Unit = "pos";
+			_chart2SignalKey = "ActuatorPosition";
+			_chart2Format = "0.000";
+
+			_chart3Title = "Actuator Velocity";
+			_chart3Unit = "vel";
+			_chart3SignalKey = "ActuatorVelocity";
+			_chart3Format = "0.000";
+		}
 		else
 		{
 			_keySignals =
@@ -565,6 +594,10 @@ else
 			_chart3Format = "0.0";
 		}
 	}
+
+	private static bool IsHydraulicSimulation(string simId) =>
+		!string.IsNullOrWhiteSpace(simId)
+		&& simId.StartsWith("hydraulic", StringComparison.OrdinalIgnoreCase);
 
 	private async Task Pause()
 	{

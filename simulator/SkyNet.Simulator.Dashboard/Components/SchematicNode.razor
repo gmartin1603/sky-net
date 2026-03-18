@@ -1,0 +1,144 @@
+@namespace SkyNet.Simulator.Dashboard.Components
+
+<g transform="@Transform"
+   class="@CssClass"
+   style="@CursorStyle"
+   @onclick="HandleClick">
+	<CascadingValue Value="VisualStyle" IsFixed="true">
+		@ChildContent
+	</CascadingValue>
+
+	@if (ShowPanel)
+	{
+		<g transform="translate(@PanelX @PanelY)" class="schematic-node-panel">
+			<rect x="0" y="0" width="@PanelWidth" height="@PanelHeight" rx="14" ry="14" fill="@VisualStyle.PanelFill" stroke="@VisualStyle.PanelBorder" stroke-width="1.2" style="filter: drop-shadow(0 5px 16px rgba(0, 0, 0, 0.12));" />
+			<line x1="0" y1="22" x2="@PanelWidth" y2="22" stroke="@VisualStyle.PanelDivider" stroke-width="1" />
+			<foreignObject x="0" y="0" width="@PanelWidth" height="@PanelHeight">
+				<div xmlns="http://www.w3.org/1999/xhtml" class="schematic-node-panel-html" style="@PanelHtmlStyle">
+					<div class="schematic-node-panel-header" style="display:flex; align-items:baseline; justify-content:space-between; gap:0.75rem; min-height:16px;">
+						<div class="schematic-node-title" style="@TitleStyle">@Title</div>
+						@if (!string.IsNullOrWhiteSpace(StatusText))
+						{
+							<div class="schematic-node-status" style="@MutedTextStyle">@StatusText</div>
+						}
+					</div>
+					@if (Lines.Length > 0)
+					{
+						<div class="schematic-node-lines" style="display:grid; gap:2px;">
+							@foreach (var line in Lines)
+							{
+								<div class="schematic-node-line-row" style="display:flex; align-items:baseline; justify-content:space-between; gap:0.75rem; font-size:9.5px;">
+									<div class="schematic-node-line-label" style="@MutedTextStyle">@line.Label</div>
+									<div class="schematic-node-line-value" style="@ValueTextStyle">@line.Value</div>
+								</div>
+							}
+						</div>
+					}
+				</div>
+			</foreignObject>
+		</g>
+	}
+</g>
+
+@code {
+	[Parameter] public double X { get; set; }
+	[Parameter] public double Y { get; set; }
+	[Parameter] public double Width { get; set; } = 220;
+	[Parameter] public string Title { get; set; } = string.Empty;
+	[Parameter] public string? StatusText { get; set; }
+	[Parameter] public bool IsOn { get; set; }
+	[Parameter] public bool IsAlert { get; set; }
+	[Parameter] public bool IsClickable { get; set; }
+	[Parameter] public double PanelX { get; set; } = 10;
+	[Parameter] public double PanelY { get; set; } = 140;
+	[Parameter] public double? PanelWidthOverride { get; set; }
+	[Parameter] public Line[] Lines { get; set; } = Array.Empty<Line>();
+	[Parameter] public EventCallback OnClick { get; set; }
+	[Parameter] public RenderFragment? ChildContent { get; set; }
+
+	private string Transform => $"translate({X:0.###} {Y:0.###})";
+	private string CursorStyle => IsClickable && OnClick.HasDelegate ? "cursor: pointer;" : "cursor: default;";
+	private SchematicVisualStyle VisualStyle => BuildVisualStyle();
+	private string CssClass
+	{
+		get
+		{
+			var classes = new List<string>
+			{
+				"schematic-node",
+				IsOn ? "schematic-state-on" : "schematic-state-off",
+			};
+
+			if (IsAlert)
+			{
+				classes.Add("schematic-state-alert");
+			}
+
+			if (IsClickable && OnClick.HasDelegate)
+			{
+				classes.Add("schematic-clickable");
+			}
+
+			return string.Join(" ", classes);
+		}
+	}
+
+	private bool ShowPanel => !string.IsNullOrWhiteSpace(Title) || !string.IsNullOrWhiteSpace(StatusText) || Lines.Length > 0;
+	private double PanelWidth => Math.Max(80, PanelWidthOverride ?? (Width - 20));
+	private double PanelHeight => 30 + (Lines.Length * 16) + 10;
+	private string PanelHtmlStyle => $"box-sizing:border-box;display:flex;flex-direction:column;gap:7px;width:100%;height:100%;padding:8px 12px 9px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:{VisualStyle.ValueColor};";
+	private string TitleStyle => $"color:{VisualStyle.TitleColor};font-size:11px;font-weight:700;line-height:1.1;letter-spacing:0.01em;";
+	private string MutedTextStyle => $"color:{VisualStyle.MutedColor};font-size:9.5px;line-height:1.2;";
+	private string ValueTextStyle => $"color:{VisualStyle.ValueColor};font-size:9.5px;font-weight:600;line-height:1.2;";
+
+	private SchematicVisualStyle BuildVisualStyle()
+	{
+		var shellStroke = IsAlert
+			? "var(--node-alert)"
+			: IsOn
+				? "var(--node-border-on)"
+				: "var(--node-shell-stroke)";
+
+		var coreFill = IsOn
+			? "color-mix(in srgb, var(--node-core-fill) 50%, var(--node-border-on))"
+			: "var(--node-core-fill)";
+
+		var detailStroke = IsOn
+			? "color-mix(in srgb, var(--node-detail-stroke) 45%, var(--node-border-on))"
+			: "var(--node-detail-stroke)";
+
+		var panelBorder = IsAlert
+			? "var(--node-alert)"
+			: IsOn
+				? "var(--node-border-on)"
+				: "var(--node-border-off)";
+
+		return new SchematicVisualStyle(
+			ShellFill: "var(--node-shell-fill)",
+			ShellStroke: shellStroke,
+			CoreFill: coreFill,
+			DetailStroke: detailStroke,
+			BaseFill: "var(--node-base-fill)",
+			PortCapFill: "var(--node-port-cap-fill)",
+			TankFill: "var(--node-tank-fill)",
+			AlertFill: "var(--node-alert)",
+			PanelFill: "var(--node-panel-fill)",
+			PanelBorder: panelBorder,
+			PanelDivider: "var(--node-panel-divider)",
+			TitleColor: "var(--node-title-color)",
+			MutedColor: "var(--node-muted-color)",
+			ValueColor: "var(--node-value-color)");
+	}
+
+	private async Task HandleClick()
+	{
+		if (!IsClickable || !OnClick.HasDelegate)
+		{
+			return;
+		}
+
+		await OnClick.InvokeAsync();
+	}
+
+	public sealed record Line(string Label, string Value);
+}

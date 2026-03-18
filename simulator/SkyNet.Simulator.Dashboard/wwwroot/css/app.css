@@ -16,6 +16,33 @@
     --schematic-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     --schematic-flow-on: #1f77b4;
     --schematic-flow-off: #bbbbbb;
+    --schematic-shell-fill: #fbfcfd;
+    --schematic-shell-shadow: #a8bccf;
+    --schematic-shell-highlight: rgba(255, 255, 255, 0.9);
+    --schematic-shell-stroke: #4d5f73;
+    --schematic-core-fill: #dce7f1;
+    --schematic-detail-stroke: #8ea3b6;
+    --schematic-base-fill: #d7dee6;
+    --schematic-label-bg: rgba(255, 255, 255, 0.92);
+    --schematic-label-divider: rgba(77, 95, 115, 0.16);
+    --schematic-label-text: #253443;
+    --schematic-label-muted: #65798c;
+    --schematic-label-value: #102030;
+    --schematic-alert: #d94841;
+    --schematic-fill: rgba(50, 143, 224, 0.24);
+    --schematic-scene-top: #fbfdff;
+    --schematic-scene-bottom: #edf3f8;
+    --schematic-scene-border: rgba(73, 93, 116, 0.14);
+    --schematic-grid: rgba(92, 114, 138, 0.08);
+    --schematic-band-fill: rgba(90, 160, 220, 0.10);
+    --schematic-band-fill-strong: rgba(40, 114, 180, 0.12);
+    --schematic-band-stroke: rgba(73, 93, 116, 0.10);
+    --hydraulic-fluid: #2b7ed6;
+    --hydraulic-fluid-soft: rgba(43, 126, 214, 0.16);
+    --hydraulic-sensor: #f28f3b;
+    --hydraulic-steel: #dfe7ef;
+    --hydraulic-steel-stroke: #506579;
+    --hydraulic-load: #8fa2b5;
 
     --chart-bg: #ffffff;
     --chart-border: rgba(0, 0, 0, 0.15);
@@ -41,6 +68,33 @@
     --schematic-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
     --schematic-flow-on: #7db4ff;
     --schematic-flow-off: rgba(255, 255, 255, 0.28);
+    --schematic-shell-fill: #14233a;
+    --schematic-shell-shadow: rgba(5, 10, 18, 0.9);
+    --schematic-shell-highlight: rgba(232, 244, 255, 0.24);
+    --schematic-shell-stroke: rgba(177, 206, 235, 0.72);
+    --schematic-core-fill: rgba(106, 171, 224, 0.22);
+    --schematic-detail-stroke: rgba(190, 216, 240, 0.42);
+    --schematic-base-fill: rgba(192, 212, 231, 0.20);
+    --schematic-label-bg: rgba(11, 18, 32, 0.84);
+    --schematic-label-divider: rgba(255, 255, 255, 0.10);
+    --schematic-label-text: #e6eef8;
+    --schematic-label-muted: #93a8bd;
+    --schematic-label-value: #f2f7fb;
+    --schematic-alert: #ff8c7f;
+    --schematic-fill: rgba(125, 180, 255, 0.22);
+    --schematic-scene-top: #0f192a;
+    --schematic-scene-bottom: #0b1322;
+    --schematic-scene-border: rgba(177, 206, 235, 0.18);
+    --schematic-grid: rgba(180, 208, 235, 0.05);
+    --schematic-band-fill: rgba(64, 125, 182, 0.16);
+    --schematic-band-fill-strong: rgba(89, 161, 225, 0.13);
+    --schematic-band-stroke: rgba(177, 206, 235, 0.08);
+    --hydraulic-fluid: #7db4ff;
+    --hydraulic-fluid-soft: rgba(125, 180, 255, 0.16);
+    --hydraulic-sensor: #ffbf73;
+    --hydraulic-steel: #16304a;
+    --hydraulic-steel-stroke: rgba(188, 214, 239, 0.72);
+    --hydraulic-load: rgba(198, 214, 230, 0.42);
 
     --chart-bg: rgba(255, 255, 255, 0.03);
     --chart-border: rgba(255, 255, 255, 0.14);
@@ -130,6 +184,178 @@ a, .btn-link {
     filter: brightness(1.03);
 }
 
+.schematic-node {
+    pointer-events: auto;
+}
+
+.schematic-node.schematic-clickable {
+    transition: filter 140ms ease, opacity 140ms ease;
+}
+
+.schematic-node.schematic-clickable:hover {
+    filter: drop-shadow(0 0 0.45rem color-mix(in srgb, var(--schematic-flow-on) 45%, transparent));
+}
+
+.schematic-scene-label,
+.schematic-scene-accent {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.schematic-scene-label {
+    fill: var(--schematic-label-muted);
+}
+
+.schematic-scene-accent {
+    fill: color-mix(in srgb, var(--schematic-label-text) 70%, var(--schematic-flow-on));
+}
+
+.schematic-node .schematic-shell,
+.schematic-node .schematic-shell-cap {
+    fill: var(--schematic-shell-fill);
+    stroke: var(--schematic-shell-stroke);
+    stroke-width: 2.4;
+}
+
+.schematic-node .schematic-core,
+.schematic-node .schematic-rotor {
+    fill: var(--schematic-core-fill);
+    stroke: var(--schematic-shell-stroke);
+    stroke-width: 1.8;
+}
+
+.schematic-node .schematic-base {
+    fill: var(--schematic-base-fill);
+}
+
+.schematic-node .schematic-port,
+.schematic-node .schematic-detail {
+    fill: none;
+    stroke: var(--schematic-detail-stroke);
+    stroke-linecap: round;
+}
+
+.schematic-node .schematic-port {
+    stroke-width: 4;
+}
+
+.schematic-node .schematic-detail {
+    stroke-width: 1.8;
+}
+
+.schematic-node .schematic-port-cap {
+    fill: var(--schematic-shell-fill);
+    stroke: var(--schematic-shell-stroke);
+    stroke-width: 2;
+}
+
+.schematic-node .schematic-tank-fill {
+    fill: var(--schematic-fill);
+}
+
+.schematic-node .schematic-alert-accent {
+    fill: var(--schematic-alert);
+    opacity: 0.95;
+}
+
+.schematic-node-panel-backdrop {
+    fill: var(--schematic-label-bg);
+    stroke: var(--schematic-border-off);
+    stroke-width: 1.2;
+    filter: drop-shadow(0 5px 16px rgba(0, 0, 0, 0.12));
+}
+
+.schematic-node-panel-divider {
+    stroke: var(--schematic-label-divider);
+    stroke-width: 1;
+}
+
+.schematic-node-title {
+    color: var(--schematic-label-text);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.schematic-node-status,
+.schematic-node-line-label,
+.schematic-node-line-value {
+    font-size: 9.5px;
+}
+
+.schematic-node-status,
+.schematic-node-line-label {
+    color: var(--schematic-label-muted);
+}
+
+.schematic-node-line-value {
+    color: var(--schematic-label-value);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.schematic-node-panel-html {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    height: 100%;
+    padding: 7px 12px 8px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.schematic-node-panel-header,
+.schematic-node-line-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.schematic-node-panel-header {
+    min-height: 16px;
+}
+
+.schematic-node-lines {
+    display: grid;
+    gap: 2px;
+}
+
+.schematic-node.schematic-state-on .schematic-shell,
+.schematic-node.schematic-state-on .schematic-shell-cap,
+.schematic-node.schematic-state-on .schematic-port-cap {
+    stroke: var(--schematic-border-on);
+}
+
+.schematic-node.schematic-state-on .schematic-core,
+.schematic-node.schematic-state-on .schematic-rotor {
+    fill: color-mix(in srgb, var(--schematic-core-fill) 55%, var(--schematic-border-on));
+    stroke: var(--schematic-border-on);
+}
+
+.schematic-node.schematic-state-on .schematic-port,
+.schematic-node.schematic-state-on .schematic-detail {
+    stroke: color-mix(in srgb, var(--schematic-detail-stroke) 45%, var(--schematic-border-on));
+}
+
+.schematic-node.schematic-state-on .schematic-node-panel-backdrop {
+    stroke: var(--schematic-border-on);
+}
+
+.schematic-node.schematic-state-alert .schematic-node-panel-backdrop,
+.schematic-node.schematic-state-alert .schematic-shell,
+.schematic-node.schematic-state-alert .schematic-shell-cap {
+    stroke: var(--schematic-alert);
+}
+
+.schematic-node.schematic-clickable:hover .schematic-node-panel-backdrop,
+.schematic-node.schematic-clickable:hover .schematic-shell,
+.schematic-node.schematic-clickable:hover .schematic-shell-cap {
+    filter: brightness(1.04);
+}
+
 /* Charts */
 .chart-panel {
     border: 1px solid var(--chart-border);
@@ -166,6 +392,7 @@ a, .btn-link {
     padding: 0.5rem 0.6rem;
     font-size: 0.9rem;
     cursor: grab;
+    min-height: 96px;
 }
 
 .layout-drag-box:active {
@@ -179,6 +406,248 @@ a, .btn-link {
 .layout-drag-box-sub {
     opacity: 0.75;
     font-size: 0.8rem;
+}
+
+.gallery-page {
+    display: grid;
+    gap: 1rem;
+}
+
+.gallery-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.gallery-header p {
+    margin: 0.35rem 0 0;
+    color: var(--app-muted);
+}
+
+.gallery-legend {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.gallery-chip {
+    border: 1px solid var(--app-border);
+    border-radius: 999px;
+    padding: 0.32rem 0.72rem;
+    font-size: 0.8rem;
+    background: var(--app-surface);
+}
+
+.gallery-chip-on {
+    border-color: var(--schematic-border-on);
+    color: var(--schematic-border-on);
+}
+
+.gallery-chip-alert {
+    border-color: var(--schematic-alert);
+    color: var(--schematic-alert);
+}
+
+.gallery-scene {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 1280px;
+}
+
+.hydraulic-scene {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.hydraulic-line-base,
+.hydraulic-line-glow,
+.hydraulic-line-branch,
+.hydraulic-port-line,
+.hydraulic-detail-line,
+.hydraulic-load-guide,
+.hydraulic-orifice,
+.hydraulic-gauge-needle,
+.hydraulic-handle {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.hydraulic-line-base {
+    stroke: color-mix(in srgb, var(--hydraulic-fluid) 30%, var(--schematic-shell-stroke));
+    stroke-width: 14;
+    opacity: 0.22;
+}
+
+.hydraulic-line-glow,
+.hydraulic-line-branch {
+    stroke: url(#hydraulic-fluid-gradient);
+    stroke-width: 6;
+    filter: url(#hydraulic-glow);
+}
+
+.hydraulic-line-branch {
+    stroke-width: 4.5;
+}
+
+.hydraulic-flow-active {
+    stroke-dasharray: 14 18;
+    animation: hydraulic-flow-dash var(--hydraulic-flow-duration, 2.2s) linear infinite;
+}
+
+.hydraulic-port-dot {
+    fill: color-mix(in srgb, var(--hydraulic-fluid) 65%, white);
+    opacity: 0.42;
+    transition: opacity 160ms linear, transform 160ms linear;
+}
+
+.hydraulic-port-live {
+    opacity: 0.95;
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--hydraulic-fluid) 70%, transparent));
+}
+
+.hydraulic-particle {
+    fill: color-mix(in srgb, var(--hydraulic-fluid) 70%, white);
+    opacity: 0;
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--hydraulic-fluid) 75%, transparent));
+}
+
+.hydraulic-particle-active {
+    opacity: 0.92;
+}
+
+.hydraulic-reservoir,
+.hydraulic-gauge-face,
+.hydraulic-cylinder-bore,
+.hydraulic-load-block,
+.hydraulic-spool,
+.hydraulic-piston,
+.hydraulic-cylinder-rod,
+.hydraulic-handle-knob,
+.hydraulic-gauge-hub {
+    transition: fill 160ms linear, stroke 160ms linear, transform 160ms linear;
+}
+
+.hydraulic-reservoir,
+.hydraulic-gauge-face,
+.hydraulic-cylinder-bore {
+    fill: color-mix(in srgb, var(--hydraulic-steel) 88%, white);
+    stroke: var(--hydraulic-steel-stroke);
+    stroke-width: 2;
+}
+
+.hydraulic-detail-line,
+.hydraulic-port-line,
+.hydraulic-load-guide,
+.hydraulic-orifice {
+    stroke: color-mix(in srgb, var(--schematic-detail-stroke) 64%, var(--hydraulic-fluid));
+    stroke-width: 4;
+}
+
+.hydraulic-orifice {
+    stroke-width: 3;
+}
+
+.hydraulic-spool,
+.hydraulic-piston {
+    fill: color-mix(in srgb, var(--hydraulic-fluid) 34%, var(--hydraulic-steel));
+    stroke: color-mix(in srgb, var(--hydraulic-fluid) 54%, var(--hydraulic-steel-stroke));
+    stroke-width: 2;
+}
+
+.hydraulic-cylinder-rod {
+    fill: color-mix(in srgb, var(--hydraulic-steel) 78%, white);
+    stroke: color-mix(in srgb, var(--hydraulic-steel-stroke) 82%, white);
+    stroke-width: 1.6;
+}
+
+.hydraulic-load-block {
+    fill: color-mix(in srgb, var(--hydraulic-load) 82%, var(--hydraulic-steel));
+    stroke: color-mix(in srgb, var(--hydraulic-steel-stroke) 72%, var(--hydraulic-load));
+    stroke-width: 2;
+}
+
+.hydraulic-handle,
+.hydraulic-gauge-needle {
+    stroke: var(--hydraulic-sensor);
+    stroke-width: 4;
+}
+
+.hydraulic-handle-knob,
+.hydraulic-gauge-hub {
+    fill: color-mix(in srgb, var(--hydraulic-sensor) 76%, white);
+    stroke: color-mix(in srgb, var(--hydraulic-sensor) 65%, black);
+    stroke-width: 1.4;
+}
+
+.hydraulic-sensor-pulse {
+    fill: none;
+    stroke: color-mix(in srgb, var(--hydraulic-sensor) 76%, white);
+    stroke-width: 2;
+    opacity: 0;
+    animation: hydraulic-sensor-pulse var(--hydraulic-pulse-duration, 1.6s) ease-out infinite;
+}
+
+.hydraulic-sensor-pulse-delayed {
+    animation-delay: calc(var(--hydraulic-pulse-duration, 1.6s) / 2);
+}
+
+.hydraulic-panel-title,
+.hydraulic-panel-status,
+.hydraulic-panel-label,
+.hydraulic-panel-value {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.hydraulic-panel-title {
+    fill: var(--schematic-label-text);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.hydraulic-panel-status,
+.hydraulic-panel-label {
+    fill: var(--schematic-label-muted);
+    font-size: 9.5px;
+}
+
+.hydraulic-panel-value {
+    fill: var(--schematic-label-value);
+    font-size: 9.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+@keyframes hydraulic-flow-dash {
+    from {
+        stroke-dashoffset: 0;
+    }
+
+    to {
+        stroke-dashoffset: -64;
+    }
+}
+
+@keyframes hydraulic-sensor-pulse {
+    0% {
+        opacity: 0;
+        transform: scale(0.82);
+        transform-origin: center;
+    }
+
+    18% {
+        opacity: 0.72;
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.14);
+        transform-origin: center;
+    }
 }
 
 .btn-primary {

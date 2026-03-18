@@ -1,0 +1,221 @@
+@namespace SkyNet.Simulator.Dashboard.Components
+@using System.Globalization
+@using SkyNet.Simulator.Contracts
+
+@if (Snapshot is null)
+{
+	<div>Waiting for telemetry...</div>
+}
+else
+{
+	<div style="position: relative; max-width: 1180px; height: 420px; margin: 0 auto;">
+		<svg viewBox="0 0 1180 420" class="hydraulic-scene" style="@SvgPaletteStyle">
+			<rect x="18" y="18" width="1144" height="384" rx="30" ry="30" fill="var(--schematic-scene-bottom)" stroke="var(--schematic-scene-border)" stroke-width="1.4" />
+			<rect x="46" y="46" width="1088" height="98" rx="20" ry="20" fill="var(--hydraulic-fluid-soft)" opacity="0.38" />
+			<rect x="46" y="164" width="1088" height="210" rx="24" ry="24" fill="var(--hydraulic-fluid-soft)" opacity="0.18" />
+			<text x="72" y="78" class="schematic-scene-label">Hydraulic Power</text>
+			<text x="72" y="194" class="schematic-scene-label">Metering And Actuation</text>
+			<text x="930" y="78" class="schematic-scene-accent">Animated Telemetry</text>
+
+			<path d="M238 208 L350 208 L612 208 L832 208" class="hydraulic-line-base" />
+			<path d="M238 208 L350 208 L612 208 L832 208" class="@MainFlowClass" style="@MainFlowOpacityStyle" />
+			<path d="M612 208 L612 120" class="@BranchFlowClass" style="@BranchFlowOpacityStyle" />
+			<circle cx="238" cy="208" r="6" class="@SupplyPortClass" />
+			<circle cx="612" cy="208" r="6" class="@ValvePortClass" />
+			<circle cx="832" cy="208" r="6" class="@ActuatorPortClass" />
+
+			<g transform="translate(42 108)">
+				<rect x="20" y="28" width="62" height="34" rx="12" ry="12" class="hydraulic-reservoir" />
+				<line x1="51" y1="62" x2="51" y2="96" class="hydraulic-detail-line" />
+				<line x1="10" y1="96" x2="58" y2="96" class="hydraulic-port-line" />
+				<path d="M58 68 A28 28 0 1 1 58 124 L90 110 A12 12 0 1 0 90 82 Z" class="schematic-shell" />
+				<circle cx="86" cy="96" r="10" class="hydraulic-spool" />
+				<rect x="150" y="76" width="38" height="40" rx="10" ry="10" class="schematic-shell" />
+				<rect x="44" y="130" width="146" height="10" rx="5" ry="5" class="schematic-base" />
+				<g transform="translate(8 146)">
+					<rect x="0" y="0" width="194" height="72" rx="14" ry="14" class="schematic-node-panel-backdrop" />
+					<line x1="0" y1="22" x2="194" y2="22" class="schematic-node-panel-divider" />
+					<text x="12" y="15" class="hydraulic-panel-title">Supply Unit</text>
+					<text x="182" y="15" text-anchor="end" class="hydraulic-panel-status">@SupplyStatus</text>
+					<text x="12" y="40" class="hydraulic-panel-label">Setpoint</text>
+					<text x="182" y="40" text-anchor="end" class="hydraulic-panel-value">@PressureText(SupplyPressure)</text>
+					<text x="12" y="56" class="hydraulic-panel-label">Header</text>
+					<text x="182" y="56" text-anchor="end" class="hydraulic-panel-value">@PressureText(SupplyPressure)</text>
+				</g>
+			</g>
+
+			<g transform="translate(318 108)">
+				<line x1="10" y1="96" x2="46" y2="96" class="hydraulic-port-line" />
+				<line x1="184" y1="96" x2="220" y2="96" class="hydraulic-port-line" />
+				<rect x="44" y="58" width="144" height="76" rx="28" ry="28" class="schematic-shell" />
+				<rect x="68" y="76" width="98" height="40" rx="20" ry="20" class="schematic-core" />
+				<g transform="@ValveSpoolTransform">
+					<rect x="44" y="74" width="26" height="44" rx="13" ry="13" class="hydraulic-spool" />
+				</g>
+				<line x1="116" y1="58" x2="116" y2="24" class="hydraulic-detail-line" />
+				<g transform="@ValveHandleTransform">
+					<line x1="116" y1="26" x2="148" y2="26" class="hydraulic-handle" />
+					<circle cx="150" cy="26" r="8" class="hydraulic-handle-knob" />
+				</g>
+				<path d="M88 112 L100 96 L88 80" class="hydraulic-orifice" />
+				<path d="M142 80 L154 96 L142 112" class="hydraulic-orifice" />
+				<g transform="translate(18 146)">
+					<rect x="0" y="0" width="196" height="72" rx="14" ry="14" class="schematic-node-panel-backdrop" />
+					<line x1="0" y1="22" x2="196" y2="22" class="schematic-node-panel-divider" />
+					<text x="12" y="15" class="hydraulic-panel-title">Metering Valve</text>
+					<text x="184" y="15" text-anchor="end" class="hydraulic-panel-status">@ValveStatus</text>
+					<text x="12" y="40" class="hydraulic-panel-label">Opening</text>
+					<text x="184" y="40" text-anchor="end" class="hydraulic-panel-value">@PercentText(ValveOpening)</text>
+					<text x="12" y="56" class="hydraulic-panel-label">Flow</text>
+					<text x="184" y="56" text-anchor="end" class="hydraulic-panel-value">@FlowText(ValveFlow)</text>
+				</g>
+			</g>
+
+			<g transform="translate(518 26)">
+				<line x1="94" y1="182" x2="94" y2="146" class="hydraulic-port-line" />
+				<circle cx="94" cy="110" r="40" class="schematic-shell" />
+				<circle cx="94" cy="110" r="26" class="hydraulic-gauge-face" />
+				@if (SensorActive)
+				{
+					<circle cx="94" cy="110" r="48" class="hydraulic-sensor-pulse" />
+					<circle cx="94" cy="110" r="56" class="hydraulic-sensor-pulse hydraulic-sensor-pulse-delayed" />
+				}
+				<g transform="@SensorNeedleTransform">
+					<line x1="94" y1="110" x2="94" y2="82" class="hydraulic-gauge-needle" />
+				</g>
+				<circle cx="94" cy="110" r="5.5" class="hydraulic-gauge-hub" />
+				<g transform="translate(12 206)">
+					<rect x="0" y="0" width="164" height="72" rx="14" ry="14" class="schematic-node-panel-backdrop" />
+					<line x1="0" y1="22" x2="164" y2="22" class="schematic-node-panel-divider" />
+					<text x="12" y="15" class="hydraulic-panel-title">Pressure Sensor</text>
+					<text x="152" y="15" text-anchor="end" class="hydraulic-panel-status">@SensorStatus</text>
+					<text x="12" y="40" class="hydraulic-panel-label">Measured</text>
+					<text x="152" y="40" text-anchor="end" class="hydraulic-panel-value">@PressureText(SensorPressure)</text>
+					<text x="12" y="56" class="hydraulic-panel-label">Span</text>
+					<text x="152" y="56" text-anchor="end" class="hydraulic-panel-value">@PressureSpanText()</text>
+				</g>
+			</g>
+
+			<g transform="translate(760 108)">
+				<line x1="10" y1="96" x2="34" y2="96" class="hydraulic-port-line" />
+				<rect x="34" y="62" width="148" height="68" rx="30" ry="30" class="schematic-shell" />
+				<rect x="48" y="74" width="120" height="44" rx="20" ry="20" class="hydraulic-cylinder-bore" />
+				<g transform="@ActuatorRodTransform">
+					<rect x="74" y="66" width="12" height="60" rx="6" ry="6" class="hydraulic-piston" />
+					<rect x="86" y="88" width="116" height="16" rx="8" ry="8" class="hydraulic-cylinder-rod" />
+				</g>
+				<rect x="206" y="78" width="52" height="36" rx="14" ry="14" class="hydraulic-load-block" />
+				<line x1="258" y1="96" x2="272" y2="96" class="hydraulic-detail-line" style="@LoadGuideOpacityStyle" />
+				<path d="M272 76 L272 116" class="hydraulic-load-guide" />
+				<g transform="translate(16 146)">
+					<rect x="0" y="0" width="212" height="88" rx="14" ry="14" class="schematic-node-panel-backdrop" />
+					<line x1="0" y1="22" x2="212" y2="22" class="schematic-node-panel-divider" />
+					<text x="12" y="15" class="hydraulic-panel-title">Actuator</text>
+					<text x="200" y="15" text-anchor="end" class="hydraulic-panel-status">@ActuatorStatusText</text>
+					<text x="12" y="40" class="hydraulic-panel-label">Position</text>
+					<text x="200" y="40" text-anchor="end" class="hydraulic-panel-value">@NumberText(ActuatorPosition)</text>
+					<text x="12" y="56" class="hydraulic-panel-label">Velocity</text>
+					<text x="200" y="56" text-anchor="end" class="hydraulic-panel-value">@NumberText(ActuatorVelocity)</text>
+					<text x="12" y="72" class="hydraulic-panel-label">Load</text>
+					<text x="200" y="72" text-anchor="end" class="hydraulic-panel-value">@NumberText(LoadForce, "0")</text>
+				</g>
+			</g>
+		</svg>
+	</div>
+}
+
+@code {
+	[Parameter] public string SimId { get; set; } = string.Empty;
+	[Parameter] public TelemetrySnapshot? Snapshot { get; set; }
+
+	private double SupplyPressure => FirstFinite(GetSignal("UpstreamPressurePsi"), GetParameter("SupplyPressurePsi"), 0.0);
+	private double DownstreamPressure => FirstFinite(GetSignal("DownstreamPressurePsi"), 0.0);
+	private double SensorPressure => FirstFinite(GetSignal("DownstreamPressureSensorPsi"), DownstreamPressure, 0.0);
+	private double ValveOpening => Math.Clamp(FirstFinite(GetParameter("ValveOpening"), 0.0), 0.0, 1.0);
+	private double FlowGain => FirstFinite(GetParameter("FlowGainGpm"), 20.0);
+	private double ValveFlow => FirstFinite(GetSignal("ValveFlowGpm"), FlowGain * ValveOpening * (Math.Max(SupplyPressure, 0.0) / 1000.0), 0.0);
+	private double ActuatorPosition => FirstFinite(GetSignal("ActuatorPosition"), 0.0);
+	private double ActuatorVelocity => FirstFinite(GetSignal("ActuatorVelocity"), 0.0);
+	private double LoadForce => FirstFinite(GetParameter("LoadForce"), 0.0);
+	private double DisplayPressureMax => Math.Max(500.0, Math.Ceiling(Math.Max(SupplyPressure, DownstreamPressure) / 250.0) * 250.0);
+	private double PressureNorm => Normalize(DownstreamPressure, DisplayPressureMax);
+	private double SensorNorm => Normalize(SensorPressure, DisplayPressureMax);
+	private double FlowNorm => Normalize(ValveFlow, Math.Max(FlowGain, 20.0));
+	private double LoadNorm => Normalize(LoadForce, Math.Max(LoadForce, DisplayPressureMax));
+	private double PistonNorm => NormalizeSigned(ActuatorPosition, 8.0);
+	private bool SupplyActive => SupplyPressure > 25.0;
+	private bool ValveActive => ValveOpening > 0.02;
+	private bool SensorActive => SensorPressure > 10.0;
+	private bool ActuatorMoving => Math.Abs(ActuatorVelocity) > 0.02;
+	private string SupplyStatus => SupplyActive ? "Charged" : "Idle";
+	private string ValveStatus => ValveActive ? "Open" : "Closed";
+	private string SensorStatus => SensorActive ? "Tracking" : "Offline";
+	private string ActuatorStatusText => ActuatorVelocity > 0.04 ? "Extending" : ActuatorVelocity < -0.04 ? "Retracting" : "Holding";
+	private string SvgPaletteStyle => BuildSvgPaletteStyle(FlowDuration, PulseDuration);
+	private string FlowDuration => $"{Math.Max(0.85, 2.7 - (FlowNorm * 1.65)):0.00}s";
+	private string PulseDuration => $"{Math.Max(0.90, 2.10 - (SensorNorm * 1.05)):0.00}s";
+	private string MainFlowClass => ValveActive ? "hydraulic-line-glow hydraulic-flow-active" : "hydraulic-line-glow";
+	private string BranchFlowClass => SensorActive ? "hydraulic-line-branch hydraulic-flow-active" : "hydraulic-line-branch";
+	private string SupplyPortClass => SupplyActive ? "hydraulic-port-dot hydraulic-port-live" : "hydraulic-port-dot";
+	private string ValvePortClass => ValveActive ? "hydraulic-port-dot hydraulic-port-live" : "hydraulic-port-dot";
+	private string ActuatorPortClass => (ActuatorMoving || PressureNorm > 0.05) ? "hydraulic-port-dot hydraulic-port-live" : "hydraulic-port-dot";
+	private string MainFlowOpacityStyle => $"opacity:{(0.16 + (FlowNorm * 0.64)).ToString("0.###", CultureInfo.InvariantCulture)}";
+	private string BranchFlowOpacityStyle => $"opacity:{(0.14 + (SensorNorm * 0.40)).ToString("0.###", CultureInfo.InvariantCulture)}";
+	private string LoadGuideOpacityStyle => $"opacity:{(0.35 + (LoadNorm * 0.50)).ToString("0.###", CultureInfo.InvariantCulture)}";
+	private string ValveSpoolTransform => $"translate({(10.0 + (ValveOpening * 62.0)).ToString("0.###", CultureInfo.InvariantCulture)} 0)";
+	private string ValveHandleTransform => $"rotate({(-34.0 + (ValveOpening * 68.0)).ToString("0.###", CultureInfo.InvariantCulture)} 116 26)";
+	private string SensorNeedleTransform => $"rotate({(-110.0 + (SensorNorm * 220.0)).ToString("0.###", CultureInfo.InvariantCulture)} 94 110)";
+	private string ActuatorRodTransform => $"translate({(10.0 + (PistonNorm * 76.0)).ToString("0.###", CultureInfo.InvariantCulture)} 0)";
+
+	private double GetSignal(string name) => Snapshot?.Signals.TryGetValue(name, out var value) == true ? value : double.NaN;
+	private double GetParameter(string name) => Snapshot?.Parameters.TryGetValue(name, out var value) == true ? value : double.NaN;
+
+	private static double FirstFinite(params double[] values)
+	{
+		foreach (var value in values)
+		{
+			if (!double.IsNaN(value) && !double.IsInfinity(value))
+			{
+				return value;
+			}
+		}
+
+		return 0.0;
+	}
+
+	private static double Normalize(double value, double max)
+	{
+		if (double.IsNaN(value) || double.IsInfinity(value) || max <= 0.0)
+		{
+			return 0.0;
+		}
+
+		return Math.Clamp(value / max, 0.0, 1.0);
+	}
+
+	private static double NormalizeSigned(double value, double scale)
+	{
+		if (double.IsNaN(value) || double.IsInfinity(value) || scale <= 0.0)
+		{
+			return 0.5;
+		}
+
+		return Math.Clamp((Math.Tanh(value / scale) + 1.0) / 2.0, 0.0, 1.0);
+	}
+
+	private static string BuildSvgPaletteStyle(string flowDuration, string pulseDuration) =>
+		string.Join(" ",
+			new[]
+			{
+				$"--hydraulic-flow-duration: {flowDuration};",
+				$"--hydraulic-pulse-duration: {pulseDuration};"
+			});
+
+	private static string PressureText(double value) => NumberText(value, "0") + " psi";
+	private static string PressureSpanText(double maxPressure) => $"0-{maxPressure:0} psi";
+	private string PressureSpanText() => PressureSpanText(DisplayPressureMax);
+	private static string FlowText(double value) => NumberText(value, "0.0") + " gpm";
+	private static string PercentText(double value) => $"{value * 100.0:0}%";
+	private static string NumberText(double value, string format = "0.00") => value.ToString(format, CultureInfo.InvariantCulture);
+
+}
