@@ -1,0 +1,83 @@
+.ops-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    background:
+        radial-gradient(circle at top, color-mix(in srgb, var(--app-accent) 18%, transparent) 0, transparent 38%),
+        rgba(5, 10, 18, 0.72);
+    backdrop-filter: blur(10px);
+}
+
+.ops-modal-card {
+    width: min(980px, 100%);
+    max-height: calc(100vh - 3rem);
+    overflow: auto;
+    border: 1px solid color-mix(in srgb, var(--app-panel-stroke) 72%, var(--app-accent) 28%);
+    border-radius: 26px;
+    background:
+        linear-gradient(160deg, color-mix(in srgb, var(--app-panel-bg) 86%, #08111d 14%), color-mix(in srgb, var(--app-panel-bg-soft) 84%, #23435d 16%));
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.44);
+}
+
+.ops-modal-head,
+.ops-modal-body {
+    padding: 1.15rem 1.25rem;
+}
+
+.ops-modal-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: start;
+    border-bottom: 1px solid color-mix(in srgb, var(--app-panel-stroke) 82%, transparent);
+}
+
+.ops-modal-kicker {
+    margin: 0 0 0.25rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--app-accent);
+}
+
+.ops-modal-head h2 {
+    margin: 0;
+}
+
+.ops-modal-copy {
+    margin: 0.4rem 0 0;
+    color: var(--app-muted);
+}
+
+.ops-modal-close {
+    padding: 0.7rem 0.95rem;
+    border: 1px solid var(--app-panel-stroke);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--app-surface-elevated) 74%, var(--app-accent) 26%);
+    color: var(--app-fg);
+    font-weight: 700;
+}
+
+.ops-modal-body {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (max-width: 760px) {
+    .ops-modal-backdrop {
+        padding: 0.75rem;
+    }
+
+    .ops-modal-head,
+    .ops-modal-body {
+        padding: 1rem;
+    }
+
+    .ops-modal-close {
+        width: 100%;
+    }
+}

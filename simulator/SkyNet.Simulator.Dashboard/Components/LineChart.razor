@@ -2,7 +2,7 @@
 
 @using System.Globalization
 
-<div class="chart-panel">
+<div class="chart-panel @PanelClass">
 	<div style="display:flex; justify-content: space-between; align-items: baseline; gap: 1rem;">
 		<div>
 			<b>@Title</b>
@@ -19,7 +19,7 @@
 		}
 	</div>
 
-	<svg width="@Width" height="@Height" viewBox="0 0 @Width @Height" xmlns:svg="http://www.w3.org/2000/svg" style="display:block; margin-top: 0.5rem;">
+	<svg width="100%" viewBox="0 0 @Width @Height" xmlns:svg="http://www.w3.org/2000/svg" style="display:block; width:100%; height:auto; min-width:0; margin-top: 0.35rem;">
 		<rect x="0" y="0" width="@Width" height="@Height" fill="var(--chart-bg)" />
 
 		@{
@@ -27,9 +27,11 @@
 			const double padR = 12;
 			const double padT = 10;
 			const double padB = 22;
+			const double lineTopPadding = 4;
 
 			var w = Math.Max(1, Width - padL - padR);
 			var h = Math.Max(1, Height - padT - padB);
+			var plotH = Math.Max(1, h - lineTopPadding);
 		}
 
 		<!-- Axes -->
@@ -57,8 +59,9 @@
 	[Parameter] public string Title { get; set; } = "";
 	[Parameter] public string? SubTitle { get; set; }
 	[Parameter] public string Stroke { get; set; } = "#1f77b4";
+	[Parameter] public string PanelClass { get; set; } = string.Empty;
 	[Parameter] public int Width { get; set; } = 450;
-	[Parameter] public int Height { get; set; } = 180;
+	[Parameter] public int Height { get; set; } = 156;
 	[Parameter] public IReadOnlyList<Point> Points { get; set; } = Array.Empty<Point>();
 	[Parameter] public string YFormat { get; set; } = "0.###";
 
@@ -89,10 +92,20 @@
 			return;
 		}
 
-		// Prevent a flat-line range from collapsing.
-		if (Math.Abs(yMax - yMin) < 1e-9)
+		var range = yMax - yMin;
+		if (Math.Abs(range) < 1e-9)
 		{
-			yMax = yMin + 1.0;
+			range = 0;
+		}
+
+		var magnitude = Math.Max(Math.Max(Math.Abs(yMin), Math.Abs(yMax)), 1.0);
+		var minRange = magnitude * 0.06;
+		if (range < minRange)
+		{
+			var center = (yMin + yMax) * 0.5;
+			var halfRange = minRange * 0.5;
+			yMin = center - halfRange;
+			yMax = center + halfRange;
 		}
 
 		_yMinText = yMin.ToString(YFormat, CultureInfo.InvariantCulture);
@@ -102,12 +115,14 @@
 		const double padR = 12;
 		const double padT = 10;
 		const double padB = 22;
+		const double lineTopPadding = 4;
 
 		var w = Math.Max(1.0, Width - padL - padR);
 		var h = Math.Max(1.0, Height - padT - padB);
+		var plotH = Math.Max(1.0, h - lineTopPadding);
 
 		double MapX(double x) => padL + (x - xMin) / (xMax - xMin) * w;
-		double MapY(double y) => padT + (yMax - y) / (yMax - yMin) * h;
+		double MapY(double y) => padT + lineTopPadding + (yMax - y) / (yMax - yMin) * plotH;
 
 		var sb = new System.Text.StringBuilder();
 		for (var i = 0; i < Points.Count; i++)
