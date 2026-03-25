@@ -13,201 +13,278 @@
 
 <PageTitle>Simulation</PageTitle>
 
-<section class="sim-page-shell">
-	<div class="sim-page-hero">
+<section class="opsb-shell">
+	<div class="opsb-hero">
 		<div>
-			<p class="sim-page-kicker">Simulation Deck</p>
+			<p class="opsb-kicker">Industrial Console</p>
 			<h1>@SimulationTitle</h1>
-			<p class="sim-page-copy">@SimulationDescription</p>
+			<p class="opsb-copy">@SimulationDescription</p>
 		</div>
-		<div class="sim-page-meta">
+		<div class="opsb-hero-meta">
 			<div>
-				<span class="sim-page-meta-label">Simulation</span>
+				<span class="opsb-meta-label">Simulation</span>
 				<strong><code>@SimId</code></strong>
 			</div>
 			<div>
-				<span class="sim-page-meta-label">Daemon</span>
+				<span class="opsb-meta-label">Daemon</span>
 				<strong><code>@Options.BaseUri</code></strong>
 			</div>
 			<div>
-				<span class="sim-page-meta-label">Connection</span>
-				<strong class="@(Hub.IsConnected ? "sim-page-status-live" : "sim-page-status-idle")">@(Hub.IsConnected ? "Connected" : "Disconnected")</strong>
+				<span class="opsb-meta-label">Connection</span>
+				<strong class="@(Hub.IsConnected ? "is-live" : "is-idle")">@ConnectionLabel</strong>
+			</div>
+			<div>
+				<span class="opsb-meta-label">Alarm State</span>
+				<strong class="@(ActiveAlarmCount > 0 ? "is-alert" : "is-live")">@(ActiveAlarmCount > 0 ? $"{ActiveAlarmCount} active" : "Normal")</strong>
 			</div>
 		</div>
 	</div>
 
-	<div class="sim-page-toolbar">
-		<div class="sim-page-control-group">
-			<button class="btn btn-primary" @onclick="Pause" disabled="@(_status?.IsPaused ?? false)">Pause</button>
-			<button class="btn btn-primary" @onclick="Resume" disabled="@(!(_status?.IsPaused ?? true))">@(_status?.Tick == 0 ? "Start" : "Resume")</button>
-			<button class="btn btn-outline-secondary" @onclick="StepOnce" disabled="@(!(_status?.IsPaused ?? false))">Step</button>
+	<div class="opsb-command-strip">
+		<div class="opsb-command-primary">
+			<button type="button" class="opsb-command-button opsb-command-button-primary" @onclick="OpenRunOverlay">Console Runboard</button>
+			<button type="button" class="opsb-command-button" @onclick="OpenEngineeringOverlay">Maintenance Access</button>
+			@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
+			{
+				<a class="opsb-command-link" href="@($"sim/{Uri.EscapeDataString(SimId)}/creator")">Tune console layout</a>
+			}
 		</div>
-		<div class="sim-page-run-meta">
+		<div class="opsb-run-meta">
 			<div>
-				<span class="sim-page-meta-label">Tick</span>
+				<span class="opsb-meta-label">State</span>
+				<strong class="@(_status?.IsPaused ?? true ? "is-idle" : "is-live")">@RunStateLabel</strong>
+			</div>
+			<div>
+				<span class="opsb-meta-label">Tick</span>
 				<strong>@(_uiSnapshot?.Tick ?? 0)</strong>
 			</div>
 			<div>
-				<span class="sim-page-meta-label">Sim Time</span>
-				<strong>@((_uiSnapshot?.TimeSeconds ?? 0).ToString("0.000"))s</strong>
-			</div>
-			<div>
-				<span class="sim-page-meta-label">State</span>
-				<strong class="@((_status?.IsPaused ?? true) ? "sim-page-status-idle" : "sim-page-status-live")">@((_status?.IsPaused ?? true) ? "Paused" : "Running")</strong>
+				<span class="opsb-meta-label">Sim Time</span>
+				<strong>@FormatSimTime()</strong>
 			</div>
 		</div>
 	</div>
 
 	@if (!string.IsNullOrWhiteSpace(_error))
 	{
-		<div class="sim-page-alert">
+		<div class="opsb-alert">
 			<strong>Error:</strong> @_error
 		</div>
 	}
 
 	@if (_uiSnapshot is null)
 	{
-		<div class="sim-page-empty">Waiting for telemetry...</div>
+		<div class="opsb-empty">Waiting for telemetry...</div>
 	}
 	else
 	{
-		@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
-		{
-			<TankTransferOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
-		}
-		else if (string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
-		{
-			<GrainDryerOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
-		}
-		else if (IsHydraulicSimulation(SimId))
-		{
-			<HydraulicOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
-		}
+		<div class="opsb-layout">
+			<div class="opsb-main-column">
+				@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
+				{
+					<TankTransferOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+				}
+				else if (string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
+				{
+					<GrainDryerOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+				}
+				else if (IsHydraulicSimulation(SimId))
+				{
+					<HydraulicOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+				}
 
-		<div class="sim-page-section-head">
-			<div>
-				<p class="sim-page-section-kicker">Live View</p>
-				<h2>@SchematicTitle</h2>
-			</div>
-			@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
-			{
-				<a class="sim-page-link" href="@($"sim/{Uri.EscapeDataString(SimId)}/creator")">Edit view</a>
-			}
-		</div>
+				<section class="opsb-panel opsb-viewport-panel opsb-panel-dense">
+					<div class="opsb-panel-head">
+						<div>
+							<p class="opsb-section-kicker">Live View</p>
+							<h2>@SchematicTitle</h2>
+						</div>
+						<div class="opsb-viewport-badges">
+							<span class="opsb-badge">Embedded HMI</span>
+							<span class="opsb-badge @(ActiveAlarmCount > 0 ? "is-alert" : "is-live")">@(ActiveAlarmCount > 0 ? "Respond now" : "Steady")</span>
+						</div>
+					</div>
+					<div class="opsb-viewport-frame">
+						<div class="opsb-viewport-overlay opsb-viewport-overlay-top">
+							<div>
+								<span class="opsb-meta-label">Console</span>
+								<strong>@SimulationTitle</strong>
+							</div>
+							<div>
+								<span class="opsb-meta-label">Operating state</span>
+								<strong class="@(ActiveAlarmCount > 0 ? "is-alert" : "is-live")">@(ActiveAlarmCount > 0 ? "Respond" : "Watching")</strong>
+							</div>
+							<div>
+								<span class="opsb-meta-label">Tick Rate</span>
+								<strong>@(_status?.StepSeconds.ToString("0.000") ?? "0.000")s</strong>
+							</div>
+						</div>
+						<div class="opsb-viewport-scene">
+							@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
+							{
+								<TankTransferSchematic SimId="@SimId" Snapshot="@_uiSnapshot" Layout="@_tankTransferLayout" />
+							}
+							else if (string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
+							{
+								<GrainDryerSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
+							}
+							else if (IsHydraulicSimulation(SimId))
+							{
+								<HydraulicSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
+							}
+						</div>
+						<div class="opsb-viewport-overlay opsb-viewport-overlay-bottom">
+							@foreach (var item in ViewportOverlayMetrics)
+							{
+								<div>
+									<span class="opsb-meta-label">@item.Label</span>
+									<strong>@item.Value</strong>
+								</div>
+							}
+						</div>
+					</div>
+				</section>
 
-		<section class="sim-page-panel sim-page-panel-schematic">
-			@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
-			{
-				<TankTransferSchematic SimId="@SimId" Snapshot="@_uiSnapshot" Layout="@_tankTransferLayout" />
-			}
-			else if (string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
-			{
-				<GrainDryerSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
-			}
-			else if (IsHydraulicSimulation(SimId))
-			{
-				<HydraulicSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
-			}
-		</section>
-
-		<div class="sim-page-section-head">
-			<div>
-				<p class="sim-page-section-kicker">Key Telemetry</p>
-				<h2>Signal Watch</h2>
-			</div>
-		</div>
-		<div class="sim-page-signal-grid">
-			@foreach (var key in _keySignals)
-			{
-				var value = _uiSnapshot.Signals.TryGetValue(key, out var v) ? v : double.NaN;
-				<div class="sim-page-signal-tile">
-					<div class="sim-page-signal-name">@key</div>
-					<div class="sim-page-signal-value">@value.ToString("0.###")</div>
-				</div>
-			}
-		</div>
-
-		<div class="sim-page-section-head">
-			<div>
-				<p class="sim-page-section-kicker">History</p>
-				<h2>Trends</h2>
-			</div>
-		</div>
-		<div class="sim-page-chart-grid">
-			<LineChart Title="@_chart1Title" SubTitle="@_chart1Unit" Stroke="var(--chart-series-1)" Points="@_pressureSeries" YFormat="@_chart1Format" />
-			<LineChart Title="@_chart2Title" SubTitle="@_chart2Unit" Stroke="var(--chart-series-2)" Points="@_positionSeries" YFormat="@_chart2Format" />
-			<LineChart Title="@_chart3Title" SubTitle="@_chart3Unit" Stroke="var(--chart-series-3)" Points="@_flowSeries" YFormat="@_chart3Format" />
-		</div>
-
-		<div class="sim-page-section-head">
-			<div>
-				<p class="sim-page-section-kicker">Engineering</p>
-				<h2>@ParameterSectionTitle</h2>
-			</div>
-		</div>
-		<section class="sim-page-panel">
-			@if (_parameterDefinitions is null)
-			{
-				<p>Loading parameter definitions...</p>
-			}
-			else
-			{
-				<div class="table-responsive">
-				<table class="table table-sm align-middle">
-					<thead>
-						<tr>
-							<th>Name</th>
-							<th>Value</th>
-							<th>Min</th>
-							<th>Max</th>
-							<th>Set</th>
-							<th>Description</th>
-						</tr>
-					</thead>
-					<tbody>
-						@foreach (var def in _parameterDefinitions)
+				<section class="opsb-panel opsb-panel-dense">
+					<div class="opsb-panel-head">
+						<div>
+							<p class="opsb-section-kicker">Signal Watch</p>
+							<h2>Instrument Bus</h2>
+						</div>
+					</div>
+					<div class="opsb-signal-grid">
+						@foreach (var key in _keySignals)
 						{
-							var snap = _tableSnapshot ?? _uiSnapshot;
-							double current;
-							if (snap is not null && snap.Parameters.TryGetValue(def.Name, out var vSnap))
-							{
-								current = vSnap;
-							}
-							else if (_lastParameterValues.TryGetValue(def.Name, out var vPoll))
-							{
-								current = vPoll;
-							}
-							else
-							{
-								current = double.NaN;
-							}
-							_parameterEdits.TryGetValue(def.Name, out var edit);
-
-							<tr>
-								<td><code>@def.Name</code></td>
-								<td>@current.ToString("0.###")</td>
-								<td>@(def.MinValue?.ToString("0.###") ?? "-")</td>
-								<td>@(def.MaxValue?.ToString("0.###") ?? "-")</td>
-								<td class="sim-page-param-setter">
-									<input class="form-control form-control-sm d-inline-block" type="number" step="any" value="@edit" @onchange="e => OnEditChanged(def.Name, e)" />
-									<button class="btn btn-sm btn-primary" @onclick="() => ApplyParameter(def.Name)">Set</button>
-								</td>
-								<td>@def.Description</td>
-							</tr>
+							var value = _uiSnapshot.Signals.TryGetValue(key, out var v) ? v : double.NaN;
+							<div class="opsb-signal-tile @(IsAlarmSignal(key) && value >= 0.5 ? "is-alarm" : string.Empty)">
+								<div class="opsb-signal-name">@HumanizeKey(key)</div>
+								<div class="opsb-signal-value">@value.ToString("0.###")</div>
+							</div>
 						}
-					</tbody>
-				</table>
-				</div>
-			}
-		</section>
+					</div>
+				</section>
 
-		<div class="sim-page-section-head">
-			<div>
-				<p class="sim-page-section-kicker">Diagnostics</p>
-				<h2>All Signals</h2>
+				<section class="opsb-panel opsb-panel-dense">
+					<div class="opsb-panel-head">
+						<div>
+							<p class="opsb-section-kicker">History</p>
+							<h2>Recorder Banks</h2>
+						</div>
+					</div>
+					<div class="opsb-chart-grid">
+						<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-one" Title="@_chart1Title" SubTitle="@_chart1Unit" Stroke="var(--chart-series-1)" Points="@_pressureSeries" YFormat="@_chart1Format" />
+						<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-two" Title="@_chart2Title" SubTitle="@_chart2Unit" Stroke="var(--chart-series-2)" Points="@_positionSeries" YFormat="@_chart2Format" />
+						<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-three" Title="@_chart3Title" SubTitle="@_chart3Unit" Stroke="var(--chart-series-3)" Points="@_flowSeries" YFormat="@_chart3Format" />
+					</div>
+				</section>
 			</div>
+
+			<aside class="opsb-side-column">
+				<section class="opsb-panel opsb-side-panel opsb-panel-dense">
+					<div class="opsb-panel-head">
+						<div>
+							<p class="opsb-section-kicker">System Status</p>
+							<h2>Shift Summary</h2>
+						</div>
+					</div>
+					<div class="opsb-side-metrics">
+						<div>
+							<span class="opsb-meta-label">Run State</span>
+							<strong>@RunStateLabel</strong>
+						</div>
+						<div>
+							<span class="opsb-meta-label">Connection</span>
+							<strong>@ConnectionLabel</strong>
+						</div>
+						<div>
+							<span class="opsb-meta-label">Tracked Signals</span>
+							<strong>@_sortedSignals.Length</strong>
+						</div>
+						<div>
+							<span class="opsb-meta-label">Alarm History</span>
+							<strong>@_alarmHistory.Count items</strong>
+						</div>
+					</div>
+				</section>
+
+				<section class="opsb-panel opsb-side-panel opsb-panel-dense">
+					<div class="opsb-panel-head">
+						<div>
+							<p class="opsb-section-kicker">Active Alarms</p>
+							<h2>Annunciator Board</h2>
+						</div>
+					</div>
+					@if (ActiveAlarms.Count == 0)
+					{
+						<div class="opsb-empty-inline">No active alarms. No annunciated faults. Console remains in steady operation.</div>
+					}
+					else
+					{
+						<div class="opsb-alarm-list">
+							@foreach (var alarm in ActiveAlarms)
+							{
+								<div class="opsb-alarm-item is-active">
+									<div>
+										<strong>@HumanizeKey(alarm.Key)</strong>
+										<p>Signal value @alarm.Value.ToString("0.###")</p>
+									</div>
+									<span class="opsb-alarm-pill">Active</span>
+								</div>
+							}
+						</div>
+					}
+
+					<div class="opsb-history-head">
+						<span class="opsb-meta-label">Recent Alarm History</span>
+					</div>
+					@if (_alarmHistory.Count == 0)
+					{
+						<div class="opsb-empty-inline">No annunciated transitions captured in this shift window.</div>
+					}
+					else
+					{
+						<div class="opsb-history-list">
+							@foreach (var entry in _alarmHistory)
+							{
+								<div class="opsb-history-item @entry.SeverityClass">
+									<div>
+										<strong>@entry.Title</strong>
+										<p>@entry.Detail</p>
+									</div>
+									<span>@FormatHistoryTime(entry.Timestamp)</span>
+								</div>
+							}
+						</div>
+					}
+				</section>
+
+				<section class="opsb-panel opsb-side-panel opsb-panel-dense">
+					<div class="opsb-panel-head">
+						<div>
+							<p class="opsb-section-kicker">Diagnostics</p>
+							<h2>Quick Gauges</h2>
+						</div>
+					</div>
+					<div class="opsb-fast-list">
+						@foreach (var kvp in FastReadbackSignals)
+						{
+							<div>
+								<span class="opsb-meta-label">@HumanizeKey(kvp.Key)</span>
+								<strong>@kvp.Value.ToString("0.###")</strong>
+							</div>
+						}
+					</div>
+				</section>
+			</aside>
 		</div>
-		<section class="sim-page-panel">
+
+		<section class="opsb-panel opsb-diagnostics-panel opsb-panel-dense">
+			<div class="opsb-panel-head">
+				<div>
+					<p class="opsb-section-kicker">Diagnostics</p>
+					<h2>All Signals</h2>
+				</div>
+			</div>
 			@if (_sortedSignals.Length == 0)
 			{
 				<p>No signals yet.</p>
@@ -215,34 +292,120 @@
 			else
 			{
 				<div class="table-responsive">
-				<table class="table table-sm align-middle">
-					<thead>
-						<tr>
-							<th>Name</th>
-							<th>Value</th>
-						</tr>
-					</thead>
-					<tbody>
-						@foreach (var kvp in _sortedSignals)
-						{
+					<table class="table table-sm align-middle">
+						<thead>
 							<tr>
-								<td><code>@kvp.Key</code></td>
-								<td>@kvp.Value.ToString("0.###")</td>
+								<th>Name</th>
+								<th>Value</th>
 							</tr>
-						}
-					</tbody>
-				</table>
+						</thead>
+						<tbody>
+							@foreach (var kvp in _sortedSignals)
+							{
+								<tr>
+									<td><code>@kvp.Key</code></td>
+									<td>@kvp.Value.ToString("0.###")</td>
+								</tr>
+							}
+						</tbody>
+					</table>
 				</div>
 			}
 		</section>
 	}
 </section>
 
+<OpsModal Visible="@_showRunOverlay" Title="Console runboard" Subtitle="Primary run commands stay in a protected console drawer with immediate status readback." OnClose="CloseRunOverlay">
+	<div class="opsb-modal-grid">
+		<section class="opsb-modal-panel">
+			<div class="opsb-control-group">
+				<button class="btn btn-primary" @onclick="Pause" disabled="@(_status?.IsPaused ?? false)">Pause</button>
+				<button class="btn btn-primary" @onclick="Resume" disabled="@(!(_status?.IsPaused ?? true))">@(_status?.Tick == 0 ? "Start" : "Resume")</button>
+				<button class="btn btn-outline-secondary" @onclick="StepOnce" disabled="@(!(_status?.IsPaused ?? false))">Step</button>
+			</div>
+		</section>
+		<section class="opsb-modal-panel opsb-side-metrics">
+			<div>
+				<span class="opsb-meta-label">State</span>
+				<strong>@RunStateLabel</strong>
+			</div>
+			<div>
+				<span class="opsb-meta-label">Tick</span>
+				<strong>@(_uiSnapshot?.Tick ?? 0)</strong>
+			</div>
+			<div>
+				<span class="opsb-meta-label">Time</span>
+				<strong>@FormatSimTime()</strong>
+			</div>
+			<div>
+				<span class="opsb-meta-label">Alarms</span>
+				<strong>@ActiveAlarmCount active</strong>
+			</div>
+		</section>
+	</div>
+</OpsModal>
+
+<OpsModal Visible="@_showEngineeringOverlay" Title="Maintenance access" Subtitle="Parameter edits move into a maintenance drawer so the main console stays focused on operation and alarms." OnClose="CloseEngineeringOverlay">
+	@if (_parameterDefinitions is null)
+	{
+		<p>Loading parameter definitions...</p>
+	}
+	else
+	{
+		<div class="table-responsive">
+			<table class="table table-sm align-middle">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Value</th>
+						<th>Min</th>
+						<th>Max</th>
+						<th>Set</th>
+						<th>Description</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var def in _parameterDefinitions)
+					{
+						var snap = _tableSnapshot ?? _uiSnapshot;
+						double current;
+						if (snap is not null && snap.Parameters.TryGetValue(def.Name, out var vSnap))
+						{
+							current = vSnap;
+						}
+						else if (_lastParameterValues.TryGetValue(def.Name, out var vPoll))
+						{
+							current = vPoll;
+						}
+						else
+						{
+							current = double.NaN;
+						}
+						_parameterEdits.TryGetValue(def.Name, out var edit);
+
+						<tr>
+							<td><code>@def.Name</code></td>
+							<td>@current.ToString("0.###")</td>
+							<td>@(def.MinValue?.ToString("0.###") ?? "-")</td>
+							<td>@(def.MaxValue?.ToString("0.###") ?? "-")</td>
+							<td class="opsb-param-setter">
+								<input class="form-control form-control-sm d-inline-block" type="number" step="any" value="@edit" @onchange="e => OnEditChanged(def.Name, e)" />
+								<button class="btn btn-sm btn-primary" @onclick="() => ApplyParameter(def.Name)">Set</button>
+							</td>
+							<td>@def.Description</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+</OpsModal>
+
 @code {
 	[Parameter] public string SimId { get; set; } = string.Empty;
 
 	private readonly object _seriesLock = new();
-	private const int MaxPoints = 600; // ~30s at ~20Hz telemetry
+	private const int MaxPoints = 600;
 
 	private string[] _keySignals =
 	[
@@ -267,6 +430,12 @@
 	private string? _chart3Unit = "gpm";
 	private string _chart3SignalKey = "ValveFlowGpm";
 	private string _chart3Format = "0.0";
+
+	private bool _showRunOverlay;
+	private bool _showEngineeringOverlay;
+	private bool _hasAlarmStateSeed;
+	private readonly List<AlarmHistoryEntry> _alarmHistory = new();
+	private readonly Dictionary<string, bool> _alarmSignalStates = new(StringComparer.OrdinalIgnoreCase);
 
 	private LineChart.Point[] _pressureSeries = Array.Empty<LineChart.Point>();
 	private LineChart.Point[] _positionSeries = Array.Empty<LineChart.Point>();
@@ -320,6 +489,24 @@
 			? "Dryer Schematic"
 			: "Hydraulic Schematic";
 
+	private string ConnectionLabel => Hub.IsConnected ? "Connected" : "Disconnected";
+	private string RunStateLabel => (_status?.IsPaused ?? true) ? "Paused" : "Running";
+	private IReadOnlyDictionary<string, double> CurrentSignals => _uiSnapshot?.Signals ?? _lastSignalValues;
+	private IReadOnlyList<KeyValuePair<string, double>> ActiveAlarms =>
+		CurrentSignals
+			.Where(kvp => IsAlarmSignal(kvp.Key) && kvp.Value >= 0.5)
+			.OrderByDescending(kvp => kvp.Value)
+			.ToArray();
+	private int ActiveAlarmCount => ActiveAlarms.Count;
+	private IReadOnlyList<KeyValuePair<string, double>> FastReadbackSignals => _sortedSignals.Take(8).ToArray();
+	private IReadOnlyList<(string Label, string Value)> ViewportOverlayMetrics =>
+	[
+		("Tick", (_uiSnapshot?.Tick ?? 0).ToString()),
+		("Time", FormatSimTime()),
+		("Mode", RunStateLabel),
+		("Active alarms", ActiveAlarmCount.ToString())
+	];
+
 	protected override Task OnInitializedAsync()
 	{
 		_cts = new CancellationTokenSource();
@@ -346,6 +533,11 @@
 		_uiSnapshot = null;
 		_tableSnapshot = null;
 		_sortedSignals = Array.Empty<KeyValuePair<string, double>>();
+		_showRunOverlay = false;
+		_showEngineeringOverlay = false;
+		_hasAlarmStateSeed = false;
+		_alarmHistory.Clear();
+		_alarmSignalStates.Clear();
 		Volatile.Write(ref _latestSnapshot, null);
 		Volatile.Write(ref _latestSnapshotSeq, 0);
 		_lastSnapshotAt = DateTimeOffset.MinValue;
@@ -355,7 +547,6 @@
 		ConfigureViewForSim(SimId);
 		_tankTransferLayout = await LayoutStore.GetTankTransferLayoutAsync(SimId, _cts.Token);
 
-		// If we have cached UI state, show it immediately (useful when sim is paused).
 		if (ViewCache.TryGet(SimId, out var state))
 		{
 			var snap = state.Snapshot();
@@ -367,6 +558,7 @@
 					_parameterEdits[kvp.Key] = kvp.Value;
 				}
 			}
+
 			if (snap.LatestSnapshot is not null)
 			{
 				Volatile.Write(ref _latestSnapshot, snap.LatestSnapshot);
@@ -378,6 +570,7 @@
 				_positionSeries = snap.PositionSeries;
 				_flowSeries = snap.FlowSeries;
 				_sortedSignals = snap.SortedSignals;
+				TrackAlarmTransitions(snap.LatestSnapshot);
 				await InvokeAsync(StateHasChanged);
 			}
 		}
@@ -388,11 +581,10 @@
 			_uiSnapshot = cachedHubSnapshot;
 			_tableSnapshot = cachedHubSnapshot;
 			_lastUiTick = cachedHubSnapshot.Tick;
+			TrackAlarmTransitions(cachedHubSnapshot);
 			await InvokeAsync(StateHasChanged);
 		}
 
-		// Reset UI state when switching sims.
-		// Keep cached visuals, but reset local series buffers for fresh accumulation.
 		_pressurePoints.Clear();
 		_positionPoints.Clear();
 		_flowPoints.Clear();
@@ -419,8 +611,14 @@
 				.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase)
 				.ToArray();
 
-			// If SignalR is down or the sim is paused, still render a snapshot based on polled data.
-			try { _status = await Api.GetStatusAsync(SimId, _cts.Token); } catch { /* ignore */ }
+			try
+			{
+				_status = await Api.GetStatusAsync(SimId, _cts.Token);
+			}
+			catch
+			{
+			}
+
 			var polledSnapshot = new TelemetrySnapshot(
 				SimId: SimId,
 				SchemaVersion: 0,
@@ -428,13 +626,15 @@
 				TimeSeconds: _status?.TimeSeconds ?? 0,
 				Parameters: values,
 				Signals: signals);
+
 			Volatile.Write(ref _latestSnapshot, polledSnapshot);
 			Interlocked.Increment(ref _latestSnapshotSeq);
 			_uiSnapshot = polledSnapshot;
 			_tableSnapshot = polledSnapshot;
 			_lastTableRefreshAt = DateTimeOffset.UtcNow;
+			TrackAlarmTransitions(polledSnapshot);
+			await LoadAlarmHistorySeedAsync(_cts.Token);
 
-			// Merge server values into cached edits (but keep any user-entered drafts).
 			var viewState = ViewCache.GetOrCreate(SimId);
 			viewState.MergeParameterEditsFromValues(values);
 			if (_parameterDefinitions is not null)
@@ -471,6 +671,7 @@
 		{
 			return;
 		}
+
 		Volatile.Write(ref _latestSnapshot, snapshot);
 		Interlocked.Increment(ref _latestSnapshotSeq);
 		_lastSnapshotAt = DateTimeOffset.UtcNow;
@@ -479,7 +680,7 @@
 
 	private async Task RenderTelemetryLoopAsync(CancellationToken cancellationToken)
 	{
-		using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100)); // 10Hz UI refresh
+		using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
 		try
 		{
 			while (await timer.WaitForNextTickAsync(cancellationToken))
@@ -497,9 +698,9 @@
 				}
 
 				_lastRenderedSnapshotSeq = seq;
-
 				_lastUiTick = snapshot.Tick;
 				_uiSnapshot = snapshot;
+				TrackAlarmTransitions(snapshot);
 
 				lock (_seriesLock)
 				{
@@ -523,7 +724,6 @@
 						.ToArray();
 				}
 
-				// Persist last-rendered UI state so navigation back can instantly rehydrate.
 				ViewCache.GetOrCreate(snapshot.SimId).SetRenderedState(
 					snapshot,
 					_pressureSeries,
@@ -536,7 +736,6 @@
 		}
 		catch (OperationCanceledException)
 		{
-			// normal shutdown
 		}
 	}
 
@@ -563,7 +762,6 @@
 				{
 					_status = await Api.GetStatusAsync(simId, cancellationToken);
 
-					// Fallback: if live snapshots aren't arriving, poll so the page stays live.
 					if ((DateTimeOffset.UtcNow - _lastSnapshotAt) > TimeSpan.FromSeconds(1))
 					{
 						var parameters = await Api.GetParameterValuesAsync(simId, cancellationToken);
@@ -600,11 +798,11 @@
 						_lastSnapshotAt = DateTimeOffset.UtcNow;
 					}
 				}
+
 				await InvokeAsync(StateHasChanged);
 			}
 			catch
 			{
-				// ignore transient errors while starting up/reconnecting
 			}
 
 			await Task.Delay(500, cancellationToken);
@@ -739,11 +937,136 @@
 		}
 	}
 
+	private void OpenRunOverlay() => _showRunOverlay = true;
+
+	private Task CloseRunOverlay()
+	{
+		_showRunOverlay = false;
+		return Task.CompletedTask;
+	}
+
+	private void OpenEngineeringOverlay() => _showEngineeringOverlay = true;
+
+	private Task CloseEngineeringOverlay()
+	{
+		_showEngineeringOverlay = false;
+		return Task.CompletedTask;
+	}
+
+	private string FormatSimTime() => $"{(_uiSnapshot?.TimeSeconds ?? 0).ToString("0.000")}s";
+
+	private async Task LoadAlarmHistorySeedAsync(CancellationToken cancellationToken)
+	{
+		try
+		{
+			var batch = await Api.GetLogsAsync(SimId, take: 40, cancellationToken: cancellationToken);
+			foreach (var entry in batch.Entries.Where(IsAlarmLikeLogEntry).OrderByDescending(e => e.Timestamp).Take(8).Reverse())
+			{
+				AppendAlarmHistory(entry.Timestamp, entry.Level, entry.Message, SeverityClassForLog(entry));
+			}
+		}
+		catch
+		{
+		}
+	}
+
+	private void TrackAlarmTransitions(TelemetrySnapshot snapshot)
+	{
+		var alarmSignals = snapshot.Signals.Where(kvp => IsAlarmSignal(kvp.Key)).ToArray();
+
+		if (!_hasAlarmStateSeed)
+		{
+			_alarmSignalStates.Clear();
+			foreach (var kvp in alarmSignals)
+			{
+				_alarmSignalStates[kvp.Key] = kvp.Value >= 0.5;
+			}
+
+			_hasAlarmStateSeed = true;
+			return;
+		}
+
+		foreach (var kvp in alarmSignals)
+		{
+			var isActive = kvp.Value >= 0.5;
+			if (_alarmSignalStates.TryGetValue(kvp.Key, out var previous) && previous != isActive)
+			{
+				AppendAlarmHistory(
+					DateTimeOffset.UtcNow,
+					HumanizeKey(kvp.Key),
+					isActive ? "Alarm asserted from live signal state." : "Alarm cleared from live signal state.",
+					isActive ? "severity-alarm" : "severity-clear");
+			}
+
+			_alarmSignalStates[kvp.Key] = isActive;
+		}
+	}
+
+	private void AppendAlarmHistory(DateTimeOffset timestamp, string title, string detail, string severityClass)
+	{
+		_alarmHistory.Insert(0, new AlarmHistoryEntry(timestamp, title, detail, severityClass));
+		if (_alarmHistory.Count > 20)
+		{
+			_alarmHistory.RemoveRange(20, _alarmHistory.Count - 20);
+		}
+	}
+
+	private static bool IsAlarmSignal(string key) =>
+		key.Contains("Alarm", StringComparison.OrdinalIgnoreCase)
+		|| key.Contains("Fault", StringComparison.OrdinalIgnoreCase)
+		|| key.Contains("Trip", StringComparison.OrdinalIgnoreCase);
+
+	private static bool IsAlarmLikeLogEntry(LogEntryDto entry) =>
+		entry.Level.Contains("warn", StringComparison.OrdinalIgnoreCase)
+		|| entry.Level.Contains("error", StringComparison.OrdinalIgnoreCase)
+		|| entry.Message.Contains("alarm", StringComparison.OrdinalIgnoreCase)
+		|| entry.Message.Contains("fault", StringComparison.OrdinalIgnoreCase)
+		|| entry.Message.Contains("trip", StringComparison.OrdinalIgnoreCase);
+
+	private static string SeverityClassForLog(LogEntryDto entry)
+	{
+		if (entry.Level.Contains("error", StringComparison.OrdinalIgnoreCase))
+		{
+			return "severity-alarm";
+		}
+
+		if (entry.Level.Contains("warn", StringComparison.OrdinalIgnoreCase))
+		{
+			return "severity-warn";
+		}
+
+		return "severity-info";
+	}
+
+	private static string HumanizeKey(string key)
+	{
+		if (string.IsNullOrWhiteSpace(key))
+		{
+			return string.Empty;
+		}
+
+		var builder = new System.Text.StringBuilder(key.Length + 8);
+		for (var i = 0; i < key.Length; i++)
+		{
+			var c = key[i];
+			if (i > 0 && char.IsUpper(c) && (char.IsLower(key[i - 1]) || char.IsDigit(key[i - 1])))
+			{
+				builder.Append(' ');
+			}
+
+			builder.Append(c);
+		}
+
+		return builder.ToString();
+	}
+
+	private static string FormatHistoryTime(DateTimeOffset timestamp) => timestamp.ToLocalTime().ToString("HH:mm:ss");
+
 	private string ParameterSectionTitle => string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase)
 		? "Advanced Parameters"
 		: string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase)
 			? "Advanced Parameters"
-		: "Parameters";
+			: "Parameters";
 
 	private static bool IsHydraulicSimulation(string simId) =>
 		!string.IsNullOrWhiteSpace(simId)
@@ -752,19 +1075,42 @@
 	private async Task Pause()
 	{
 		_error = null;
-		try { await Api.PauseAsync(_currentSimId ?? SimId, _cts?.Token ?? default); } catch (Exception ex) { _error = ex.Message; }
+		try
+		{
+			await Api.PauseAsync(_currentSimId ?? SimId, _cts?.Token ?? default);
+			_showRunOverlay = false;
+		}
+		catch (Exception ex)
+		{
+			_error = ex.Message;
+		}
 	}
 
 	private async Task Resume()
 	{
 		_error = null;
-		try { await Api.ResumeAsync(_currentSimId ?? SimId, _cts?.Token ?? default); } catch (Exception ex) { _error = ex.Message; }
+		try
+		{
+			await Api.ResumeAsync(_currentSimId ?? SimId, _cts?.Token ?? default);
+			_showRunOverlay = false;
+		}
+		catch (Exception ex)
+		{
+			_error = ex.Message;
+		}
 	}
 
 	private async Task StepOnce()
 	{
 		_error = null;
-		try { await Api.StepAsync(_currentSimId ?? SimId, 1, _cts?.Token ?? default); } catch (Exception ex) { _error = ex.Message; }
+		try
+		{
+			await Api.StepAsync(_currentSimId ?? SimId, 1, _cts?.Token ?? default);
+		}
+		catch (Exception ex)
+		{
+			_error = ex.Message;
+		}
 	}
 
 	private void OnEditChanged(string name, ChangeEventArgs e)
@@ -800,20 +1146,50 @@
 	public async ValueTask DisposeAsync()
 	{
 		Hub.SnapshotReceived -= OnSnapshot;
-		try { await Hub.LeaveCurrentSimulationAsync().ConfigureAwait(false); } catch { /* ignore */ }
+		try
+		{
+			await Hub.LeaveCurrentSimulationAsync().ConfigureAwait(false);
+		}
+		catch
+		{
+		}
+
 		var cts = Interlocked.Exchange(ref _cts, null);
 		if (cts is not null)
 		{
-			try { cts.Cancel(); } catch { /* ignore */ }
+			try
+			{
+				cts.Cancel();
+			}
+			catch
+			{
+			}
+
 			cts.Dispose();
 		}
+
 		if (_renderTask is not null)
 		{
-			try { await _renderTask.ConfigureAwait(false); } catch { /* ignore */ }
+			try
+			{
+				await _renderTask.ConfigureAwait(false);
+			}
+			catch
+			{
+			}
 		}
+
 		if (_pollTask is not null)
 		{
-			try { await _pollTask.ConfigureAwait(false); } catch { /* ignore */ }
+			try
+			{
+				await _pollTask.ConfigureAwait(false);
+			}
+			catch
+			{
+			}
 		}
 	}
+
+	private sealed record AlarmHistoryEntry(DateTimeOffset Timestamp, string Title, string Detail, string SeverityClass);
 }

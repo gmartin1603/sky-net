@@ -505,9 +505,15 @@ a, .btn-link {
 .chart-panel {
     border: 1px solid var(--app-panel-stroke);
     border-radius: 10px;
-    padding: 0.75rem;
+    padding: 0.6rem;
+    min-width: 0;
+    overflow: hidden;
     background: linear-gradient(180deg, color-mix(in srgb, var(--chart-bg) 82%, var(--app-panel-bg) 18%), color-mix(in srgb, var(--app-panel-bg-soft) 88%, var(--chart-bg) 12%));
     box-shadow: var(--app-shadow-soft);
+}
+
+.chart-panel svg {
+    border-radius: 8px;
 }
 
 /* Key signal tiles */
