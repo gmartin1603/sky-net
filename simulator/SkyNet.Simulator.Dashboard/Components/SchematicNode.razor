@@ -11,7 +11,7 @@
 	@if (ShowPanel)
 	{
 		<g transform="translate(@PanelX @PanelY)" class="schematic-node-panel">
-			<rect x="0" y="0" width="@PanelWidth" height="@PanelHeight" rx="14" ry="14" fill="@VisualStyle.PanelFill" stroke="@VisualStyle.PanelBorder" stroke-width="1.2" style="filter: drop-shadow(0 5px 16px rgba(0, 0, 0, 0.12));" />
+			<rect class="schematic-node-panel-backdrop" x="0" y="0" width="@PanelWidth" height="@PanelHeight" rx="14" ry="14" fill="@VisualStyle.PanelFill" stroke="@VisualStyle.PanelBorder" stroke-width="1.2" />
 			<line x1="0" y1="22" x2="@PanelWidth" y2="22" stroke="@VisualStyle.PanelDivider" stroke-width="1" />
 			<foreignObject x="0" y="0" width="@PanelWidth" height="@PanelHeight">
 				<div xmlns="http://www.w3.org/1999/xhtml" class="schematic-node-panel-html" style="@PanelHtmlStyle">

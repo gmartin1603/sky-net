@@ -1,0 +1,392 @@
+@using System.Globalization
+@using SkyNet.Simulator.Contracts
+@using SkyNet.Simulator.Dashboard.Services
+
+@inject SimApiClient Api
+
+@if (Snapshot is null)
+{
+	<section class="dryer-ops-shell">
+		<div class="dryer-ops-empty">Waiting for operator data...</div>
+	</section>
+}
+else
+{
+	<section class="dryer-ops-shell">
+		<div class="dryer-ops-hero">
+			<div>
+				<p class="dryer-ops-kicker">Operator Deck</p>
+				<h2>Grain Dryer Controls</h2>
+				<p class="dryer-ops-copy">Run startup automation, manage fan, burner, and feed, then tune moisture, throughput, and thermal load from a single operating panel.</p>
+			</div>
+			<div class="dryer-ops-hero-stats">
+				<div>
+					<span class="dryer-ops-stat-label">Mode</span>
+					<strong>@ModeLabel</strong>
+				</div>
+				<div>
+					<span class="dryer-ops-stat-label">Outlet Moisture</span>
+					<strong>@OutletMoisturePercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
+				</div>
+				<div>
+					<span class="dryer-ops-stat-label">Plenum</span>
+					<strong>@PlenumTempF.ToString("0.0", CultureInfo.InvariantCulture) F</strong>
+				</div>
+				<div>
+					<span class="dryer-ops-stat-label">Airflow</span>
+					<strong>@AirflowCfm.ToString("0", CultureInfo.InvariantCulture) cfm</strong>
+				</div>
+			</div>
+		</div>
+
+		<div class="dryer-ops-grid">
+			<section class="dryer-ops-card dryer-ops-card-automation @((StartupAutomationActive || ShutdownAutomationActive) ? "is-accent" : string.Empty)">
+				<div class="dryer-ops-card-head">
+					<h3>Automation</h3>
+					<span class="dryer-ops-chip @((StartupAutomationActive || ShutdownAutomationActive) ? "dryer-ops-chip-live" : string.Empty)">@AutomationStateLabel</span>
+				</div>
+				<div class="dryer-ops-toggle-row">
+					<button type="button" class="dryer-ops-toggle @(StartupAutomationEnabled ? "is-active" : string.Empty)" @onclick="() => SetAutomationEnabledAsync(true)">
+						<span>Start Sequence</span>
+						<small>Fan, warmup, then feed</small>
+					</button>
+					<button type="button" class="dryer-ops-toggle @(ShutdownAutomationEnabled ? "is-active" : string.Empty)" @onclick="() => SetShutdownAutomationEnabledAsync(true)">
+						<span>Shutdown Sequence</span>
+						<small>Stop feed, cool down, then stop fan</small>
+					</button>
+					<button type="button" class="dryer-ops-toggle @(!StartupAutomationEnabled && !ShutdownAutomationEnabled ? "is-active" : string.Empty)" @onclick="SetManualHoldAsync">
+						<span>Manual Hold</span>
+						<small>Operator runs equipment directly</small>
+					</button>
+				</div>
+				<div class="dryer-ops-inline-status">
+					<span class="dryer-ops-mini-stat">Recipe fan @StartupFanSpeedPercent.ToString("0", CultureInfo.InvariantCulture)%</span>
+					<span class="dryer-ops-mini-stat">Recipe burner @StartupBurnerFiringRatePercent.ToString("0", CultureInfo.InvariantCulture)%</span>
+					<span class="dryer-ops-mini-stat">Recipe feed @StartupFeedRateCommandLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</span>
+					<span class="dryer-ops-mini-stat">Shutdown fan @ShutdownFanSpeedPercent.ToString("0", CultureInfo.InvariantCulture)%</span>
+				</div>
+			</section>
+
+			<section class="dryer-ops-card">
+				<div class="dryer-ops-card-head">
+					<h3>Equipment</h3>
+					<span class="dryer-ops-chip">Start / stop</span>
+				</div>
+				<div class="dryer-ops-equipment-grid">
+					<button type="button" class="dryer-ops-device @(FanEnabled ? "is-running" : string.Empty)" @onclick="() => ToggleBinaryParameterAsync(ParamFanEnable, !FanEnabled)">
+						<span class="dryer-ops-device-name">Fan</span>
+						<strong>@(FanEnabled ? "Enabled" : "Stopped")</strong>
+					</button>
+					<button type="button" class="dryer-ops-device @(BurnerEnabled ? "is-running" : string.Empty)" @onclick="() => ToggleBinaryParameterAsync(ParamBurnerEnable, !BurnerEnabled)">
+						<span class="dryer-ops-device-name">Burner</span>
+						<strong>@(BurnerEnabled ? "Enabled" : "Stopped")</strong>
+					</button>
+					<button type="button" class="dryer-ops-device @(FeedEnabled ? "is-running" : string.Empty)" @onclick="() => ToggleBinaryParameterAsync(ParamFeedEnable, !FeedEnabled)">
+						<span class="dryer-ops-device-name">Feed</span>
+						<strong>@(FeedEnabled ? "Enabled" : "Stopped")</strong>
+					</button>
+				</div>
+				<div class="dryer-ops-inline-status">
+					<span class="dryer-ops-mini-stat">Wet bin @WetBinWeightLb.ToString("0", CultureInfo.InvariantCulture) lb</span>
+					<span class="dryer-ops-mini-stat">Dry bin @DryBinWeightLb.ToString("0", CultureInfo.InvariantCulture) lb</span>
+					<span class="dryer-ops-mini-stat">Hold-up @GrainHoldUpLb.ToString("0", CultureInfo.InvariantCulture) lb</span>
+				</div>
+			</section>
+
+			<section class="dryer-ops-card dryer-ops-card-primary">
+				<div class="dryer-ops-card-head">
+					<h3>Moisture Target</h3>
+					<span class="dryer-ops-chip">Quality</span>
+				</div>
+				<label class="dryer-ops-field-label" for="dryer-moisture-target">Target Outlet Moisture</label>
+				<div class="dryer-ops-input-row">
+					<input id="dryer-moisture-target" class="dryer-ops-input" type="number" min="10" max="20" step="0.5" value="@_targetMoistureDraft" @onchange="OnTargetMoistureChanged" />
+					<button type="button" class="dryer-ops-apply" @onclick="ApplyTargetMoistureAsync">Apply</button>
+				</div>
+				<div class="dryer-ops-step-row">
+					<button type="button" class="dryer-ops-step" @onclick="() => NudgeParameterAsync(ParamTargetOutletMoisturePercent, TargetOutletMoisturePercent, -0.5, 10.0, 20.0)">-0.5%</button>
+					<button type="button" class="dryer-ops-step" @onclick="() => NudgeParameterAsync(ParamTargetOutletMoisturePercent, TargetOutletMoisturePercent, 0.5, 10.0, 20.0)">+0.5%</button>
+				</div>
+				<div class="dryer-ops-preset-row">
+					@foreach (var preset in MoistureTargetPresets)
+					{
+						<button type="button" class="dryer-ops-preset" @onclick="() => SetNumericParameterAsync(ParamTargetOutletMoisturePercent, preset, 10.0, 20.0)">@preset.ToString("0.0", CultureInfo.InvariantCulture)%</button>
+					}
+				</div>
+			</section>
+
+			<section class="dryer-ops-card dryer-ops-card-primary">
+				<div class="dryer-ops-card-head">
+					<h3>Throughput</h3>
+					<span class="dryer-ops-chip">Feed</span>
+				</div>
+				<label class="dryer-ops-field-label" for="dryer-feed-rate">Feed Rate Command</label>
+				<div class="dryer-ops-input-row">
+					<input id="dryer-feed-rate" class="dryer-ops-input" type="number" min="0" max="60" step="1" value="@_feedRateDraft" @onchange="OnFeedRateChanged" />
+					<button type="button" class="dryer-ops-apply" @onclick="ApplyFeedRateAsync">Apply</button>
+				</div>
+				<div class="dryer-ops-step-row">
+					<button type="button" class="dryer-ops-step" @onclick="() => NudgeParameterAsync(ParamFeedRateCommandLbPerSec, FeedRateCommandLbPerSec, -2.0, 0.0, 60.0)">-2 lb/s</button>
+					<button type="button" class="dryer-ops-step" @onclick="() => NudgeParameterAsync(ParamFeedRateCommandLbPerSec, FeedRateCommandLbPerSec, 2.0, 0.0, 60.0)">+2 lb/s</button>
+				</div>
+				<div class="dryer-ops-preset-row">
+					@foreach (var preset in FeedRatePresets)
+					{
+						<button type="button" class="dryer-ops-preset" @onclick="() => SetNumericParameterAsync(ParamFeedRateCommandLbPerSec, preset, 0.0, 60.0)">@preset.ToString("0", CultureInfo.InvariantCulture) lb/s</button>
+					}
+				</div>
+			</section>
+
+			<section class="dryer-ops-card dryer-ops-card-primary dryer-ops-card-wide">
+				<div class="dryer-ops-card-head">
+					<h3>Thermal And Air</h3>
+					<span class="dryer-ops-chip">Heat + airflow</span>
+				</div>
+				<div class="dryer-ops-dual-grid">
+					<div>
+						<label class="dryer-ops-field-label" for="dryer-burner-rate">Burner Firing Rate</label>
+						<div class="dryer-ops-input-row">
+							<input id="dryer-burner-rate" class="dryer-ops-input" type="number" min="0" max="100" step="1" value="@_burnerRateDraft" @onchange="OnBurnerRateChanged" />
+							<button type="button" class="dryer-ops-apply" @onclick="ApplyBurnerRateAsync">Apply</button>
+						</div>
+						<div class="dryer-ops-preset-row">
+							@foreach (var preset in BurnerRatePresets)
+							{
+								<button type="button" class="dryer-ops-preset" @onclick="() => SetNumericParameterAsync(ParamBurnerFiringRatePercent, preset, 0.0, 100.0)">@preset.ToString("0", CultureInfo.InvariantCulture)%</button>
+							}
+						</div>
+					</div>
+					<div>
+						<label class="dryer-ops-field-label" for="dryer-fan-speed">Fan Speed</label>
+						<div class="dryer-ops-input-row">
+							<input id="dryer-fan-speed" class="dryer-ops-input" type="number" min="0" max="100" step="1" value="@_fanSpeedDraft" @onchange="OnFanSpeedChanged" />
+							<button type="button" class="dryer-ops-apply" @onclick="ApplyFanSpeedAsync">Apply</button>
+						</div>
+						<div class="dryer-ops-preset-row">
+							@foreach (var preset in FanSpeedPresets)
+							{
+								<button type="button" class="dryer-ops-preset" @onclick="() => SetNumericParameterAsync(ParamFanSpeedPercent, preset, 0.0, 100.0)">@preset.ToString("0", CultureInfo.InvariantCulture)%</button>
+							}
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="dryer-ops-card dryer-ops-card-wide">
+				<div class="dryer-ops-card-head">
+					<h3>Live Readback</h3>
+					<span class="dryer-ops-chip">Process</span>
+				</div>
+				<div class="dryer-ops-readback-grid">
+					<div>
+						<span class="dryer-ops-readback-label">Outlet moisture</span>
+						<strong>@OutletMoisturePercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
+					</div>
+					<div>
+						<span class="dryer-ops-readback-label">Moisture target</span>
+						<strong>@TargetOutletMoisturePercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
+					</div>
+					<div>
+						<span class="dryer-ops-readback-label">Moisture error</span>
+						<strong>@MoistureControlErrorPercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
+					</div>
+					<div>
+						<span class="dryer-ops-readback-label">Feed actual</span>
+						<strong>@FeedRateLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</strong>
+					</div>
+					<div>
+						<span class="dryer-ops-readback-label">Discharge</span>
+						<strong>@DischargeRateLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</strong>
+					</div>
+					<div>
+						<span class="dryer-ops-readback-label">Residence time</span>
+						<strong>@ResidenceTimeMinutes.ToString("0.0", CultureInfo.InvariantCulture) min</strong>
+					</div>
+					<div>
+						<span class="dryer-ops-readback-label">Burner output</span>
+						<strong>@BurnerOutputPercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
+					</div>
+					<div>
+						<span class="dryer-ops-readback-label">Exhaust temp</span>
+						<strong>@ExhaustTempF.ToString("0.0", CultureInfo.InvariantCulture) F</strong>
+					</div>
+					<div>
+						<span class="dryer-ops-readback-label">Removal</span>
+						<strong>@MoistureRemovalRateLbPerSec.ToString("0.00", CultureInfo.InvariantCulture) lb/s</strong>
+					</div>
+				</div>
+			</section>
+		</div>
+	</section>
+}
+
+@code {
+	[Parameter] public string SimId { get; set; } = string.Empty;
+	[Parameter] public TelemetrySnapshot? Snapshot { get; set; }
+
+	private const string ParamStartupAutomationEnable = "StartupAutomationEnable";
+	private const string ParamStartupAutomationFanSpeedPercent = "StartupAutomationFanSpeedPercent";
+	private const string ParamStartupAutomationBurnerFiringRatePercent = "StartupAutomationBurnerFiringRatePercent";
+	private const string ParamStartupAutomationFeedRateCommandLbPerSec = "StartupAutomationFeedRateCommandLbPerSec";
+	private const string ParamShutdownAutomationEnable = "ShutdownAutomationEnable";
+	private const string ParamShutdownAutomationFanSpeedPercent = "ShutdownAutomationFanSpeedPercent";
+	private const string ParamFeedEnable = "FeedEnable";
+	private const string ParamBurnerEnable = "BurnerEnable";
+	private const string ParamFanEnable = "FanEnable";
+	private const string ParamFeedRateCommandLbPerSec = "FeedRateCommandLbPerSec";
+	private const string ParamBurnerFiringRatePercent = "BurnerFiringRatePercent";
+	private const string ParamFanSpeedPercent = "FanSpeedPercent";
+	private const string ParamTargetOutletMoisturePercent = "TargetOutletMoisturePercent";
+
+	private static readonly double[] MoistureTargetPresets = [13.5, 14.5, 15.5, 16.5];
+	private static readonly double[] FeedRatePresets = [12, 18, 24, 30];
+	private static readonly double[] BurnerRatePresets = [45, 60, 75, 90];
+	private static readonly double[] FanSpeedPresets = [55, 70, 85, 100];
+
+	private string _targetMoistureDraft = string.Empty;
+	private string _feedRateDraft = string.Empty;
+	private string _burnerRateDraft = string.Empty;
+	private string _fanSpeedDraft = string.Empty;
+	private double? _lastSyncedTargetMoisture;
+	private double? _lastSyncedFeedRate;
+	private double? _lastSyncedBurnerRate;
+	private double? _lastSyncedFanSpeed;
+
+	protected override void OnParametersSet()
+	{
+		SyncDraft(ref _lastSyncedTargetMoisture, TargetOutletMoisturePercent, value => _targetMoistureDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+		SyncDraft(ref _lastSyncedFeedRate, FeedRateCommandLbPerSec, value => _feedRateDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+		SyncDraft(ref _lastSyncedBurnerRate, BurnerFiringRatePercent, value => _burnerRateDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+		SyncDraft(ref _lastSyncedFanSpeed, FanSpeedPercent, value => _fanSpeedDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+	}
+
+	private bool StartupAutomationEnabled => GetParameter(ParamStartupAutomationEnable) >= 0.5;
+	private bool StartupAutomationActive => GetSignal("StartupAutomationActive") >= 0.5;
+	private bool StartupAutomationComplete => GetSignal("StartupAutomationComplete") >= 0.5;
+	private bool ShutdownAutomationEnabled => GetParameter(ParamShutdownAutomationEnable) >= 0.5;
+	private bool ShutdownAutomationActive => GetSignal("ShutdownAutomationActive") >= 0.5;
+	private bool ShutdownAutomationComplete => GetSignal("ShutdownAutomationComplete") >= 0.5;
+	private bool FanEnabled => GetParameter(ParamFanEnable) >= 0.5;
+	private bool BurnerEnabled => GetParameter(ParamBurnerEnable) >= 0.5;
+	private bool FeedEnabled => GetParameter(ParamFeedEnable) >= 0.5;
+
+	private string ModeLabel => StartupAutomationActive ? "Startup automation" : ShutdownAutomationActive ? "Shutdown automation" : "Manual operator control";
+	private string AutomationStateLabel => StartupAutomationActive ? "Startup active" : ShutdownAutomationActive ? "Shutdown active" : ShutdownAutomationComplete ? "Shutdown complete" : StartupAutomationComplete ? "Startup complete" : ShutdownAutomationEnabled ? "Shutdown armed" : StartupAutomationEnabled ? "Startup armed" : "Idle";
+
+	private double StartupFanSpeedPercent => GetParameter(ParamStartupAutomationFanSpeedPercent);
+	private double StartupBurnerFiringRatePercent => GetParameter(ParamStartupAutomationBurnerFiringRatePercent);
+	private double StartupFeedRateCommandLbPerSec => GetParameter(ParamStartupAutomationFeedRateCommandLbPerSec);
+	private double ShutdownFanSpeedPercent => GetParameter(ParamShutdownAutomationFanSpeedPercent);
+	private double TargetOutletMoisturePercent => GetParameter(ParamTargetOutletMoisturePercent);
+	private double FeedRateCommandLbPerSec => GetParameter(ParamFeedRateCommandLbPerSec);
+	private double BurnerFiringRatePercent => GetParameter(ParamBurnerFiringRatePercent);
+	private double FanSpeedPercent => GetParameter(ParamFanSpeedPercent);
+
+	private double OutletMoisturePercent => GetSignal("OutletMoisturePercent");
+	private double MoistureControlErrorPercent => GetSignal("MoistureControlErrorPercent");
+	private double FeedRateLbPerSec => GetSignal("FeedRateLbPerSec");
+	private double DischargeRateLbPerSec => GetSignal("DischargeRateLbPerSec");
+	private double ResidenceTimeMinutes => GetSignal("ResidenceTimeMinutes");
+	private double AirflowCfm => GetSignal("AirflowCfm");
+	private double PlenumTempF => GetSignal("PlenumTempF");
+	private double ExhaustTempF => GetSignal("ExhaustTempF");
+	private double BurnerOutputPercent => GetSignal("BurnerOutputPercent");
+	private double MoistureRemovalRateLbPerSec => GetSignal("MoistureRemovalRateLbPerSec");
+	private double WetBinWeightLb => GetSignal("WetBinWeightLb");
+	private double DryBinWeightLb => GetSignal("DryBinWeightLb");
+	private double GrainHoldUpLb => GetSignal("GrainHoldUpLb");
+
+	private double GetParameter(string name) => Snapshot?.Parameters.TryGetValue(name, out var value) == true ? value : 0.0;
+	private double GetSignal(string name) => Snapshot?.Signals.TryGetValue(name, out var value) == true ? value : 0.0;
+
+	private void OnTargetMoistureChanged(ChangeEventArgs e) => _targetMoistureDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnFeedRateChanged(ChangeEventArgs e) => _feedRateDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnBurnerRateChanged(ChangeEventArgs e) => _burnerRateDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnFanSpeedChanged(ChangeEventArgs e) => _fanSpeedDraft = e.Value?.ToString() ?? string.Empty;
+
+	private Task SetAutomationEnabledAsync(bool enabled) => SetExclusiveAutomationAsync(ParamStartupAutomationEnable, enabled);
+	private Task SetShutdownAutomationEnabledAsync(bool enabled) => SetExclusiveAutomationAsync(ParamShutdownAutomationEnable, enabled);
+	private Task SetManualHoldAsync() => SetManualAutomationHoldAsync();
+	private Task ToggleBinaryParameterAsync(string parameterName, bool enabled) => SetNumericParameterAsync(parameterName, enabled ? 1.0 : 0.0, 0.0, 1.0);
+
+	private Task ApplyTargetMoistureAsync() => ApplyDraftAsync(ParamTargetOutletMoisturePercent, _targetMoistureDraft, TargetOutletMoisturePercent, 10.0, 20.0);
+	private Task ApplyFeedRateAsync() => ApplyDraftAsync(ParamFeedRateCommandLbPerSec, _feedRateDraft, FeedRateCommandLbPerSec, 0.0, 60.0);
+	private Task ApplyBurnerRateAsync() => ApplyDraftAsync(ParamBurnerFiringRatePercent, _burnerRateDraft, BurnerFiringRatePercent, 0.0, 100.0);
+	private Task ApplyFanSpeedAsync() => ApplyDraftAsync(ParamFanSpeedPercent, _fanSpeedDraft, FanSpeedPercent, 0.0, 100.0);
+
+	private async Task ApplyDraftAsync(string parameterName, string draft, double fallbackValue, double min, double max)
+	{
+		var parsed = TryParseValue(draft, out var value) ? value : fallbackValue;
+		await SetNumericParameterAsync(parameterName, parsed, min, max);
+	}
+
+	private async Task NudgeParameterAsync(string parameterName, double current, double delta, double min, double max)
+	{
+		await SetNumericParameterAsync(parameterName, current + delta, min, max);
+	}
+
+	private async Task SetExclusiveAutomationAsync(string parameterName, bool enabled)
+	{
+		if (enabled)
+		{
+			var otherParameter = string.Equals(parameterName, ParamStartupAutomationEnable, StringComparison.Ordinal)
+				? ParamShutdownAutomationEnable
+				: ParamStartupAutomationEnable;
+			await ToggleBinaryParameterAsync(otherParameter, false);
+		}
+
+		await ToggleBinaryParameterAsync(parameterName, enabled);
+	}
+
+	private async Task SetManualAutomationHoldAsync()
+	{
+		await ToggleBinaryParameterAsync(ParamStartupAutomationEnable, false);
+		await ToggleBinaryParameterAsync(ParamShutdownAutomationEnable, false);
+	}
+
+	private async Task SetNumericParameterAsync(string parameterName, double value, double min, double max)
+	{
+		if (string.IsNullOrWhiteSpace(SimId))
+		{
+			return;
+		}
+
+		var clamped = Math.Clamp(value, min, max);
+		await Api.SetParameterAsync(SimId, parameterName, clamped);
+
+		switch (parameterName)
+		{
+			case ParamTargetOutletMoisturePercent:
+				_lastSyncedTargetMoisture = clamped;
+				_targetMoistureDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+				break;
+			case ParamFeedRateCommandLbPerSec:
+				_lastSyncedFeedRate = clamped;
+				_feedRateDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+				break;
+			case ParamBurnerFiringRatePercent:
+				_lastSyncedBurnerRate = clamped;
+				_burnerRateDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+				break;
+			case ParamFanSpeedPercent:
+				_lastSyncedFanSpeed = clamped;
+				_fanSpeedDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+				break;
+		}
+	}
+
+	private static bool TryParseValue(string? text, out double value)
+	{
+		return double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)
+			|| double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out value);
+	}
+
+	private static void SyncDraft(ref double? lastSynced, double current, Action<double> apply)
+	{
+		if (!lastSynced.HasValue || Math.Abs(lastSynced.Value - current) > 1e-9)
+		{
+			apply(current);
+			lastSynced = current;
+		}
+	}
+}

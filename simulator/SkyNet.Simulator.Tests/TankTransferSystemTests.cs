@@ -15,6 +15,7 @@ public class TankTransferSystemTests
 		parameters.Set(TankTransferSystem.ParameterKeys.SourceTankWeightLb.Name, 50000);
 		parameters.Set(TankTransferSystem.ParameterKeys.DestinationTankWeightLb.Name, 0);
 		parameters.Set(TankTransferSystem.ParameterKeys.DestinationTankCapacityLb.Name, 500000);
+		parameters.Set(TankTransferSystem.ParameterKeys.PressureControlEnable.Name, 1);
 		parameters.Set(TankTransferSystem.ParameterKeys.AirlockSpeedCommandHz.Name, 15);
 		parameters.Set(TankTransferSystem.ParameterKeys.BlowlinePressureCommandPsi.Name, 15);
 		parameters.Set(TankTransferSystem.ParameterKeys.BlowerEnable.Name, 1);
@@ -26,6 +27,7 @@ public class TankTransferSystemTests
 	private static (double srcLb, double dstLb, double rateLbPerSec, double blowerPercent, double pPsi) Run(
 		double airlockHz,
 		double blowlinePsi,
+		double pressureControlEnable = 0,
 		int steps = 600)
 	{
 		var parameters = new ParameterStore();
@@ -37,6 +39,7 @@ public class TankTransferSystemTests
 		parameters.Set(TankTransferSystem.ParameterKeys.DestinationTankWeightLb.Name, 0);
 		parameters.Set(TankTransferSystem.ParameterKeys.DestinationTankCapacityLb.Name, 500000);
 
+		parameters.Set(TankTransferSystem.ParameterKeys.PressureControlEnable.Name, pressureControlEnable);
 		parameters.Set(TankTransferSystem.ParameterKeys.AirlockSpeedCommandHz.Name, airlockHz);
 		parameters.Set(TankTransferSystem.ParameterKeys.BlowlinePressureCommandPsi.Name, blowlinePsi);
 		parameters.Set(TankTransferSystem.ParameterKeys.BlowerEnable.Name, 1);
@@ -73,14 +76,44 @@ public class TankTransferSystemTests
 	[Fact]
 	public void IncreasingBlowlinePressure_IncreasesTransferRate_AndBlowerLoad()
 	{
-		var low = Run(airlockHz: 10, blowlinePsi: 4);
-		var high = Run(airlockHz: 10, blowlinePsi: 14);
+		var low = Run(airlockHz: 0, blowlinePsi: 4, pressureControlEnable: 1);
+		var high = Run(airlockHz: 0, blowlinePsi: 14, pressureControlEnable: 1);
 
 		Assert.True(high.rateLbPerSec > low.rateLbPerSec);
 		Assert.True(high.blowerPercent > low.blowerPercent);
 
 		// Achieved pressure should generally increase with command (under same load).
 		Assert.True(high.pPsi > low.pPsi);
+	}
+
+	[Fact]
+	public void PressureControl_AdjustsAirlockSpeed_ToTrackPsiTarget()
+	{
+		var parameters = new ParameterStore();
+		var system = new TankTransferSystem(parameters);
+		var runner = new SimulationRunner(system);
+
+		parameters.Set(TankTransferSystem.ParameterKeys.SourceTankWeightLb.Name, 50000);
+		parameters.Set(TankTransferSystem.ParameterKeys.DestinationTankWeightLb.Name, 0);
+		parameters.Set(TankTransferSystem.ParameterKeys.DestinationTankCapacityLb.Name, 500000);
+		parameters.Set(TankTransferSystem.ParameterKeys.PressureControlEnable.Name, 1);
+		parameters.Set(TankTransferSystem.ParameterKeys.AirlockSpeedCommandHz.Name, 0);
+		parameters.Set(TankTransferSystem.ParameterKeys.BlowerEnable.Name, 1);
+		parameters.Set(TankTransferSystem.ParameterKeys.AirlockEnable.Name, 1);
+
+		parameters.Set(TankTransferSystem.ParameterKeys.BlowlinePressureCommandPsi.Name, 6);
+		runner.Step(600);
+		var lowTargetSpeed = system.Signals.Get("AirlockSpeedCommandHz");
+		var lowTargetPressure = system.Signals.Get("BlowlinePressurePsi");
+
+		parameters.Set(TankTransferSystem.ParameterKeys.BlowlinePressureCommandPsi.Name, 14);
+		runner.Step(600);
+		var highTargetSpeed = system.Signals.Get("AirlockSpeedCommandHz");
+		var highTargetPressure = system.Signals.Get("BlowlinePressurePsi");
+
+		Assert.True(highTargetSpeed > lowTargetSpeed + 1.0);
+		Assert.InRange(lowTargetPressure, 5.0, 7.0);
+		Assert.InRange(highTargetPressure, 13.0, 15.0);
 	}
 
 	[Fact]
@@ -93,6 +126,7 @@ public class TankTransferSystemTests
 		parameters.Set(TankTransferSystem.ParameterKeys.SourceTankWeightLb.Name, 50);
 		parameters.Set(TankTransferSystem.ParameterKeys.DestinationTankWeightLb.Name, 0);
 		parameters.Set(TankTransferSystem.ParameterKeys.DestinationTankCapacityLb.Name, 20);
+		parameters.Set(TankTransferSystem.ParameterKeys.PressureControlEnable.Name, 0);
 		parameters.Set(TankTransferSystem.ParameterKeys.AirlockSpeedCommandHz.Name, 20);
 		parameters.Set(TankTransferSystem.ParameterKeys.BlowlinePressureCommandPsi.Name, 15);
 		parameters.Set(TankTransferSystem.ParameterKeys.BlowerEnable.Name, 1);

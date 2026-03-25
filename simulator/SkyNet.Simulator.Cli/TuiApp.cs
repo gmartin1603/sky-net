@@ -35,6 +35,83 @@ public sealed class TuiApp
 	private readonly SimHubClient _hub;
 	private readonly ColorMode _colorMode;
 	private readonly bool _colorEnabled;
+	private static readonly string[] GrainDryerPrioritySignals =
+	[
+		"StartupAutomationActive",
+		"StartupAutomationComplete",
+		"ShutdownAutomationActive",
+		"ShutdownAutomationComplete",
+		"FeedRateCommandLbPerSec",
+		"BurnerFiringRatePercent",
+		"FanSpeedPercent",
+		"OutletMoisturePercent",
+		"PlenumTempF",
+		"ExhaustTempF",
+		"AirflowCfm",
+		"FeedRateLbPerSec",
+		"DischargeRateLbPerSec",
+		"ResidenceTimeMinutes",
+		"WetBinWeightLb",
+		"GrainHoldUpLb",
+		"DryBinWeightLb",
+		"MoistureRemovalRateLbPerSec",
+		"MoistureControlErrorPercent",
+		"IsHighTempAlarm",
+		"IsAirflowLowAlarm",
+		"FeedRunning",
+		"BurnerRunning",
+		"FanRunning",
+	];
+	private static readonly string[] GrainDryerPriorityParameters =
+	[
+		"StartupAutomationEnable",
+		"ShutdownAutomationEnable",
+		"FeedEnable",
+		"BurnerEnable",
+		"FanEnable",
+		"TargetOutletMoisturePercent",
+		"FeedRateCommandLbPerSec",
+		"BurnerFiringRatePercent",
+		"FanSpeedPercent",
+		"StartupAutomationFanSpeedPercent",
+		"StartupAutomationBurnerFiringRatePercent",
+		"StartupAutomationFeedRateCommandLbPerSec",
+		"StartupAutomationTargetOutletMoisturePercent",
+		"ShutdownAutomationFanSpeedPercent",
+		"WetBinWeightLb",
+		"DryBinWeightLb",
+		"DryBinCapacityLb",
+		"DryerHoldUpCapacityLb",
+		"InletMoisturePercent",
+		"AmbientAirTempF",
+		"HighTempAlarmThresholdF",
+	];
+	private static readonly string[] TankTransferPrioritySignals =
+	[
+		"BlowerRunning",
+		"AirlockRunning",
+		"BlowlinePressureCommandPsi",
+		"BlowlinePressurePsi",
+		"AirlockSpeedCommandHz",
+		"AirlockSpeedHz",
+		"TransferRateLbPerSec",
+		"BlowerMotorPercentFla",
+		"SourceTankWeightLb",
+		"DestinationTankWeightLb",
+		"IsStarved",
+		"IsFull",
+	];
+	private static readonly string[] TankTransferPriorityParameters =
+	[
+		"BlowerEnable",
+		"AirlockEnable",
+		"PressureControlEnable",
+		"BlowlinePressureCommandPsi",
+		"AirlockSpeedCommandHz",
+		"SourceTankWeightLb",
+		"DestinationTankWeightLb",
+		"DestinationTankCapacityLb",
+	];
 	private readonly object _snapshotLock = new();
 	private readonly Dictionary<string, GaugeRange> _signalGaugeRanges = new(StringComparer.OrdinalIgnoreCase);
 	private string[] _lastFrame = Array.Empty<string>();
@@ -183,7 +260,9 @@ public sealed class TuiApp
 			await _api.SelectSimulationAsync(simulation.Id, localCt).ConfigureAwait(false);
 			await _api.ResumeAsync(simulation.Id, localCt).ConfigureAwait(false);
 
-			parameterDefinitions = await _api.GetParameterDefinitionsAsync(simulation.Id, localCt).ConfigureAwait(false);
+			parameterDefinitions = OrderParameterDefinitionsForDisplay(
+				simulation.Id,
+				await _api.GetParameterDefinitionsAsync(simulation.Id, localCt).ConfigureAwait(false));
 			parameterValues = await _api.GetParameterValuesAsync(simulation.Id, localCt).ConfigureAwait(false);
 			signalValues = await _api.GetSignalsAsync(simulation.Id, localCt).ConfigureAwait(false);
 			status = await _api.GetStatusAsync(simulation.Id, localCt).ConfigureAwait(false);
@@ -319,6 +398,76 @@ public sealed class TuiApp
 							{
 								notice = ex.Message;
 								noticeUntil = DateTimeOffset.UtcNow.AddSeconds(3);
+							}
+							break;
+						case ConsoleKey.A when IsTankTransferSimulation(simulation.Id):
+							{
+								var enabled = await ToggleBinaryParameterAsync(simulation.Id, parameterDefinitions, parameterValues, "PressureControlEnable", localCt).ConfigureAwait(false);
+								notice = enabled
+									? "Auto pressure control enabled. Rotary airlock now tracks PSI target."
+									: "Manual lock speed enabled. Airlock follows the manual Hz command.";
+								noticeUntil = DateTimeOffset.UtcNow.AddSeconds(2);
+							}
+							break;
+						case ConsoleKey.B when IsTankTransferSimulation(simulation.Id):
+							{
+								var enabled = await ToggleBinaryParameterAsync(simulation.Id, parameterDefinitions, parameterValues, "BlowerEnable", localCt).ConfigureAwait(false);
+								notice = enabled ? "Blower started." : "Blower stopped.";
+								noticeUntil = DateTimeOffset.UtcNow.AddSeconds(2);
+							}
+							break;
+						case ConsoleKey.L when IsTankTransferSimulation(simulation.Id):
+							{
+								var enabled = await ToggleBinaryParameterAsync(simulation.Id, parameterDefinitions, parameterValues, "AirlockEnable", localCt).ConfigureAwait(false);
+								notice = enabled ? "Airlock started." : "Airlock stopped.";
+								noticeUntil = DateTimeOffset.UtcNow.AddSeconds(2);
+							}
+							break;
+						case ConsoleKey.A when IsGrainDryerSimulation(simulation.Id):
+							{
+								var enabled = await ToggleBinaryParameterAsync(simulation.Id, parameterDefinitions, parameterValues, "StartupAutomationEnable", localCt).ConfigureAwait(false);
+								if (enabled)
+								{
+									await SetBinaryParameterAsync(simulation.Id, parameterDefinitions, parameterValues, "ShutdownAutomationEnable", false, localCt).ConfigureAwait(false);
+								}
+								notice = enabled
+									? "Startup automation enabled. Dryer will stage fan, heat, and feed."
+									: "Startup automation disabled. Dryer remains in manual operator control.";
+								noticeUntil = DateTimeOffset.UtcNow.AddSeconds(2);
+							}
+							break;
+						case ConsoleKey.X when IsGrainDryerSimulation(simulation.Id):
+							{
+								var enabled = await ToggleBinaryParameterAsync(simulation.Id, parameterDefinitions, parameterValues, "ShutdownAutomationEnable", localCt).ConfigureAwait(false);
+								if (enabled)
+								{
+									await SetBinaryParameterAsync(simulation.Id, parameterDefinitions, parameterValues, "StartupAutomationEnable", false, localCt).ConfigureAwait(false);
+								}
+								notice = enabled
+									? "Shutdown automation enabled. Dryer will stop feed, cool down, and stop the fan."
+									: "Shutdown automation disabled. Dryer remains in manual operator control.";
+								noticeUntil = DateTimeOffset.UtcNow.AddSeconds(2);
+							}
+							break;
+						case ConsoleKey.F when IsGrainDryerSimulation(simulation.Id):
+							{
+								var enabled = await ToggleBinaryParameterAsync(simulation.Id, parameterDefinitions, parameterValues, "FeedEnable", localCt).ConfigureAwait(false);
+								notice = enabled ? "Dryer feed started." : "Dryer feed stopped.";
+								noticeUntil = DateTimeOffset.UtcNow.AddSeconds(2);
+							}
+							break;
+						case ConsoleKey.B when IsGrainDryerSimulation(simulation.Id):
+							{
+								var enabled = await ToggleBinaryParameterAsync(simulation.Id, parameterDefinitions, parameterValues, "BurnerEnable", localCt).ConfigureAwait(false);
+								notice = enabled ? "Dryer burner started." : "Dryer burner stopped.";
+								noticeUntil = DateTimeOffset.UtcNow.AddSeconds(2);
+							}
+							break;
+						case ConsoleKey.N when IsGrainDryerSimulation(simulation.Id):
+							{
+								var enabled = await ToggleBinaryParameterAsync(simulation.Id, parameterDefinitions, parameterValues, "FanEnable", localCt).ConfigureAwait(false);
+								notice = enabled ? "Dryer fan started." : "Dryer fan stopped.";
+								noticeUntil = DateTimeOffset.UtcNow.AddSeconds(2);
 							}
 							break;
 					}
@@ -551,10 +700,20 @@ public sealed class TuiApp
 			Segment(status.IsPaused ? "Paused" : "Running", status.IsPaused ? ConsoleColor.Yellow : ConsoleColor.Green)));
 		lines.Add(new StyledLine(Segment(string.Empty)));
 
+		if (IsTankTransferSimulation(simulation.Id))
+		{
+			AppendTankTransferSummary(lines, parameterValues, signalValues);
+			lines.Add(new StyledLine(Segment(string.Empty)));
+		}
+		else if (IsGrainDryerSimulation(simulation.Id))
+		{
+			AppendGrainDryerSummary(lines, parameterValues, signalValues);
+			lines.Add(new StyledLine(Segment(string.Empty)));
+		}
+
 		UpdateSignalGaugeRanges(signalValues);
 
-		var topSignals = signalValues
-			.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase)
+		var topSignals = OrderSignalsForDisplay(simulation.Id, signalValues)
 			.Take(12)
 			.ToArray();
 
@@ -623,7 +782,7 @@ public sealed class TuiApp
 		}
 
 		lines.Add(new StyledLine(Segment(string.Empty)));
-		lines.Add(new StyledLine(Segment("Controls: Up/Down=Select Param  Left/Right=Adjust  Enter/E=Edit  P=Pause/Resume  S=Step (paused)  R=Refresh  Q/Esc=Back", ConsoleColor.DarkGray)));
+		lines.Add(new StyledLine(Segment(BuildControlsHint(simulation.Id), ConsoleColor.DarkGray)));
 		if (!string.IsNullOrWhiteSpace(notice))
 		{
 			var noticeColor = IsNoticeError(notice) ? ConsoleColor.Red : ConsoleColor.Green;
@@ -688,6 +847,210 @@ public sealed class TuiApp
 				_signalGaugeRanges[name] = new GaugeRange(value - delta, value + delta);
 			}
 		}
+	}
+
+	private static IEnumerable<KeyValuePair<string, double>> OrderSignalsForDisplay(
+		string simulationId,
+		IReadOnlyDictionary<string, double> signalValues)
+	{
+		var priority = GetPrioritySignalOrder(simulationId);
+		if (priority.Count == 0)
+		{
+			return signalValues.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase);
+		}
+
+		return signalValues
+			.OrderBy(kvp => priority.TryGetValue(kvp.Key, out var index) ? index : int.MaxValue)
+			.ThenBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase);
+	}
+
+	private static IReadOnlyDictionary<string, int> GetPrioritySignalOrder(string simulationId)
+	{
+		if (IsTankTransferSimulation(simulationId))
+		{
+			return TankTransferPrioritySignals
+				.Select((name, index) => new KeyValuePair<string, int>(name, index))
+				.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+		}
+
+		if (string.Equals(simulationId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
+		{
+			return GrainDryerPrioritySignals
+				.Select((name, index) => new KeyValuePair<string, int>(name, index))
+				.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+		}
+
+		return EmptySignalPriorityOrder.Instance;
+	}
+
+	private static ParameterDefinitionDto[] OrderParameterDefinitionsForDisplay(
+		string simulationId,
+		IReadOnlyList<ParameterDefinitionDto> parameterDefinitions)
+	{
+		var priority = GetPriorityParameterOrder(simulationId);
+		if (priority.Count == 0)
+		{
+			return parameterDefinitions.ToArray();
+		}
+
+		return parameterDefinitions
+			.OrderBy(definition => priority.TryGetValue(definition.Name, out var index) ? index : int.MaxValue)
+			.ThenBy(definition => definition.Name, StringComparer.OrdinalIgnoreCase)
+			.ToArray();
+	}
+
+	private static IReadOnlyDictionary<string, int> GetPriorityParameterOrder(string simulationId)
+	{
+		if (IsTankTransferSimulation(simulationId))
+		{
+			return TankTransferPriorityParameters
+				.Select((name, index) => new KeyValuePair<string, int>(name, index))
+				.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+		}
+
+		if (IsGrainDryerSimulation(simulationId))
+		{
+			return GrainDryerPriorityParameters
+				.Select((name, index) => new KeyValuePair<string, int>(name, index))
+				.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+		}
+
+		return EmptySignalPriorityOrder.Instance;
+	}
+
+	private void AppendTankTransferSummary(
+		ICollection<StyledLine> lines,
+		IReadOnlyDictionary<string, double> parameterValues,
+		IReadOnlyDictionary<string, double> signalValues)
+	{
+		var autoMode = parameterValues.GetValueOrDefault("PressureControlEnable") >= 0.5;
+		var blowerRunning = signalValues.GetValueOrDefault("BlowerRunning") >= 0.5;
+		var airlockRunning = signalValues.GetValueOrDefault("AirlockRunning") >= 0.5;
+		var pressureTarget = parameterValues.GetValueOrDefault("BlowlinePressureCommandPsi");
+		var pressureActual = signalValues.GetValueOrDefault("BlowlinePressurePsi");
+		var manualCommandHz = parameterValues.GetValueOrDefault("AirlockSpeedCommandHz");
+		var commandHz = signalValues.GetValueOrDefault("AirlockSpeedCommandHz");
+		var speedHz = signalValues.GetValueOrDefault("AirlockSpeedHz");
+		var transferRate = signalValues.GetValueOrDefault("TransferRateLbPerSec");
+
+		lines.Add(new StyledLine(
+			Segment("Operator Summary", ConsoleColor.Cyan)));
+		lines.Add(new StyledLine(
+			Segment("  Mode: "),
+			Segment(autoMode ? "Auto pressure hold" : "Manual lock speed", autoMode ? ConsoleColor.Green : ConsoleColor.Yellow),
+			Segment("  Blower: "),
+			Segment(blowerRunning ? "On" : "Off", blowerRunning ? ConsoleColor.Green : ConsoleColor.DarkGray),
+			Segment("  Airlock: "),
+			Segment(airlockRunning ? "On" : "Off", airlockRunning ? ConsoleColor.Green : ConsoleColor.DarkGray)));
+		lines.Add(new StyledLine(
+			Segment($"  Pressure target: {pressureTarget,6:0.0} psi  Actual: {pressureActual,6:0.0} psi  Transfer: {transferRate,6:0.0} lb/s")));
+		lines.Add(new StyledLine(
+			Segment($"  Lock cmd: {commandHz,6:0.0} Hz  Actual: {speedHz,6:0.0} Hz  Manual setpoint: {manualCommandHz,6:0.0} Hz")));
+	}
+
+	private void AppendGrainDryerSummary(
+		ICollection<StyledLine> lines,
+		IReadOnlyDictionary<string, double> parameterValues,
+		IReadOnlyDictionary<string, double> signalValues)
+	{
+		var automationActive = signalValues.GetValueOrDefault("StartupAutomationActive") >= 0.5;
+		var automationComplete = signalValues.GetValueOrDefault("StartupAutomationComplete") >= 0.5;
+		var shutdownActive = signalValues.GetValueOrDefault("ShutdownAutomationActive") >= 0.5;
+		var shutdownComplete = signalValues.GetValueOrDefault("ShutdownAutomationComplete") >= 0.5;
+		var feedRunning = signalValues.GetValueOrDefault("FeedRunning") >= 0.5;
+		var burnerRunning = signalValues.GetValueOrDefault("BurnerRunning") >= 0.5;
+		var fanRunning = signalValues.GetValueOrDefault("FanRunning") >= 0.5;
+		var moistureActual = signalValues.GetValueOrDefault("OutletMoisturePercent");
+		var moistureTarget = parameterValues.GetValueOrDefault("TargetOutletMoisturePercent");
+		var moistureError = signalValues.GetValueOrDefault("MoistureControlErrorPercent");
+		var feedRate = signalValues.GetValueOrDefault("FeedRateLbPerSec");
+		var airflow = signalValues.GetValueOrDefault("AirflowCfm");
+		var plenum = signalValues.GetValueOrDefault("PlenumTempF");
+		var exhaust = signalValues.GetValueOrDefault("ExhaustTempF");
+
+		lines.Add(new StyledLine(
+			Segment("Operator Summary", ConsoleColor.Cyan)));
+		lines.Add(new StyledLine(
+			Segment("  Startup: "),
+			Segment(automationActive ? "Active" : automationComplete ? "Complete" : "Manual", automationActive ? ConsoleColor.Green : automationComplete ? ConsoleColor.Cyan : ConsoleColor.Yellow),
+			Segment("  Shutdown: "),
+			Segment(shutdownActive ? "Active" : shutdownComplete ? "Complete" : "Manual", shutdownActive ? ConsoleColor.Green : shutdownComplete ? ConsoleColor.Cyan : ConsoleColor.Yellow),
+			Segment("  Feed: "),
+			Segment(feedRunning ? "On" : "Off", feedRunning ? ConsoleColor.Green : ConsoleColor.DarkGray),
+			Segment("  Burner: "),
+			Segment(burnerRunning ? "On" : "Off", burnerRunning ? ConsoleColor.Green : ConsoleColor.DarkGray),
+			Segment("  Fan: "),
+			Segment(fanRunning ? "On" : "Off", fanRunning ? ConsoleColor.Green : ConsoleColor.DarkGray)));
+		lines.Add(new StyledLine(
+			Segment($"  Moisture target: {moistureTarget,5:0.0}%  Actual: {moistureActual,5:0.0}%  Error: {moistureError,6:0.0}%")));
+		lines.Add(new StyledLine(
+			Segment($"  Feed: {feedRate,6:0.0} lb/s  Airflow: {airflow,8:0} cfm  Plenum: {plenum,6:0.0} F  Exhaust: {exhaust,6:0.0} F")));
+	}
+
+	private async Task<bool> ToggleBinaryParameterAsync(
+		string simId,
+		IReadOnlyList<ParameterDefinitionDto> parameterDefinitions,
+		IDictionary<string, double> parameterValues,
+		string parameterName,
+		CancellationToken cancellationToken)
+	{
+		var definition = parameterDefinitions.FirstOrDefault(candidate => string.Equals(candidate.Name, parameterName, StringComparison.OrdinalIgnoreCase));
+		if (definition is null)
+		{
+			throw new InvalidOperationException($"Parameter '{parameterName}' is not available for this simulation.");
+		}
+
+		parameterValues.TryGetValue(parameterName, out var current);
+		var next = current >= 0.5 ? 0.0 : 1.0;
+		await _api.SetParameterAsync(simId, parameterName, next, cancellationToken).ConfigureAwait(false);
+		parameterValues[parameterName] = next;
+		return next >= 0.5;
+	}
+
+	private async Task SetBinaryParameterAsync(
+		string simId,
+		IReadOnlyList<ParameterDefinitionDto> parameterDefinitions,
+		IDictionary<string, double> parameterValues,
+		string parameterName,
+		bool enabled,
+		CancellationToken cancellationToken)
+	{
+		var definition = parameterDefinitions.FirstOrDefault(candidate => string.Equals(candidate.Name, parameterName, StringComparison.OrdinalIgnoreCase));
+		if (definition is null)
+		{
+			throw new InvalidOperationException($"Parameter '{parameterName}' is not available for this simulation.");
+		}
+
+		var next = enabled ? 1.0 : 0.0;
+		await _api.SetParameterAsync(simId, parameterName, next, cancellationToken).ConfigureAwait(false);
+		parameterValues[parameterName] = next;
+	}
+
+	private static bool IsTankTransferSimulation(string simulationId) =>
+		string.Equals(simulationId, "tank-transfer", StringComparison.OrdinalIgnoreCase);
+
+	private static bool IsGrainDryerSimulation(string simulationId) =>
+		string.Equals(simulationId, "grain-dryer", StringComparison.OrdinalIgnoreCase);
+
+	private static string BuildControlsHint(string simulationId)
+	{
+		var baseHint = "Controls: Up/Down=Select Param  Left/Right=Adjust  Enter/E=Edit  P=Pause/Resume  S=Step (paused)  R=Refresh  Q/Esc=Back";
+		if (IsTankTransferSimulation(simulationId))
+		{
+			return "Controls: Up/Down=Select Param  Left/Right=Adjust  Enter/E=Edit  A=Auto/Manual  B=Blower  L=Airlock  P=Pause/Resume  S=Step (paused)  R=Refresh  Q/Esc=Back";
+		}
+
+		if (IsGrainDryerSimulation(simulationId))
+		{
+			return "Controls: Up/Down=Select Param  Left/Right=Adjust  Enter/E=Edit  A=Startup Auto  X=Shutdown Auto  F=Feed  B=Burner  N=Fan  P=Pause/Resume  S=Step (paused)  R=Refresh  Q/Esc=Back";
+		}
+
+		return baseHint;
+	}
+
+	private static class EmptySignalPriorityOrder
+	{
+		public static readonly IReadOnlyDictionary<string, int> Instance = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 	}
 
 	private static GaugeBarVisual BuildGaugeBar(double value, double min, double max, int width)

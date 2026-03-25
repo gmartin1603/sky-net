@@ -1,0 +1,178 @@
+.sim-page-shell {
+    display: grid;
+    gap: 1.15rem;
+    padding-bottom: 2rem;
+}
+
+.sim-page-hero,
+.sim-page-toolbar,
+.sim-page-panel,
+.sim-page-signal-tile,
+.sim-page-meta > div,
+.sim-page-run-meta > div,
+.sim-page-empty,
+.sim-page-alert {
+    border: 1px solid var(--app-panel-stroke);
+    border-radius: 20px;
+    background: linear-gradient(160deg, var(--app-panel-bg), var(--app-panel-bg-soft));
+    box-shadow: var(--app-shadow-soft);
+}
+
+.sim-page-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1.25rem;
+    background:
+        radial-gradient(circle at top right, color-mix(in srgb, var(--app-accent) 14%, transparent) 0, transparent 42%),
+        linear-gradient(140deg, color-mix(in srgb, var(--app-panel-bg) 76%, #d9caa0 24%), color-mix(in srgb, var(--app-panel-bg-soft) 82%, #6e94b8 18%));
+}
+
+.sim-page-kicker,
+.sim-page-section-kicker,
+.sim-page-meta-label,
+.sim-page-signal-name {
+    margin: 0;
+    font-size: 0.77rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--app-muted);
+}
+
+.sim-page-hero h1,
+.sim-page-section-head h2 {
+    margin: 0;
+}
+
+.sim-page-copy {
+    margin: 0.45rem 0 0;
+    max-width: 68ch;
+    color: var(--app-muted);
+}
+
+.sim-page-meta,
+.sim-page-run-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(130px, 1fr));
+    gap: 0.75rem;
+}
+
+.sim-page-meta > div,
+.sim-page-run-meta > div {
+    padding: 0.9rem 1rem;
+}
+
+.sim-page-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 1rem 1.1rem;
+}
+
+.sim-page-control-group {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.sim-page-status-live {
+    color: var(--app-success);
+}
+
+.sim-page-status-idle {
+    color: var(--app-muted);
+}
+
+.sim-page-alert,
+.sim-page-empty,
+.sim-page-panel {
+    padding: 1rem;
+}
+
+.sim-page-alert {
+    color: var(--app-danger);
+    border-color: color-mix(in srgb, var(--app-danger) 40%, var(--app-panel-stroke) 60%);
+}
+
+.sim-page-section-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.sim-page-link {
+    font-weight: 700;
+}
+
+.sim-page-panel-schematic {
+    padding: 1.1rem;
+}
+
+.sim-page-signal-grid,
+.sim-page-chart-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.sim-page-signal-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.sim-page-signal-tile {
+    padding: 0.9rem 1rem;
+}
+
+.sim-page-signal-value {
+    margin-top: 0.4rem;
+    font-size: 1.45rem;
+    font-weight: 700;
+}
+
+.sim-page-chart-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sim-page-param-setter {
+    white-space: nowrap;
+}
+
+.sim-page-param-setter .form-control {
+    width: 140px;
+    margin-right: 0.35rem;
+}
+
+@media (max-width: 1100px) {
+    .sim-page-chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .sim-page-hero,
+    .sim-page-toolbar {
+        padding: 1rem;
+    }
+
+    .sim-page-meta,
+    .sim-page-run-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .sim-page-control-group,
+    .sim-page-control-group .btn {
+        width: 100%;
+    }
+
+    .sim-page-param-setter .form-control,
+    .sim-page-param-setter .btn {
+        width: 100%;
+        margin-right: 0;
+        margin-top: 0.35rem;
+    }
+}

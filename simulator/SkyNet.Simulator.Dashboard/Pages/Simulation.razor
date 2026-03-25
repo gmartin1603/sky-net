@@ -13,155 +13,230 @@
 
 <PageTitle>Simulation</PageTitle>
 
-<h1>Simulation</h1>
-<p>
-	<b>SimId:</b> <code>@SimId</code>
-	<br />
-	<b>Daemon:</b> <code>@Options.BaseUri</code>
-</p>
-
-<div style="display:flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-	<button @onclick="Pause" disabled="@(_status?.IsPaused ?? false)">Pause</button>
-	<button @onclick="Resume" disabled="@(!(_status?.IsPaused ?? true))">@(_status?.Tick == 0 ? "Start" : "Resume")</button>
-	<button @onclick="StepOnce" disabled="@(!(_status?.IsPaused ?? false))">Step</button>
-	<span style="margin-left: 0.75rem;">Connection: <b>@(Hub.IsConnected ? "Connected" : "Disconnected")</b></span>
-</div>
-
-@if (!string.IsNullOrWhiteSpace(_error))
-{
-	<p class="text-danger"><b>Error:</b> @_error</p>
-}
-
-@if (_uiSnapshot is null)
-{
-	<p>Waiting for telemetry...</p>
-}
-else
-{
-	<p>
-		<b>Tick</b> @_uiSnapshot.Tick | <b>Sim Time</b> @_uiSnapshot.TimeSeconds.ToString("0.000")s
-		@if (_status is not null)
-		{
-			<span> | <b>Paused</b> @_status.IsPaused</span>
-		}
-	</p>
-
-	<h2>Key Signals</h2>
-	<div style="display:flex; gap: 1rem; flex-wrap: wrap;">
-		@foreach (var key in _keySignals)
-		{
-			var value = _uiSnapshot.Signals.TryGetValue(key, out var v) ? v : double.NaN;
-			<div class="signal-tile">
-				<div style="font-size: 0.9rem; opacity: 0.8;">@key</div>
-				<div style="font-size: 1.5rem;"><b>@value.ToString("0.###")</b></div>
-			</div>
-		}
-	</div>
-
-	@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
-	{
-		<div style="display:flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-			<h2 style="margin: 0;">Schematic</h2>
-			<a href="@($"sim/{Uri.EscapeDataString(SimId)}/creator")">Edit view</a>
+<section class="sim-page-shell">
+	<div class="sim-page-hero">
+		<div>
+			<p class="sim-page-kicker">Simulation Deck</p>
+			<h1>@SimulationTitle</h1>
+			<p class="sim-page-copy">@SimulationDescription</p>
 		</div>
-		<TankTransferSchematic SimId="@SimId" Snapshot="@_uiSnapshot" Layout="@_tankTransferLayout" />
-	}
-	else if (IsHydraulicSimulation(SimId))
+		<div class="sim-page-meta">
+			<div>
+				<span class="sim-page-meta-label">Simulation</span>
+				<strong><code>@SimId</code></strong>
+			</div>
+			<div>
+				<span class="sim-page-meta-label">Daemon</span>
+				<strong><code>@Options.BaseUri</code></strong>
+			</div>
+			<div>
+				<span class="sim-page-meta-label">Connection</span>
+				<strong class="@(Hub.IsConnected ? "sim-page-status-live" : "sim-page-status-idle")">@(Hub.IsConnected ? "Connected" : "Disconnected")</strong>
+			</div>
+		</div>
+	</div>
+
+	<div class="sim-page-toolbar">
+		<div class="sim-page-control-group">
+			<button class="btn btn-primary" @onclick="Pause" disabled="@(_status?.IsPaused ?? false)">Pause</button>
+			<button class="btn btn-primary" @onclick="Resume" disabled="@(!(_status?.IsPaused ?? true))">@(_status?.Tick == 0 ? "Start" : "Resume")</button>
+			<button class="btn btn-outline-secondary" @onclick="StepOnce" disabled="@(!(_status?.IsPaused ?? false))">Step</button>
+		</div>
+		<div class="sim-page-run-meta">
+			<div>
+				<span class="sim-page-meta-label">Tick</span>
+				<strong>@(_uiSnapshot?.Tick ?? 0)</strong>
+			</div>
+			<div>
+				<span class="sim-page-meta-label">Sim Time</span>
+				<strong>@((_uiSnapshot?.TimeSeconds ?? 0).ToString("0.000"))s</strong>
+			</div>
+			<div>
+				<span class="sim-page-meta-label">State</span>
+				<strong class="@((_status?.IsPaused ?? true) ? "sim-page-status-idle" : "sim-page-status-live")">@((_status?.IsPaused ?? true) ? "Paused" : "Running")</strong>
+			</div>
+		</div>
+	</div>
+
+	@if (!string.IsNullOrWhiteSpace(_error))
 	{
-		<h2>Hydraulic Schematic</h2>
-		<HydraulicSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
+		<div class="sim-page-alert">
+			<strong>Error:</strong> @_error
+		</div>
 	}
 
-	<h2>Trends</h2>
-	<div style="display:flex; gap: 1rem; flex-wrap: wrap;">
-		<LineChart Title="@_chart1Title" SubTitle="@_chart1Unit" Stroke="#d62728" Points="@_pressureSeries" YFormat="@_chart1Format" />
-		<LineChart Title="@_chart2Title" SubTitle="@_chart2Unit" Stroke="#1f77b4" Points="@_positionSeries" YFormat="@_chart2Format" />
-		<LineChart Title="@_chart3Title" SubTitle="@_chart3Unit" Stroke="#2ca02c" Points="@_flowSeries" YFormat="@_chart3Format" />
-	</div>
-}
+	@if (_uiSnapshot is null)
+	{
+		<div class="sim-page-empty">Waiting for telemetry...</div>
+	}
+	else
+	{
+		@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
+		{
+			<TankTransferOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+		}
+		else if (string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
+		{
+			<GrainDryerOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+		}
+		else if (IsHydraulicSimulation(SimId))
+		{
+			<HydraulicOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+		}
 
-<h2>Parameters</h2>
-@if (_parameterDefinitions is null)
-{
-	<p>Loading parameter definitions...</p>
-}
-else
-{
-	<div class="table-responsive">
-	<table class="table table-sm align-middle">
-		<thead>
-			<tr>
-				<th>Name</th>
-				<th>Value</th>
-				<th>Min</th>
-				<th>Max</th>
-				<th>Set</th>
-				<th>Description</th>
-			</tr>
-		</thead>
-		<tbody>
-			@foreach (var def in _parameterDefinitions)
+		<div class="sim-page-section-head">
+			<div>
+				<p class="sim-page-section-kicker">Live View</p>
+				<h2>@SchematicTitle</h2>
+			</div>
+			@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
 			{
-				var snap = _tableSnapshot ?? _uiSnapshot;
-				double current;
-				if (snap is not null && snap.Parameters.TryGetValue(def.Name, out var vSnap))
-				{
-					current = vSnap;
-				}
-				else if (_lastParameterValues.TryGetValue(def.Name, out var vPoll))
-				{
-					current = vPoll;
-				}
-				else
-				{
-					current = double.NaN;
-				}
-				_parameterEdits.TryGetValue(def.Name, out var edit);
-
-				<tr>
-					<td><code>@def.Name</code></td>
-					<td>@current.ToString("0.###")</td>
-					<td>@(def.MinValue?.ToString("0.###") ?? "-")</td>
-					<td>@(def.MaxValue?.ToString("0.###") ?? "-")</td>
-					<td style="white-space: nowrap;">
-						<input class="form-control form-control-sm d-inline-block" type="number" step="any" style="width: 120px;" value="@edit" @onchange="e => OnEditChanged(def.Name, e)" />
-						<button class="btn btn-sm btn-primary" style="margin-left: 0.25rem;" @onclick="() => ApplyParameter(def.Name)">Set</button>
-					</td>
-					<td>@def.Description</td>
-				</tr>
+				<a class="sim-page-link" href="@($"sim/{Uri.EscapeDataString(SimId)}/creator")">Edit view</a>
 			}
-		</tbody>
-	</table>
-	</div>
-}
+		</div>
 
-<h2>All Signals</h2>
-@if (_sortedSignals.Length == 0)
-{
-	<p>No signals yet.</p>
-}
-else
-{
-	<div class="table-responsive">
-	<table class="table table-sm align-middle">
-		<thead>
-			<tr>
-				<th>Name</th>
-				<th>Value</th>
-			</tr>
-		</thead>
-		<tbody>
-			@foreach (var kvp in _sortedSignals)
+		<section class="sim-page-panel sim-page-panel-schematic">
+			@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
 			{
-				<tr>
-					<td><code>@kvp.Key</code></td>
-					<td>@kvp.Value.ToString("0.###")</td>
-				</tr>
+				<TankTransferSchematic SimId="@SimId" Snapshot="@_uiSnapshot" Layout="@_tankTransferLayout" />
 			}
-		</tbody>
-	</table>
-	</div>
-}
+			else if (string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
+			{
+				<GrainDryerSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
+			}
+			else if (IsHydraulicSimulation(SimId))
+			{
+				<HydraulicSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
+			}
+		</section>
+
+		<div class="sim-page-section-head">
+			<div>
+				<p class="sim-page-section-kicker">Key Telemetry</p>
+				<h2>Signal Watch</h2>
+			</div>
+		</div>
+		<div class="sim-page-signal-grid">
+			@foreach (var key in _keySignals)
+			{
+				var value = _uiSnapshot.Signals.TryGetValue(key, out var v) ? v : double.NaN;
+				<div class="sim-page-signal-tile">
+					<div class="sim-page-signal-name">@key</div>
+					<div class="sim-page-signal-value">@value.ToString("0.###")</div>
+				</div>
+			}
+		</div>
+
+		<div class="sim-page-section-head">
+			<div>
+				<p class="sim-page-section-kicker">History</p>
+				<h2>Trends</h2>
+			</div>
+		</div>
+		<div class="sim-page-chart-grid">
+			<LineChart Title="@_chart1Title" SubTitle="@_chart1Unit" Stroke="var(--chart-series-1)" Points="@_pressureSeries" YFormat="@_chart1Format" />
+			<LineChart Title="@_chart2Title" SubTitle="@_chart2Unit" Stroke="var(--chart-series-2)" Points="@_positionSeries" YFormat="@_chart2Format" />
+			<LineChart Title="@_chart3Title" SubTitle="@_chart3Unit" Stroke="var(--chart-series-3)" Points="@_flowSeries" YFormat="@_chart3Format" />
+		</div>
+
+		<div class="sim-page-section-head">
+			<div>
+				<p class="sim-page-section-kicker">Engineering</p>
+				<h2>@ParameterSectionTitle</h2>
+			</div>
+		</div>
+		<section class="sim-page-panel">
+			@if (_parameterDefinitions is null)
+			{
+				<p>Loading parameter definitions...</p>
+			}
+			else
+			{
+				<div class="table-responsive">
+				<table class="table table-sm align-middle">
+					<thead>
+						<tr>
+							<th>Name</th>
+							<th>Value</th>
+							<th>Min</th>
+							<th>Max</th>
+							<th>Set</th>
+							<th>Description</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var def in _parameterDefinitions)
+						{
+							var snap = _tableSnapshot ?? _uiSnapshot;
+							double current;
+							if (snap is not null && snap.Parameters.TryGetValue(def.Name, out var vSnap))
+							{
+								current = vSnap;
+							}
+							else if (_lastParameterValues.TryGetValue(def.Name, out var vPoll))
+							{
+								current = vPoll;
+							}
+							else
+							{
+								current = double.NaN;
+							}
+							_parameterEdits.TryGetValue(def.Name, out var edit);
+
+							<tr>
+								<td><code>@def.Name</code></td>
+								<td>@current.ToString("0.###")</td>
+								<td>@(def.MinValue?.ToString("0.###") ?? "-")</td>
+								<td>@(def.MaxValue?.ToString("0.###") ?? "-")</td>
+								<td class="sim-page-param-setter">
+									<input class="form-control form-control-sm d-inline-block" type="number" step="any" value="@edit" @onchange="e => OnEditChanged(def.Name, e)" />
+									<button class="btn btn-sm btn-primary" @onclick="() => ApplyParameter(def.Name)">Set</button>
+								</td>
+								<td>@def.Description</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				</div>
+			}
+		</section>
+
+		<div class="sim-page-section-head">
+			<div>
+				<p class="sim-page-section-kicker">Diagnostics</p>
+				<h2>All Signals</h2>
+			</div>
+		</div>
+		<section class="sim-page-panel">
+			@if (_sortedSignals.Length == 0)
+			{
+				<p>No signals yet.</p>
+			}
+			else
+			{
+				<div class="table-responsive">
+				<table class="table table-sm align-middle">
+					<thead>
+						<tr>
+							<th>Name</th>
+							<th>Value</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var kvp in _sortedSignals)
+						{
+							<tr>
+								<td><code>@kvp.Key</code></td>
+								<td>@kvp.Value.ToString("0.###")</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				</div>
+			}
+		</section>
+	}
+</section>
 
 @code {
 	[Parameter] public string SimId { get; set; } = string.Empty;
@@ -220,6 +295,30 @@ else
 	private Task? _pollTask;
 	private Task? _renderTask;
 	private string? _currentSimId;
+
+	private string SimulationTitle => string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase)
+		? "Tank Transfer"
+		: string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase)
+			? "Grain Dryer"
+			: string.Equals(SimId, "hydraulic-demo", StringComparison.OrdinalIgnoreCase)
+				? "Hydraulic Demo"
+				: string.Equals(SimId, "hydraulic-training", StringComparison.OrdinalIgnoreCase)
+					? "Hydraulic Training"
+					: "Simulation";
+
+	private string SimulationDescription => string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase)
+		? "Operate the pneumatic transfer train, hold blowline pressure, and track movement from source vessel to destination tank."
+		: string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase)
+			? "Manage startup, shutdown, airflow, heat, and throughput while watching moisture and inventory respond live."
+			: string.Equals(SimId, "hydraulic-demo", StringComparison.OrdinalIgnoreCase)
+				? "A compact hydraulic slice for quick validation of valve, pressure, and actuator response."
+				: "An instrumented hydraulic loop for training on pressure, flow, sensing, and actuator dynamics.";
+
+	private string SchematicTitle => string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase)
+		? "Transfer Schematic"
+		: string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase)
+			? "Dryer Schematic"
+			: "Hydraulic Schematic";
 
 	protected override Task OnInitializedAsync()
 	{
@@ -518,7 +617,9 @@ else
 		{
 			_keySignals =
 			[
+				"BlowlinePressureCommandPsi",
 				"BlowlinePressurePsi",
+				"AirlockSpeedCommandHz",
 				"AirlockSpeedHz",
 				"TransferRateLbPerSec",
 				"SourceTankWeightLb",
@@ -541,6 +642,45 @@ else
 			_chart3Title = "Blower Motor";
 			_chart3Unit = "% FLA";
 			_chart3SignalKey = "BlowerMotorPercentFla";
+			_chart3Format = "0.0";
+		}
+		else if (string.Equals(simId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
+		{
+			_keySignals =
+			[
+				"StartupAutomationActive",
+				"StartupAutomationComplete",
+				"ShutdownAutomationActive",
+				"ShutdownAutomationComplete",
+				"FeedRateCommandLbPerSec",
+				"BurnerFiringRatePercent",
+				"FanSpeedPercent",
+				"OutletMoisturePercent",
+				"MoistureControlErrorPercent",
+				"PlenumTempF",
+				"ExhaustTempF",
+				"AirflowCfm",
+				"FeedRateLbPerSec",
+				"ResidenceTimeMinutes",
+				"WetBinWeightLb",
+				"DryBinWeightLb",
+				"IsHighTempAlarm",
+				"IsAirflowLowAlarm",
+			];
+
+			_chart1Title = "Outlet Moisture";
+			_chart1Unit = "%";
+			_chart1SignalKey = "OutletMoisturePercent";
+			_chart1Format = "0.0";
+
+			_chart2Title = "Plenum Temperature";
+			_chart2Unit = "F";
+			_chart2SignalKey = "PlenumTempF";
+			_chart2Format = "0.0";
+
+			_chart3Title = "Feed Rate";
+			_chart3Unit = "lb/s";
+			_chart3SignalKey = "FeedRateLbPerSec";
 			_chart3Format = "0.0";
 		}
 		else if (string.Equals(simId, "hydraulic-demo", StringComparison.OrdinalIgnoreCase))
@@ -571,6 +711,10 @@ else
 		{
 			_keySignals =
 			[
+				"PositionControlActive",
+				"ActuatorPositionCommand",
+				"ActuatorPositionError",
+				"ValveOpeningCommand",
 				"DownstreamPressurePsi",
 				"DownstreamPressureSensorPsi",
 				"ValveFlowGpm",
@@ -594,6 +738,12 @@ else
 			_chart3Format = "0.0";
 		}
 	}
+
+	private string ParameterSectionTitle => string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase)
+		? "Advanced Parameters"
+		: string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase)
+			? "Advanced Parameters"
+		: "Parameters";
 
 	private static bool IsHydraulicSimulation(string simId) =>
 		!string.IsNullOrWhiteSpace(simId)

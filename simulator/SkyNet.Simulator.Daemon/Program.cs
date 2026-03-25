@@ -104,6 +104,12 @@ builder.Services.AddSingleton(sp =>
 		description: "Granular transfer through rotary airlock into a blowline with blower load.",
 		createSystem: ps => new TankTransferSystem(ps)));
 
+	sims.Add(Create(
+		id: "grain-dryer",
+		name: "Grain Dryer",
+		description: "Continuous-flow grain dryer with feed, airflow, burner heat, moisture removal, and alarms.",
+		createSystem: ps => new GrainDryerSystem(ps)));
+
 	return new SimulationRegistry(sims, defaultActiveId: "hydraulic-training");
 });
 

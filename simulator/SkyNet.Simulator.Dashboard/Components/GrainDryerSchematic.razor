@@ -1,0 +1,137 @@
+@namespace SkyNet.Simulator.Dashboard.Components
+@using SkyNet.Simulator.Contracts
+@using SkyNet.Simulator.Dashboard.Services
+
+@inject SimApiClient Api
+
+@if (Snapshot is null)
+{
+	<div>Waiting for telemetry...</div>
+}
+else
+{
+	<div style="position: relative; max-width: 1160px; height: 430px; margin: 0 auto;">
+		<svg viewBox="0 0 1160 430" style="width: 100%; height: 100%;">
+			<defs>
+				<linearGradient id="dryer-bg" x1="0" y1="0" x2="1" y2="1">
+					<stop offset="0%" style="stop-color:var(--dryer-scene-bg-start);" />
+					<stop offset="100%" style="stop-color:var(--dryer-scene-bg-end);" />
+				</linearGradient>
+				<linearGradient id="grain-fill" x1="0" y1="0" x2="0" y2="1">
+					<stop offset="0%" style="stop-color:var(--dryer-grain-start);" />
+					<stop offset="100%" style="stop-color:var(--dryer-grain-end);" />
+				</linearGradient>
+				<linearGradient id="heat-fill" x1="0" y1="0" x2="1" y2="0">
+					<stop offset="0%" style="stop-color:var(--dryer-heat-start);" />
+					<stop offset="100%" style="stop-color:var(--dryer-heat-end);" />
+				</linearGradient>
+			</defs>
+
+			<rect x="18" y="18" width="1124" height="394" rx="28" ry="28" fill="url(#dryer-bg)" style="stroke:var(--dryer-scene-stroke);" stroke-width="1.5" />
+			<rect x="42" y="46" width="1076" height="108" rx="22" ry="22" style="fill:var(--dryer-section-fill-top); stroke:var(--dryer-section-stroke);" />
+			<rect x="42" y="176" width="1076" height="208" rx="24" ry="24" style="fill:var(--dryer-section-fill-bottom); stroke:var(--dryer-section-stroke);" />
+			<text x="68" y="78" style="fill:var(--dryer-label-muted); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">Storage And Targets</text>
+			<text x="68" y="208" style="fill:var(--dryer-label-muted); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">Drying Train</text>
+
+			<path d="M200 142 L200 258 L392 258" fill="none" style="stroke:@FlowColor;" stroke-width="@(FlowActive ? 6 : 4)" stroke-linecap="round" opacity="0.9" />
+			<path d="M594 258 L782 258" fill="none" style="stroke:@HeatFlowColor;" stroke-width="@(HeatActive ? 6 : 4)" stroke-linecap="round" opacity="0.92" />
+			<path d="M970 258 L970 142" fill="none" style="stroke:@FlowColor;" stroke-width="@(FlowActive ? 6 : 4)" stroke-linecap="round" opacity="0.9" />
+
+			<g transform="translate(86 90)">
+				<rect x="0" y="0" width="228" height="248" rx="28" ry="28" style="fill:var(--dryer-wet-shell); stroke:var(--dryer-wet-shell-stroke);" stroke-width="2" />
+				<path d="M28 206 L200 206 L160 236 L68 236 Z" style="fill:var(--dryer-wet-base);" />
+				<rect x="24" y="44" width="180" height="154" rx="16" ry="16" style="fill:var(--dryer-wet-core); stroke:var(--dryer-wet-core-stroke);" />
+				<rect x="24" y="@(44 + (154 * (1.0 - WetFillRatio)))" width="180" height="@(154 * WetFillRatio)" rx="16" ry="16" fill="url(#grain-fill)" opacity="0.95" />
+				<text x="24" y="28" style="fill:var(--dryer-wet-title); font-size: 20px; font-weight: 700;">Wet Bin</text>
+				<text x="24" y="216" style="fill:var(--dryer-label-muted); font-size: 13px;">@WetBinWeightText</text>
+				<text x="24" y="234" style="fill:var(--dryer-label-muted); font-size: 13px;">@InletMoistureText</text>
+				<text x="24" y="252" style="fill:@(WetBinEmpty ? "var(--app-danger)" : "var(--dryer-label-muted)"); font-size: 13px; font-weight: 700;">@(WetBinEmpty ? "Wet bin empty" : "Wet grain available")</text>
+			</g>
+
+			<g transform="translate(390 186)">
+				<rect x="0" y="0" width="214" height="144" rx="28" ry="28" style="fill:var(--dryer-burner-shell); stroke:var(--dryer-burner-shell-stroke);" stroke-width="2" />
+				<rect x="26" y="22" width="68" height="98" rx="16" ry="16" style="fill:var(--dryer-burner-core); stroke:var(--dryer-burner-core-stroke);" />
+				<rect x="120" y="22" width="68" height="98" rx="16" ry="16" style="fill:var(--dryer-burner-core); stroke:var(--dryer-burner-core-stroke);" />
+				<rect x="30" y="64" width="160" height="28" rx="14" ry="14" fill="url(#heat-fill)" opacity="@(HeatActive ? "0.95" : "0.28")" />
+				<text x="26" y="18" style="fill:var(--dryer-burner-title); font-size: 18px; font-weight: 700;">Burner + Fan</text>
+				<text x="26" y="116" style="fill:var(--dryer-burner-text); font-size: 13px;">@BurnerText</text>
+				<text x="26" y="132" style="fill:var(--dryer-burner-text); font-size: 13px;">@FanText</text>
+			</g>
+
+			<g transform="translate(592 124)">
+				<rect x="0" y="0" width="190" height="268" rx="30" ry="30" style="fill:var(--dryer-column-shell); stroke:var(--dryer-column-shell-stroke);" stroke-width="2" />
+				<rect x="32" y="26" width="126" height="176" rx="18" ry="18" style="fill:var(--dryer-column-core); stroke:var(--dryer-column-core-stroke);" />
+				<rect x="32" y="@(26 + (176 * (1.0 - HoldUpRatio)))" width="126" height="@(176 * HoldUpRatio)" rx="18" ry="18" fill="url(#grain-fill)" opacity="0.88" />
+				<rect x="20" y="18" width="150" height="30" rx="15" ry="15" style="fill:@ColumnCapColor;" opacity="0.88" />
+				<text x="95" y="38" text-anchor="middle" style="fill:var(--dryer-cap-text); font-size: 14px; font-weight: 700;">@PlenumTempText</text>
+				<text x="24" y="228" style="fill:var(--dryer-column-text); font-size: 18px; font-weight: 700;">Drying Column</text>
+				<text x="24" y="248" style="fill:var(--dryer-column-text); font-size: 13px;">@ResidenceText</text>
+				<text x="24" y="264" style="fill:var(--dryer-column-text); font-size: 13px;">@OutletMoistureText</text>
+				<text x="24" y="280" style="fill:var(--dryer-column-text); font-size: 13px;">@MoistureRemovalText</text>
+				<text x="24" y="296" style="fill:@(HighTempAlarm ? "var(--app-danger)" : "var(--dryer-column-text)"); font-size: 13px; font-weight: 700;">@(HighTempAlarm ? "High temperature alarm" : "Temperature within range")</text>
+			</g>
+
+			<g transform="translate(840 90)">
+				<rect x="0" y="0" width="228" height="248" rx="28" ry="28" style="fill:var(--dryer-dry-shell); stroke:var(--dryer-dry-shell-stroke);" stroke-width="2" />
+				<path d="M28 206 L200 206 L160 236 L68 236 Z" style="fill:var(--dryer-dry-base);" />
+				<rect x="24" y="44" width="180" height="154" rx="16" ry="16" style="fill:var(--dryer-dry-core); stroke:var(--dryer-dry-core-stroke);" />
+				<rect x="24" y="@(44 + (154 * (1.0 - DryFillRatio)))" width="180" height="@(154 * DryFillRatio)" rx="16" ry="16" style="fill:var(--dryer-dry-fill);" opacity="0.95" />
+				<text x="24" y="28" style="fill:var(--dryer-dry-title); font-size: 20px; font-weight: 700;">Dry Bin</text>
+				<text x="24" y="216" style="fill:var(--dryer-dry-text); font-size: 13px;">@DryBinWeightText</text>
+				<text x="24" y="234" style="fill:var(--dryer-dry-text); font-size: 13px;">@DryCapacityText</text>
+				<text x="24" y="252" style="fill:@(DryBinFull ? "var(--app-danger)" : "var(--dryer-dry-text)"); font-size: 13px; font-weight: 700;">@(DryBinFull ? "Dry bin full" : "Receiving grain")</text>
+			</g>
+
+			<g transform="translate(78 344)">
+				<rect x="0" y="0" width="1002" height="42" rx="18" ry="18" style="fill:var(--dryer-status-bg);" opacity="0.9" />
+				<text x="24" y="26" style="fill:var(--dryer-status-text); font-size: 14px;">@StatusStrip</text>
+			</g>
+		</svg>
+	</div>
+}
+
+@code {
+	[Parameter] public string SimId { get; set; } = string.Empty;
+	[Parameter] public TelemetrySnapshot? Snapshot { get; set; }
+
+	private double GetSignal(string name) => Snapshot?.Signals.TryGetValue(name, out var value) == true ? value : double.NaN;
+	private double GetParameter(string name) => Snapshot?.Parameters.TryGetValue(name, out var value) == true ? value : double.NaN;
+
+	private bool FeedRunning => GetSignal("FeedRunning") >= 0.5;
+	private bool BurnerRunning => GetSignal("BurnerRunning") >= 0.5;
+	private bool FanRunning => GetSignal("FanRunning") >= 0.5;
+	private bool WetBinEmpty => GetSignal("IsWetBinEmpty") >= 0.5;
+	private bool DryBinFull => GetSignal("IsDryBinFull") >= 0.5;
+	private bool HighTempAlarm => GetSignal("IsHighTempAlarm") >= 0.5;
+	private bool AirflowLowAlarm => GetSignal("IsAirflowLowAlarm") >= 0.5;
+	private bool FlowActive => FeedRunning && !WetBinEmpty && !DryBinFull;
+	private bool HeatActive => BurnerRunning && FanRunning;
+	private string FlowColor => FlowActive ? "var(--dryer-flow-active)" : "var(--dryer-flow-idle)";
+	private string HeatFlowColor => HeatActive ? "var(--dryer-heat-active)" : "var(--dryer-heat-idle)";
+	private string ColumnCapColor => HeatActive ? "var(--dryer-heat-active)" : "var(--dryer-column-cap-idle)";
+
+	private double WetBinWeight => ClampNonNegative(GetSignal("WetBinWeightLb"));
+	private double DryBinWeight => ClampNonNegative(GetSignal("DryBinWeightLb"));
+	private double GrainHoldUp => ClampNonNegative(GetSignal("GrainHoldUpLb"));
+	private double DryBinCapacity => Math.Max(1.0, ClampNonNegative(GetParameter("DryBinCapacityLb")));
+	private double HoldUpCapacity => Math.Max(1.0, ClampNonNegative(GetParameter("DryerHoldUpCapacityLb")));
+	private double WetBinCapacityReference => Math.Max(1.0, Math.Max(GetParameter("WetBinWeightLb"), WetBinWeight + GrainHoldUp + 1000.0));
+	private double WetFillRatio => Math.Clamp(WetBinWeight / WetBinCapacityReference, 0.0, 1.0);
+	private double DryFillRatio => Math.Clamp(DryBinWeight / DryBinCapacity, 0.0, 1.0);
+	private double HoldUpRatio => Math.Clamp(GrainHoldUp / HoldUpCapacity, 0.0, 1.0);
+
+	private string WetBinWeightText => $"Wet inventory: {WetBinWeight:0} lb";
+	private string DryBinWeightText => $"Dry inventory: {DryBinWeight:0} lb";
+	private string DryCapacityText => $"Capacity: {DryBinCapacity:0} lb";
+	private string InletMoistureText => $"Inlet moisture: {GetSignal("InletMoisturePercent"):0.0}%";
+	private string PlenumTempText => $"Plenum {GetSignal("PlenumTempF"):0.0} F";
+	private string ResidenceText => $"Residence: {GetSignal("ResidenceTimeMinutes"):0.0} min";
+	private string OutletMoistureText => $"Outlet moisture: {GetSignal("OutletMoisturePercent"):0.0}%";
+	private string MoistureRemovalText => $"Removal: {GetSignal("MoistureRemovalRateLbPerSec"):0.00} lb/s";
+	private string BurnerText => $"Burner {(BurnerRunning ? "running" : "stopped")}, output {GetSignal("BurnerOutputPercent"):0.0}%";
+	private string FanText => $"Fan {(FanRunning ? "running" : "stopped")}, airflow {GetSignal("AirflowCfm"):0} cfm";
+	private string StatusStrip => $"Feed {RunningState(FeedRunning)} | Burner {RunningState(BurnerRunning)} | Fan {RunningState(FanRunning)} | Exhaust {GetSignal("ExhaustTempF"):0.0} F | Moisture error {GetSignal("MoistureControlErrorPercent"):0.0}% | {(AirflowLowAlarm ? "Low airflow alarm active" : "Airflow healthy")}";
+
+	private static string RunningState(bool state) => state ? "ON" : "OFF";
+	private static double ClampNonNegative(double value) => double.IsFinite(value) ? Math.Max(0.0, value) : 0.0;
+}

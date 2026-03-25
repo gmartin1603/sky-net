@@ -1,0 +1,299 @@
+.dryer-ops-shell {
+    --dryer-ops-edge: var(--app-panel-stroke);
+    --dryer-ops-surface: linear-gradient(135deg, color-mix(in srgb, var(--app-surface) 84%, #d2bb8f 16%), color-mix(in srgb, var(--app-surface) 90%, #6d9b88 10%));
+    --dryer-ops-surface-strong: linear-gradient(145deg, color-mix(in srgb, var(--app-surface) 74%, #c98946 26%), color-mix(in srgb, var(--app-surface) 88%, #4d866d 12%));
+    --dryer-ops-ink: color-mix(in srgb, var(--app-fg) 90%, #1a1f24 10%);
+    --dryer-ops-muted: var(--app-muted);
+    --dryer-ops-accent: #a95b23;
+    --dryer-ops-accent-soft: color-mix(in srgb, #a95b23 16%, transparent);
+    --dryer-ops-live: #2f8d61;
+    --dryer-ops-panel-bg: var(--app-panel-bg);
+    --dryer-ops-panel-bg-soft: var(--app-panel-bg-soft);
+    --dryer-ops-button-bg: var(--app-surface-muted);
+    --dryer-ops-button-bg-active: linear-gradient(145deg, color-mix(in srgb, var(--app-surface) 72%, #c98946 28%), color-mix(in srgb, var(--app-surface) 86%, #4d866d 14%));
+    --dryer-ops-input-bg: var(--app-surface-elevated);
+    display: grid;
+    gap: 1rem;
+    margin: 1rem 0 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--dryer-ops-edge);
+    border-radius: 22px;
+    background: var(--dryer-ops-surface);
+    box-shadow: var(--app-shadow-strong);
+}
+
+.dryer-ops-empty {
+    padding: 1rem;
+    border-radius: 14px;
+    background: var(--dryer-ops-panel-bg-soft);
+    color: var(--dryer-ops-muted);
+}
+
+.dryer-ops-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.dryer-ops-kicker {
+    margin: 0 0 0.3rem;
+    font-size: 0.77rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--dryer-ops-accent);
+}
+
+.dryer-ops-hero h2 {
+    margin: 0;
+    color: var(--dryer-ops-ink);
+    font-size: clamp(1.35rem, 2.4vw, 2rem);
+}
+
+.dryer-ops-copy {
+    margin: 0.45rem 0 0;
+    max-width: 62ch;
+    color: var(--dryer-ops-muted);
+}
+
+.dryer-ops-hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 0.75rem;
+    min-width: min(100%, 520px);
+}
+
+.dryer-ops-hero-stats > div,
+.dryer-ops-card {
+    border: 1px solid color-mix(in srgb, var(--dryer-ops-edge) 82%, white 18%);
+    border-radius: 18px;
+    background: var(--dryer-ops-panel-bg);
+}
+
+.dryer-ops-hero-stats > div {
+    padding: 0.8rem 0.9rem;
+}
+
+.dryer-ops-stat-label,
+.dryer-ops-readback-label,
+.dryer-ops-field-label,
+.dryer-ops-device-name {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dryer-ops-muted);
+}
+
+.dryer-ops-hero-stats strong,
+.dryer-ops-readback-grid strong,
+.dryer-ops-device strong {
+    color: var(--dryer-ops-ink);
+    font-size: 1.05rem;
+}
+
+.dryer-ops-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.95rem;
+}
+
+.dryer-ops-card {
+    grid-column: span 4;
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+}
+
+.dryer-ops-card-wide {
+    grid-column: span 8;
+}
+
+.dryer-ops-card-primary {
+    background: linear-gradient(160deg, var(--dryer-ops-panel-bg-soft), color-mix(in srgb, var(--dryer-ops-panel-bg) 82%, #c98946 18%));
+}
+
+.dryer-ops-card-automation.is-accent,
+.dryer-ops-card-primary.is-accent {
+    background: var(--dryer-ops-surface-strong);
+    border-color: color-mix(in srgb, var(--dryer-ops-accent) 42%, white 58%);
+    box-shadow: inset 0 0 0 1px var(--dryer-ops-accent-soft);
+}
+
+.dryer-ops-card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.dryer-ops-card-head h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--dryer-ops-ink);
+}
+
+.dryer-ops-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    background: var(--app-surface-muted);
+    color: var(--dryer-ops-muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.dryer-ops-chip-live {
+    background: color-mix(in srgb, var(--dryer-ops-live) 16%, var(--app-surface-elevated) 84%);
+    color: var(--dryer-ops-live);
+}
+
+.dryer-ops-toggle-row,
+.dryer-ops-equipment-grid,
+.dryer-ops-step-row,
+.dryer-ops-preset-row,
+.dryer-ops-input-row,
+.dryer-ops-inline-status {
+    display: flex;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.dryer-ops-dual-grid,
+.dryer-ops-readback-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.dryer-ops-readback-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dryer-ops-toggle,
+.dryer-ops-device,
+.dryer-ops-step,
+.dryer-ops-preset,
+.dryer-ops-apply {
+    border: 1px solid var(--dryer-ops-edge);
+    border-radius: 14px;
+    background: var(--dryer-ops-button-bg);
+    color: var(--dryer-ops-ink);
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.dryer-ops-toggle:hover,
+.dryer-ops-device:hover,
+.dryer-ops-step:hover,
+.dryer-ops-preset:hover,
+.dryer-ops-apply:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--dryer-ops-accent) 48%, white 52%);
+    box-shadow: var(--app-shadow-soft);
+}
+
+.dryer-ops-toggle {
+    flex: 1 1 210px;
+    padding: 0.8rem 0.95rem;
+    text-align: left;
+}
+
+.dryer-ops-toggle span,
+.dryer-ops-toggle small {
+    display: block;
+}
+
+.dryer-ops-toggle span {
+    font-weight: 700;
+}
+
+.dryer-ops-toggle small {
+    margin-top: 0.2rem;
+    color: var(--dryer-ops-muted);
+}
+
+.dryer-ops-toggle.is-active,
+.dryer-ops-device.is-running {
+    border-color: color-mix(in srgb, var(--dryer-ops-accent) 52%, white 48%);
+    background: var(--dryer-ops-button-bg-active);
+}
+
+.dryer-ops-device {
+    flex: 1 1 160px;
+    padding: 0.85rem 0.95rem;
+    text-align: left;
+}
+
+.dryer-ops-caption,
+.dryer-ops-mini-stat {
+    color: var(--dryer-ops-muted);
+    font-size: 0.92rem;
+}
+
+.dryer-ops-input {
+    flex: 1 1 160px;
+    min-width: 0;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--dryer-ops-edge) 70%, white 30%);
+    border-radius: 12px;
+    background: var(--dryer-ops-input-bg);
+    color: var(--dryer-ops-ink);
+}
+
+.dryer-ops-apply,
+.dryer-ops-step,
+.dryer-ops-preset {
+    padding: 0.7rem 0.9rem;
+    font-weight: 700;
+}
+
+.dryer-ops-apply {
+    background: color-mix(in srgb, var(--dryer-ops-button-bg) 78%, var(--dryer-ops-accent) 22%);
+}
+
+.dryer-ops-readback-grid > div {
+    padding: 0.85rem 0.95rem;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--app-surface) 80%, var(--app-bg) 20%);
+    border: 1px solid var(--app-panel-stroke);
+}
+
+@media (max-width: 1100px) {
+    .dryer-ops-card,
+    .dryer-ops-card-wide {
+        grid-column: span 6;
+    }
+
+    .dryer-ops-readback-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .dryer-ops-shell {
+        padding: 0.85rem;
+    }
+
+    .dryer-ops-hero-stats,
+    .dryer-ops-card,
+    .dryer-ops-card-wide,
+    .dryer-ops-dual-grid,
+    .dryer-ops-readback-grid {
+        grid-column: 1 / -1;
+        grid-template-columns: 1fr;
+    }
+
+    .dryer-ops-toggle,
+    .dryer-ops-device,
+    .dryer-ops-input,
+    .dryer-ops-apply {
+        width: 100%;
+    }
+}

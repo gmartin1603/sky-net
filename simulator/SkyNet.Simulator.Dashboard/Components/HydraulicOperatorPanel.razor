@@ -1,0 +1,445 @@
+@using System.Globalization
+@using SkyNet.Simulator.Contracts
+@using SkyNet.Simulator.Dashboard.Services
+
+@inject SimApiClient Api
+
+@if (Snapshot is null)
+{
+	<section class="hyd-ops-shell">
+		<div class="hyd-ops-empty">Waiting for operator data...</div>
+	</section>
+}
+else
+{
+	<section class="hyd-ops-shell">
+		<div class="hyd-ops-hero">
+			<div>
+				<p class="hyd-ops-kicker">Operator Deck</p>
+				<h2>@PanelTitle</h2>
+				<p class="hyd-ops-copy">@PanelCopy</p>
+			</div>
+			<div class="hyd-ops-hero-stats">
+				<div>
+					<span class="hyd-ops-stat-label">Circuit</span>
+					<strong>@CircuitLabel</strong>
+				</div>
+				@if (IsTrainingSim)
+				{
+					<div>
+						<span class="hyd-ops-stat-label">Position Loop</span>
+						<strong>@PositionControlLabel</strong>
+					</div>
+				}
+				<div>
+					<span class="hyd-ops-stat-label">Supply</span>
+					<strong>@SupplyPressurePsi.ToString("0", CultureInfo.InvariantCulture) psi</strong>
+				</div>
+				<div>
+					<span class="hyd-ops-stat-label">Downstream</span>
+					<strong>@DownstreamPressurePsi.ToString("0", CultureInfo.InvariantCulture) psi</strong>
+				</div>
+				<div>
+					<span class="hyd-ops-stat-label">Actuator</span>
+					<strong>@ActuatorPosition.ToString("0.00", CultureInfo.InvariantCulture)</strong>
+				</div>
+			</div>
+		</div>
+
+		<div class="hyd-ops-grid">
+			@if (IsTrainingSim)
+			{
+				<section class="hyd-ops-card">
+					<div class="hyd-ops-card-head">
+						<h3>Position Control</h3>
+						<span class="hyd-ops-chip @(PositionControlEnabled ? "hyd-ops-chip-live" : string.Empty)">@PositionControlLabel</span>
+					</div>
+					<div class="hyd-ops-toggle-row">
+						<button type="button" class="hyd-ops-toggle @(PositionControlEnabled ? "is-active" : string.Empty)" @onclick="() => ToggleBinaryParameterAsync(ParamPositionControlEnable, true)">
+							<span>Auto Position</span>
+							<small>PID trims valve opening</small>
+						</button>
+						<button type="button" class="hyd-ops-toggle @(!PositionControlEnabled ? "is-active" : string.Empty)" @onclick="() => ToggleBinaryParameterAsync(ParamPositionControlEnable, false)">
+							<span>Manual Valve</span>
+							<small>Operator commands the spool</small>
+						</button>
+					</div>
+					<div class="hyd-ops-inline-status">
+						<span class="hyd-ops-mini-stat">Target @PositionCommand.ToString("0.00", CultureInfo.InvariantCulture)</span>
+						<span class="hyd-ops-mini-stat">Error @PositionError.ToString("0.00", CultureInfo.InvariantCulture)</span>
+						<span class="hyd-ops-mini-stat">Valve cmd @ValveOpeningCommandPercent.ToString("0", CultureInfo.InvariantCulture)%</span>
+					</div>
+				</section>
+
+				<section class="hyd-ops-card hyd-ops-card-primary @(PositionControlEnabled ? "is-accent" : string.Empty)">
+					<div class="hyd-ops-card-head">
+						<h3>Position Target</h3>
+						<span class="hyd-ops-chip @(PositionControlEnabled ? "hyd-ops-chip-live" : string.Empty)">Auto</span>
+					</div>
+					<label class="hyd-ops-field-label" for="hyd-position-command">Actuator Position Command</label>
+					<div class="hyd-ops-input-row">
+						<input id="hyd-position-command" class="hyd-ops-input" type="number" min="-12" max="12" step="0.25" value="@_positionCommandDraft" @onchange="OnPositionCommandChanged" />
+						<button type="button" class="hyd-ops-apply" @onclick="ApplyPositionCommandAsync">Apply</button>
+					</div>
+					<div class="hyd-ops-step-row">
+						<button type="button" class="hyd-ops-step" @onclick="() => NudgeParameterAsync(ParamActuatorPositionCommand, PositionCommand, -0.5, -12.0, 12.0)">-0.5</button>
+						<button type="button" class="hyd-ops-step" @onclick="() => NudgeParameterAsync(ParamActuatorPositionCommand, PositionCommand, 0.5, -12.0, 12.0)">+0.5</button>
+					</div>
+					<div class="hyd-ops-preset-row">
+						@foreach (var preset in PositionCommandPresets)
+						{
+							<button type="button" class="hyd-ops-preset" @onclick="() => SetNumericParameterAsync(ParamActuatorPositionCommand, preset, -12.0, 12.0)">@preset.ToString("0.0", CultureInfo.InvariantCulture)</button>
+						}
+					</div>
+				</section>
+			}
+
+			<section class="hyd-ops-card hyd-ops-card-primary is-accent">
+				<div class="hyd-ops-card-head">
+					<h3>Valve Command</h3>
+					<span class="hyd-ops-chip hyd-ops-chip-live">Metering</span>
+				</div>
+				<label class="hyd-ops-field-label" for="hyd-valve-opening">Valve Opening</label>
+				<div class="hyd-ops-input-row">
+					<input id="hyd-valve-opening" class="hyd-ops-input" type="number" min="0" max="100" step="1" value="@_valveOpeningDraft" @onchange="OnValveOpeningChanged" />
+					<button type="button" class="hyd-ops-apply" @onclick="ApplyValveOpeningAsync">Apply</button>
+				</div>
+				<div class="hyd-ops-step-row">
+					<button type="button" class="hyd-ops-step" @onclick="() => NudgeParameterAsync(ParamValveOpening, ValveOpening, -0.1, 0.0, 1.0)">-10%</button>
+					<button type="button" class="hyd-ops-step" @onclick="() => NudgeParameterAsync(ParamValveOpening, ValveOpening, 0.1, 0.0, 1.0)">+10%</button>
+				</div>
+				<div class="hyd-ops-preset-row">
+					@foreach (var preset in ValveOpeningPresets)
+					{
+						<button type="button" class="hyd-ops-preset" @onclick="() => SetValveOpeningPercentAsync(preset)">@preset.ToString("0", CultureInfo.InvariantCulture)%</button>
+					}
+				</div>
+			</section>
+
+			<section class="hyd-ops-card hyd-ops-card-wide">
+				<div class="hyd-ops-card-head">
+					<h3>@(IsTrainingSim ? "Pressure, Load, And Tuning" : "Pressure And Load")</h3>
+					<span class="hyd-ops-chip">Tuning</span>
+				</div>
+				<div class="hyd-ops-dual-grid @(HasPidTuningSection ? "has-quaternary" : HasFlowGainParameter ? "has-tertiary" : string.Empty)">
+					<div>
+						<label class="hyd-ops-field-label" for="hyd-supply-pressure">Supply Pressure</label>
+						<div class="hyd-ops-input-row">
+							<input id="hyd-supply-pressure" class="hyd-ops-input" type="number" min="0" max="4000" step="50" value="@_supplyPressureDraft" @onchange="OnSupplyPressureChanged" />
+							<button type="button" class="hyd-ops-apply" @onclick="ApplySupplyPressureAsync">Apply</button>
+						</div>
+						<div class="hyd-ops-preset-row">
+							@foreach (var preset in SupplyPressurePresets)
+							{
+								<button type="button" class="hyd-ops-preset" @onclick="() => SetNumericParameterAsync(ParamSupplyPressurePsi, preset, 0.0, 4000.0)">@preset.ToString("0", CultureInfo.InvariantCulture) psi</button>
+							}
+						</div>
+					</div>
+					<div>
+						<label class="hyd-ops-field-label" for="hyd-load-force">Load Force</label>
+						<div class="hyd-ops-input-row">
+							<input id="hyd-load-force" class="hyd-ops-input" type="number" min="0" max="4000" step="25" value="@_loadForceDraft" @onchange="OnLoadForceChanged" />
+							<button type="button" class="hyd-ops-apply" @onclick="ApplyLoadForceAsync">Apply</button>
+						</div>
+						<div class="hyd-ops-preset-row">
+							@foreach (var preset in LoadForcePresets)
+							{
+								<button type="button" class="hyd-ops-preset" @onclick="() => SetNumericParameterAsync(ParamLoadForce, preset, 0.0, 4000.0)">@preset.ToString("0", CultureInfo.InvariantCulture)</button>
+							}
+						</div>
+					</div>
+					@if (HasFlowGainParameter)
+					{
+						<div>
+							<label class="hyd-ops-field-label" for="hyd-flow-gain">Flow Gain</label>
+							<div class="hyd-ops-input-row">
+								<input id="hyd-flow-gain" class="hyd-ops-input" type="number" min="0" max="60" step="1" value="@_flowGainDraft" @onchange="OnFlowGainChanged" />
+								<button type="button" class="hyd-ops-apply" @onclick="ApplyFlowGainAsync">Apply</button>
+							</div>
+							<div class="hyd-ops-preset-row">
+								@foreach (var preset in FlowGainPresets)
+								{
+									<button type="button" class="hyd-ops-preset" @onclick="() => SetNumericParameterAsync(ParamFlowGainGpm, preset, 0.0, 60.0)">@preset.ToString("0", CultureInfo.InvariantCulture) gpm</button>
+								}
+							</div>
+						</div>
+					}
+					@if (IsTrainingSim)
+					{
+						<div>
+							<label class="hyd-ops-field-label" for="hyd-kp">PID Gains (Kp / Ki / Kd)</label>
+							<div class="hyd-ops-pid-grid">
+								<input id="hyd-kp" class="hyd-ops-input" type="number" min="0" max="1" step="0.01" value="@_positionKpDraft" @onchange="OnPositionKpChanged" />
+								<input class="hyd-ops-input" type="number" min="0" max="1" step="0.01" value="@_positionKiDraft" @onchange="OnPositionKiChanged" />
+								<input class="hyd-ops-input" type="number" min="0" max="1" step="0.01" value="@_positionKdDraft" @onchange="OnPositionKdChanged" />
+							</div>
+							<div class="hyd-ops-step-row">
+								<button type="button" class="hyd-ops-step" @onclick="ApplyPidGainsAsync">Apply gains</button>
+								<button type="button" class="hyd-ops-step" @onclick="SetPidGainsPresetBalancedAsync">Balanced preset</button>
+							</div>
+						</div>
+					}
+				</div>
+			</section>
+
+			<section class="hyd-ops-card hyd-ops-card-wide hyd-ops-card-full">
+				<div class="hyd-ops-card-head">
+					<h3>Live Readback</h3>
+					<span class="hyd-ops-chip">Circuit State</span>
+				</div>
+				<div class="hyd-ops-readback-grid">
+					<div>
+						<span class="hyd-ops-readback-label">Supply pressure</span>
+						<strong>@SupplyPressurePsi.ToString("0", CultureInfo.InvariantCulture) psi</strong>
+					</div>
+					<div>
+						<span class="hyd-ops-readback-label">Downstream pressure</span>
+						<strong>@DownstreamPressurePsi.ToString("0", CultureInfo.InvariantCulture) psi</strong>
+					</div>
+					<div>
+						<span class="hyd-ops-readback-label">Sensor</span>
+						<strong>@SensorPressurePsi.ToString("0", CultureInfo.InvariantCulture) psi</strong>
+					</div>
+					<div>
+						<span class="hyd-ops-readback-label">@FlowLabel</span>
+						<strong>@FlowGpm.ToString("0.0", CultureInfo.InvariantCulture) gpm</strong>
+					</div>
+					<div>
+						<span class="hyd-ops-readback-label">Actuator position</span>
+						<strong>@ActuatorPosition.ToString("0.000", CultureInfo.InvariantCulture)</strong>
+					</div>
+					<div>
+						<span class="hyd-ops-readback-label">Actuator velocity</span>
+						<strong>@ActuatorVelocity.ToString("0.000", CultureInfo.InvariantCulture)</strong>
+					</div>
+					@if (IsTrainingSim)
+					{
+						<div>
+							<span class="hyd-ops-readback-label">Position target</span>
+							<strong>@PositionCommand.ToString("0.000", CultureInfo.InvariantCulture)</strong>
+						</div>
+						<div>
+							<span class="hyd-ops-readback-label">Position error</span>
+							<strong>@PositionError.ToString("0.000", CultureInfo.InvariantCulture)</strong>
+						</div>
+						<div>
+							<span class="hyd-ops-readback-label">Valve command</span>
+							<strong>@ValveOpeningCommandPercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
+						</div>
+					}
+				</div>
+			</section>
+		</div>
+	</section>
+}
+
+@code {
+	[Parameter] public string SimId { get; set; } = string.Empty;
+	[Parameter] public TelemetrySnapshot? Snapshot { get; set; }
+
+	private const string ParamSupplyPressurePsi = "SupplyPressurePsi";
+	private const string ParamValveOpening = "ValveOpening";
+	private const string ParamLoadForce = "LoadForce";
+	private const string ParamFlowGainGpm = "FlowGainGpm";
+	private const string ParamPositionControlEnable = "PositionControlEnable";
+	private const string ParamActuatorPositionCommand = "ActuatorPositionCommand";
+	private const string ParamPositionControlKp = "PositionControlKp";
+	private const string ParamPositionControlKi = "PositionControlKi";
+	private const string ParamPositionControlKd = "PositionControlKd";
+
+	private static readonly double[] ValveOpeningPresets = [10, 25, 50, 75, 100];
+	private static readonly double[] SupplyPressurePresets = [1200, 2000, 2800, 3400];
+	private static readonly double[] LoadForcePresets = [300, 800, 1400, 2200];
+	private static readonly double[] FlowGainPresets = [10, 20, 30, 40];
+	private static readonly double[] PositionCommandPresets = [-6, -2, 0, 2, 6];
+
+	private string _valveOpeningDraft = string.Empty;
+	private string _supplyPressureDraft = string.Empty;
+	private string _loadForceDraft = string.Empty;
+	private string _flowGainDraft = string.Empty;
+	private string _positionCommandDraft = string.Empty;
+	private string _positionKpDraft = string.Empty;
+	private string _positionKiDraft = string.Empty;
+	private string _positionKdDraft = string.Empty;
+	private double? _lastSyncedValveOpening;
+	private double? _lastSyncedSupplyPressure;
+	private double? _lastSyncedLoadForce;
+	private double? _lastSyncedFlowGain;
+	private double? _lastSyncedPositionCommand;
+	private double? _lastSyncedPositionKp;
+	private double? _lastSyncedPositionKi;
+	private double? _lastSyncedPositionKd;
+
+	protected override void OnParametersSet()
+	{
+		SyncDraft(ref _lastSyncedValveOpening, ValveOpening, value => _valveOpeningDraft = (value * 100.0).ToString("0.0", CultureInfo.InvariantCulture));
+		SyncDraft(ref _lastSyncedSupplyPressure, SupplyPressurePsi, value => _supplyPressureDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+		SyncDraft(ref _lastSyncedLoadForce, LoadForce, value => _loadForceDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+		if (HasFlowGainParameter)
+		{
+			SyncDraft(ref _lastSyncedFlowGain, FlowGainParameter, value => _flowGainDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+		}
+		if (IsTrainingSim)
+		{
+			SyncDraft(ref _lastSyncedPositionCommand, PositionCommand, value => _positionCommandDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+			SyncDraft(ref _lastSyncedPositionKp, PositionControlKp, value => _positionKpDraft = value.ToString("0.00", CultureInfo.InvariantCulture));
+			SyncDraft(ref _lastSyncedPositionKi, PositionControlKi, value => _positionKiDraft = value.ToString("0.00", CultureInfo.InvariantCulture));
+			SyncDraft(ref _lastSyncedPositionKd, PositionControlKd, value => _positionKdDraft = value.ToString("0.00", CultureInfo.InvariantCulture));
+		}
+	}
+
+	private bool IsTrainingSim => string.Equals(SimId, "hydraulic-training", StringComparison.OrdinalIgnoreCase);
+	private bool HasFlowGainParameter => Snapshot?.Parameters.ContainsKey(ParamFlowGainGpm) == true;
+	private bool HasPidTuningSection => IsTrainingSim;
+	private string PanelTitle => IsTrainingSim ? "Hydraulic Training Controls" : "Hydraulic Demo Controls";
+	private string PanelCopy => IsTrainingSim
+		? "Shape supply pressure, valve opening, load, and flow gain from one station while tracking the full instrumented hydraulic loop."
+		: "Tune the compact demo circuit by balancing pressure, valve opening, and load while the actuator responds in real time.";
+	private string CircuitLabel => IsTrainingSim ? "Instrumented loop" : "Compact demo";
+	private string FlowLabel => IsTrainingSim ? "Valve flow" : "Projected flow";
+	private string PositionControlLabel => PositionControlEnabled ? "Auto position" : "Manual valve";
+
+	private double ValveOpening => Math.Clamp(GetParameter(ParamValveOpening), 0.0, 1.0);
+	private bool PositionControlEnabled => GetParameter(ParamPositionControlEnable) >= 0.5;
+	private double SupplyPressurePsi => FirstFinite(GetSignal("UpstreamPressurePsi"), GetParameter(ParamSupplyPressurePsi), 0.0);
+	private double DownstreamPressurePsi => FirstFinite(GetSignal("DownstreamPressurePsi"), 0.0);
+	private double SensorPressurePsi => FirstFinite(GetSignal("DownstreamPressureSensorPsi"), DownstreamPressurePsi, 0.0);
+	private double LoadForce => Math.Max(0.0, GetParameter(ParamLoadForce));
+	private double FlowGainParameter => Math.Max(0.0, GetParameter(ParamFlowGainGpm));
+	private double PositionCommand => FirstFinite(GetSignal("ActuatorPositionCommand"), GetParameter(ParamActuatorPositionCommand), 0.0);
+	private double PositionError => FirstFinite(GetSignal("ActuatorPositionError"), PositionCommand - ActuatorPosition, 0.0);
+	private double PositionControlKp => Math.Max(0.0, GetParameter(ParamPositionControlKp));
+	private double PositionControlKi => Math.Max(0.0, GetParameter(ParamPositionControlKi));
+	private double PositionControlKd => Math.Max(0.0, GetParameter(ParamPositionControlKd));
+	private double ValveOpeningCommandPercent => FirstFinite(GetSignal("ValveOpeningCommand"), ValveOpening, 0.0) * 100.0;
+	private double FlowGpm => FirstFinite(GetSignal("ValveFlowGpm"), Math.Max(0.0, 20.0 * ValveOpening * (SupplyPressurePsi / 1000.0)), 0.0);
+	private double ActuatorPosition => FirstFinite(GetSignal("ActuatorPosition"), 0.0);
+	private double ActuatorVelocity => FirstFinite(GetSignal("ActuatorVelocity"), 0.0);
+
+	private double GetParameter(string name) => Snapshot?.Parameters.TryGetValue(name, out var value) == true ? value : double.NaN;
+	private double GetSignal(string name) => Snapshot?.Signals.TryGetValue(name, out var value) == true ? value : double.NaN;
+
+	private void OnValveOpeningChanged(ChangeEventArgs e) => _valveOpeningDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnSupplyPressureChanged(ChangeEventArgs e) => _supplyPressureDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnLoadForceChanged(ChangeEventArgs e) => _loadForceDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnFlowGainChanged(ChangeEventArgs e) => _flowGainDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnPositionCommandChanged(ChangeEventArgs e) => _positionCommandDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnPositionKpChanged(ChangeEventArgs e) => _positionKpDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnPositionKiChanged(ChangeEventArgs e) => _positionKiDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnPositionKdChanged(ChangeEventArgs e) => _positionKdDraft = e.Value?.ToString() ?? string.Empty;
+
+	private Task ToggleBinaryParameterAsync(string parameterName, bool enabled) => SetNumericParameterAsync(parameterName, enabled ? 1.0 : 0.0, 0.0, 1.0);
+
+	private async Task ApplyValveOpeningAsync()
+	{
+		var parsed = TryParseValue(_valveOpeningDraft, out var value) ? value : ValveOpening * 100.0;
+		await SetValveOpeningPercentAsync(parsed);
+	}
+
+	private Task ApplySupplyPressureAsync() => ApplyDraftAsync(ParamSupplyPressurePsi, _supplyPressureDraft, SupplyPressurePsi, 0.0, 4000.0);
+	private Task ApplyLoadForceAsync() => ApplyDraftAsync(ParamLoadForce, _loadForceDraft, LoadForce, 0.0, 4000.0);
+	private Task ApplyFlowGainAsync() => ApplyDraftAsync(ParamFlowGainGpm, _flowGainDraft, FlowGainParameter, 0.0, 60.0);
+	private Task ApplyPositionCommandAsync() => ApplyDraftAsync(ParamActuatorPositionCommand, _positionCommandDraft, PositionCommand, -12.0, 12.0);
+
+	private Task SetValveOpeningPercentAsync(double percent) => SetNumericParameterAsync(ParamValveOpening, percent / 100.0, 0.0, 1.0);
+
+	private async Task ApplyPidGainsAsync()
+	{
+		await ApplyDraftAsync(ParamPositionControlKp, _positionKpDraft, PositionControlKp, 0.0, 1.0);
+		await ApplyDraftAsync(ParamPositionControlKi, _positionKiDraft, PositionControlKi, 0.0, 1.0);
+		await ApplyDraftAsync(ParamPositionControlKd, _positionKdDraft, PositionControlKd, 0.0, 1.0);
+	}
+
+	private async Task SetPidGainsPresetBalancedAsync()
+	{
+		await SetNumericParameterAsync(ParamPositionControlKp, 0.08, 0.0, 1.0);
+		await SetNumericParameterAsync(ParamPositionControlKi, 0.02, 0.0, 1.0);
+		await SetNumericParameterAsync(ParamPositionControlKd, 0.08, 0.0, 1.0);
+	}
+
+	private async Task ApplyDraftAsync(string parameterName, string draft, double fallbackValue, double min, double max)
+	{
+		var parsed = TryParseValue(draft, out var value) ? value : fallbackValue;
+		await SetNumericParameterAsync(parameterName, parsed, min, max);
+	}
+
+	private async Task NudgeParameterAsync(string parameterName, double current, double delta, double min, double max)
+	{
+		await SetNumericParameterAsync(parameterName, current + delta, min, max);
+	}
+
+	private async Task SetNumericParameterAsync(string parameterName, double value, double min, double max)
+	{
+		if (string.IsNullOrWhiteSpace(SimId))
+		{
+			return;
+		}
+
+		var clamped = Math.Clamp(value, min, max);
+		await Api.SetParameterAsync(SimId, parameterName, clamped);
+
+			switch (parameterName)
+			{
+				case ParamValveOpening:
+					_lastSyncedValveOpening = clamped;
+					_valveOpeningDraft = (clamped * 100.0).ToString("0.0", CultureInfo.InvariantCulture);
+				break;
+			case ParamSupplyPressurePsi:
+				_lastSyncedSupplyPressure = clamped;
+				_supplyPressureDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+				break;
+			case ParamLoadForce:
+				_lastSyncedLoadForce = clamped;
+				_loadForceDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+				break;
+				case ParamFlowGainGpm:
+					_lastSyncedFlowGain = clamped;
+					_flowGainDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+					break;
+				case ParamActuatorPositionCommand:
+					_lastSyncedPositionCommand = clamped;
+					_positionCommandDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+					break;
+				case ParamPositionControlKp:
+					_lastSyncedPositionKp = clamped;
+					_positionKpDraft = clamped.ToString("0.00", CultureInfo.InvariantCulture);
+					break;
+				case ParamPositionControlKi:
+					_lastSyncedPositionKi = clamped;
+					_positionKiDraft = clamped.ToString("0.00", CultureInfo.InvariantCulture);
+					break;
+				case ParamPositionControlKd:
+					_lastSyncedPositionKd = clamped;
+					_positionKdDraft = clamped.ToString("0.00", CultureInfo.InvariantCulture);
+					break;
+			}
+	}
+
+	private static bool TryParseValue(string? text, out double value)
+	{
+		return double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)
+			|| double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out value);
+	}
+
+	private static void SyncDraft(ref double? lastSynced, double current, Action<double> apply)
+	{
+		if (!lastSynced.HasValue || Math.Abs(lastSynced.Value - current) > 1e-9)
+		{
+			apply(current);
+			lastSynced = current;
+		}
+	}
+
+	private static double FirstFinite(params double[] values)
+	{
+		foreach (var value in values)
+		{
+			if (!double.IsNaN(value) && !double.IsInfinity(value))
+			{
+				return value;
+			}
+		}
+
+		return 0.0;
+	}
+}

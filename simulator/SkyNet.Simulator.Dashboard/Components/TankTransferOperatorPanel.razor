@@ -1,0 +1,261 @@
+@using System.Globalization
+@using SkyNet.Simulator.Contracts
+@using SkyNet.Simulator.Dashboard.Services
+
+@inject SimApiClient Api
+
+@if (Snapshot is null)
+{
+	<section class="tank-ops-shell">
+		<div class="tank-ops-empty">Waiting for operator data...</div>
+	</section>
+}
+else
+{
+	<section class="tank-ops-shell">
+		<div class="tank-ops-hero">
+			<div>
+				<p class="tank-ops-kicker">Operator Deck</p>
+				<h2>Tank Transfer Controls</h2>
+				<p class="tank-ops-copy">Run the blower and airlock, then switch between auto pressure hold and manual lock speed without digging through raw parameters.</p>
+			</div>
+			<div class="tank-ops-hero-stats">
+				<div>
+					<span class="tank-ops-stat-label">Mode</span>
+					<strong>@ControlModeLabel</strong>
+				</div>
+				<div>
+					<span class="tank-ops-stat-label">Line PSI</span>
+					<strong>@BlowlinePressurePsi.ToString("0.0", CultureInfo.InvariantCulture)</strong>
+				</div>
+				<div>
+					<span class="tank-ops-stat-label">Transfer</span>
+					<strong>@TransferRateLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</strong>
+				</div>
+			</div>
+		</div>
+
+		<div class="tank-ops-grid">
+			<section class="tank-ops-card">
+				<div class="tank-ops-card-head">
+					<h3>Control Mode</h3>
+					<span class="tank-ops-chip @(PressureControlEnabled ? "tank-ops-chip-live" : string.Empty)">@ControlModeLabel</span>
+				</div>
+				<div class="tank-ops-toggle-row">
+					<button type="button" class="tank-ops-toggle @(PressureControlEnabled ? "is-active" : string.Empty)" @onclick="() => SetPressureControlModeAsync(true)">
+						<span>Auto PSI</span>
+						<small>PID trims airlock speed</small>
+					</button>
+					<button type="button" class="tank-ops-toggle @(!PressureControlEnabled ? "is-active" : string.Empty)" @onclick="() => SetPressureControlModeAsync(false)">
+						<span>Manual Hz</span>
+						<small>Operator commands the lock</small>
+					</button>
+				</div>
+				<p class="tank-ops-caption">Auto mode holds line pressure at the target. Manual mode leaves the rotary airlock at the entered speed command.</p>
+			</section>
+
+			<section class="tank-ops-card">
+				<div class="tank-ops-card-head">
+					<h3>Equipment</h3>
+					<span class="tank-ops-chip">Start / stop</span>
+				</div>
+				<div class="tank-ops-equipment-grid">
+					<button type="button" class="tank-ops-device @(BlowerEnabled ? "is-running" : string.Empty)" @onclick="() => ToggleBinaryParameterAsync(ParamBlowerEnable, !BlowerEnabled)">
+						<span class="tank-ops-device-name">Blower</span>
+						<strong>@(BlowerEnabled ? "Running" : "Stopped")</strong>
+					</button>
+					<button type="button" class="tank-ops-device @(AirlockEnabled ? "is-running" : string.Empty)" @onclick="() => ToggleBinaryParameterAsync(ParamAirlockEnable, !AirlockEnabled)">
+						<span class="tank-ops-device-name">Airlock</span>
+						<strong>@(AirlockEnabled ? "Running" : "Stopped")</strong>
+					</button>
+				</div>
+				<div class="tank-ops-inline-status">
+					<span class="tank-ops-mini-stat">Source @SourceTankWeightLb.ToString("0", CultureInfo.InvariantCulture) lb</span>
+					<span class="tank-ops-mini-stat">Destination @DestinationTankWeightLb.ToString("0", CultureInfo.InvariantCulture) lb</span>
+				</div>
+			</section>
+
+			<section class="tank-ops-card tank-ops-card-primary @(PressureControlEnabled ? "is-accent" : string.Empty)">
+				<div class="tank-ops-card-head">
+					<h3>Pressure Target</h3>
+					<span class="tank-ops-chip @(PressureControlEnabled ? "tank-ops-chip-live" : string.Empty)">Auto</span>
+				</div>
+				<label class="tank-ops-field-label" for="tank-pressure-target">Line PSI Setpoint</label>
+				<div class="tank-ops-input-row">
+					<input id="tank-pressure-target" class="tank-ops-input" type="number" min="0" max="25" step="0.5" value="@_pressureCommandDraft" @onchange="OnPressureDraftChanged" />
+					<button type="button" class="tank-ops-apply" @onclick="ApplyPressureTargetAsync">Apply</button>
+				</div>
+				<div class="tank-ops-step-row">
+					<button type="button" class="tank-ops-step" @onclick="() => NudgeParameterAsync(ParamBlowlinePressureCommandPsi, BlowlinePressureCommandPsi, -1.0, 0.0, 25.0)">-1 psi</button>
+					<button type="button" class="tank-ops-step" @onclick="() => NudgeParameterAsync(ParamBlowlinePressureCommandPsi, BlowlinePressureCommandPsi, 1.0, 0.0, 25.0)">+1 psi</button>
+				</div>
+				<div class="tank-ops-preset-row">
+					@foreach (var preset in PressurePresetsPsi)
+					{
+						<button type="button" class="tank-ops-preset" @onclick="() => SetNumericParameterAsync(ParamBlowlinePressureCommandPsi, preset, 0.0, 25.0)">@preset.ToString("0", CultureInfo.InvariantCulture) psi</button>
+					}
+				</div>
+			</section>
+
+			<section class="tank-ops-card tank-ops-card-primary @(!PressureControlEnabled ? "is-accent" : string.Empty)">
+				<div class="tank-ops-card-head">
+					<h3>Manual Lock Speed</h3>
+					<span class="tank-ops-chip @(!PressureControlEnabled ? "tank-ops-chip-live" : string.Empty)">Manual</span>
+				</div>
+				<label class="tank-ops-field-label" for="tank-airlock-speed">Airlock Speed Command</label>
+				<div class="tank-ops-input-row">
+					<input id="tank-airlock-speed" class="tank-ops-input" type="number" min="0" max="30" step="0.5" value="@_airlockSpeedDraft" @onchange="OnAirlockDraftChanged" />
+					<button type="button" class="tank-ops-apply" @onclick="ApplyManualSpeedAsync">Apply</button>
+				</div>
+				<div class="tank-ops-step-row">
+					<button type="button" class="tank-ops-step" @onclick="() => NudgeParameterAsync(ParamAirlockSpeedCommandHz, ManualAirlockSpeedCommandHz, -1.0, 0.0, 30.0)">-1 Hz</button>
+					<button type="button" class="tank-ops-step" @onclick="() => NudgeParameterAsync(ParamAirlockSpeedCommandHz, ManualAirlockSpeedCommandHz, 1.0, 0.0, 30.0)">+1 Hz</button>
+				</div>
+				<div class="tank-ops-preset-row">
+					@foreach (var preset in AirlockPresetsHz)
+					{
+						<button type="button" class="tank-ops-preset" @onclick="() => SetNumericParameterAsync(ParamAirlockSpeedCommandHz, preset, 0.0, 30.0)">@preset.ToString("0", CultureInfo.InvariantCulture) Hz</button>
+					}
+				</div>
+			</section>
+
+			<section class="tank-ops-card tank-ops-card-wide">
+				<div class="tank-ops-card-head">
+					<h3>Live Readback</h3>
+					<span class="tank-ops-chip">Process</span>
+				</div>
+				<div class="tank-ops-readback-grid">
+					<div>
+						<span class="tank-ops-readback-label">Actual line pressure</span>
+						<strong>@BlowlinePressurePsi.ToString("0.0", CultureInfo.InvariantCulture) psi</strong>
+					</div>
+					<div>
+						<span class="tank-ops-readback-label">Pressure target</span>
+						<strong>@BlowlinePressureCommandPsi.ToString("0.0", CultureInfo.InvariantCulture) psi</strong>
+					</div>
+					<div>
+						<span class="tank-ops-readback-label">Airlock cmd</span>
+						<strong>@AirlockCommandHz.ToString("0.0", CultureInfo.InvariantCulture) Hz</strong>
+					</div>
+					<div>
+						<span class="tank-ops-readback-label">Airlock actual</span>
+						<strong>@AirlockSpeedHz.ToString("0.0", CultureInfo.InvariantCulture) Hz</strong>
+					</div>
+					<div>
+						<span class="tank-ops-readback-label">Transfer rate</span>
+						<strong>@TransferRateLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</strong>
+					</div>
+					<div>
+						<span class="tank-ops-readback-label">Blower load</span>
+						<strong>@BlowerMotorPercentFla.ToString("0.0", CultureInfo.InvariantCulture)% FLA</strong>
+					</div>
+				</div>
+			</section>
+		</div>
+	</section>
+}
+
+@code {
+	[Parameter] public string SimId { get; set; } = string.Empty;
+	[Parameter] public TelemetrySnapshot? Snapshot { get; set; }
+
+	private const string ParamBlowerEnable = "BlowerEnable";
+	private const string ParamAirlockEnable = "AirlockEnable";
+	private const string ParamPressureControlEnable = "PressureControlEnable";
+	private const string ParamBlowlinePressureCommandPsi = "BlowlinePressureCommandPsi";
+	private const string ParamAirlockSpeedCommandHz = "AirlockSpeedCommandHz";
+
+	private static readonly double[] PressurePresetsPsi = [6, 10, 14, 18];
+	private static readonly double[] AirlockPresetsHz = [6, 10, 15, 20];
+
+	private string _pressureCommandDraft = string.Empty;
+	private string _airlockSpeedDraft = string.Empty;
+	private double? _lastSyncedPressureCommandPsi;
+	private double? _lastSyncedAirlockSpeedHz;
+
+	protected override void OnParametersSet()
+	{
+		if (!_lastSyncedPressureCommandPsi.HasValue || Math.Abs(_lastSyncedPressureCommandPsi.Value - BlowlinePressureCommandPsi) > 1e-9)
+		{
+			_pressureCommandDraft = BlowlinePressureCommandPsi.ToString("0.0", CultureInfo.InvariantCulture);
+			_lastSyncedPressureCommandPsi = BlowlinePressureCommandPsi;
+		}
+
+		if (!_lastSyncedAirlockSpeedHz.HasValue || Math.Abs(_lastSyncedAirlockSpeedHz.Value - ManualAirlockSpeedCommandHz) > 1e-9)
+		{
+			_airlockSpeedDraft = ManualAirlockSpeedCommandHz.ToString("0.0", CultureInfo.InvariantCulture);
+			_lastSyncedAirlockSpeedHz = ManualAirlockSpeedCommandHz;
+		}
+	}
+
+	private bool BlowerEnabled => GetParameter(ParamBlowerEnable) >= 0.5;
+	private bool AirlockEnabled => GetParameter(ParamAirlockEnable) >= 0.5;
+	private bool PressureControlEnabled => GetParameter(ParamPressureControlEnable) >= 0.5;
+	private string ControlModeLabel => PressureControlEnabled ? "Auto pressure hold" : "Manual lock speed";
+
+	private double BlowlinePressureCommandPsi => GetParameter(ParamBlowlinePressureCommandPsi);
+	private double ManualAirlockSpeedCommandHz => GetParameter(ParamAirlockSpeedCommandHz);
+	private double SourceTankWeightLb => GetSignal("SourceTankWeightLb");
+	private double DestinationTankWeightLb => GetSignal("DestinationTankWeightLb");
+	private double BlowlinePressurePsi => GetSignal("BlowlinePressurePsi");
+	private double AirlockCommandHz => GetSignal("AirlockSpeedCommandHz");
+	private double AirlockSpeedHz => GetSignal("AirlockSpeedHz");
+	private double TransferRateLbPerSec => GetSignal("TransferRateLbPerSec");
+	private double BlowerMotorPercentFla => GetSignal("BlowerMotorPercentFla");
+
+	private double GetParameter(string name) => Snapshot?.Parameters.TryGetValue(name, out var value) == true ? value : 0.0;
+	private double GetSignal(string name) => Snapshot?.Signals.TryGetValue(name, out var value) == true ? value : 0.0;
+
+	private void OnPressureDraftChanged(ChangeEventArgs e) => _pressureCommandDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnAirlockDraftChanged(ChangeEventArgs e) => _airlockSpeedDraft = e.Value?.ToString() ?? string.Empty;
+
+	private Task ToggleBinaryParameterAsync(string parameterName, bool enabled) =>
+		SetNumericParameterAsync(parameterName, enabled ? 1.0 : 0.0, 0.0, 1.0);
+
+	private Task SetPressureControlModeAsync(bool enabled) => ToggleBinaryParameterAsync(ParamPressureControlEnable, enabled);
+
+	private Task ApplyPressureTargetAsync() =>
+		ApplyDraftAsync(ParamBlowlinePressureCommandPsi, _pressureCommandDraft, BlowlinePressureCommandPsi, 0.0, 25.0);
+
+	private Task ApplyManualSpeedAsync() =>
+		ApplyDraftAsync(ParamAirlockSpeedCommandHz, _airlockSpeedDraft, ManualAirlockSpeedCommandHz, 0.0, 30.0);
+
+	private async Task ApplyDraftAsync(string parameterName, string draft, double fallbackValue, double min, double max)
+	{
+		var parsed = TryParseValue(draft, out var value) ? value : fallbackValue;
+		await SetNumericParameterAsync(parameterName, parsed, min, max);
+	}
+
+	private async Task NudgeParameterAsync(string parameterName, double current, double delta, double min, double max)
+	{
+		await SetNumericParameterAsync(parameterName, current + delta, min, max);
+	}
+
+	private async Task SetNumericParameterAsync(string parameterName, double value, double min, double max)
+	{
+		if (string.IsNullOrWhiteSpace(SimId))
+		{
+			return;
+		}
+
+		var clamped = Math.Clamp(value, min, max);
+		await Api.SetParameterAsync(SimId, parameterName, clamped);
+
+		if (string.Equals(parameterName, ParamBlowlinePressureCommandPsi, StringComparison.OrdinalIgnoreCase))
+		{
+			_lastSyncedPressureCommandPsi = clamped;
+			_pressureCommandDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+		}
+		else if (string.Equals(parameterName, ParamAirlockSpeedCommandHz, StringComparison.OrdinalIgnoreCase))
+		{
+			_lastSyncedAirlockSpeedHz = clamped;
+			_airlockSpeedDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+		}
+	}
+
+	private static bool TryParseValue(string? text, out double value)
+	{
+		return double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)
+			|| double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out value);
+	}
+}

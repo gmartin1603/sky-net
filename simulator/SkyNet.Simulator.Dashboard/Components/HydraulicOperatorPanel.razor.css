@@ -1,0 +1,315 @@
+.hyd-ops-shell {
+    --hyd-ops-edge: var(--app-panel-stroke);
+    --hyd-ops-surface: linear-gradient(135deg, color-mix(in srgb, var(--app-surface) 82%, #b6cf9d 18%), color-mix(in srgb, var(--app-surface) 88%, #5f8fb9 12%));
+    --hyd-ops-surface-strong: linear-gradient(145deg, color-mix(in srgb, var(--app-surface) 72%, #8cb564 28%), color-mix(in srgb, var(--app-surface) 84%, #4a81b6 16%));
+    --hyd-ops-ink: color-mix(in srgb, var(--app-fg) 90%, #13202a 10%);
+    --hyd-ops-muted: var(--app-muted);
+    --hyd-ops-accent: #4f8a45;
+    --hyd-ops-accent-soft: color-mix(in srgb, #4f8a45 18%, transparent);
+    --hyd-ops-live: #1b7c93;
+    --hyd-ops-panel-bg: var(--app-panel-bg);
+    --hyd-ops-panel-bg-soft: var(--app-panel-bg-soft);
+    --hyd-ops-button-bg: var(--app-surface-muted);
+    --hyd-ops-button-bg-active: linear-gradient(145deg, color-mix(in srgb, var(--app-surface) 70%, #8cb564 30%), color-mix(in srgb, var(--app-surface) 86%, #4a81b6 14%));
+    --hyd-ops-input-bg: var(--app-surface-elevated);
+    display: grid;
+    gap: 1rem;
+    margin: 1rem 0 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--hyd-ops-edge);
+    border-radius: 22px;
+    background: var(--hyd-ops-surface);
+    box-shadow: var(--app-shadow-strong);
+}
+
+.hyd-ops-empty {
+    padding: 1rem;
+    border-radius: 14px;
+    background: var(--hyd-ops-panel-bg-soft);
+    color: var(--hyd-ops-muted);
+}
+
+.hyd-ops-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.hyd-ops-kicker {
+    margin: 0 0 0.3rem;
+    font-size: 0.77rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--hyd-ops-accent);
+}
+
+.hyd-ops-hero h2 {
+    margin: 0;
+    color: var(--hyd-ops-ink);
+    font-size: clamp(1.35rem, 2.4vw, 2rem);
+}
+
+.hyd-ops-copy {
+    margin: 0.45rem 0 0;
+    max-width: 62ch;
+    color: var(--hyd-ops-muted);
+}
+
+.hyd-ops-hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 0.75rem;
+    min-width: min(100%, 520px);
+}
+
+.hyd-ops-hero-stats > div,
+.hyd-ops-card {
+    border: 1px solid color-mix(in srgb, var(--hyd-ops-edge) 82%, white 18%);
+    border-radius: 18px;
+    background: var(--hyd-ops-panel-bg);
+}
+
+.hyd-ops-hero-stats > div {
+    padding: 0.8rem 0.9rem;
+}
+
+.hyd-ops-stat-label,
+.hyd-ops-readback-label,
+.hyd-ops-field-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--hyd-ops-muted);
+}
+
+.hyd-ops-hero-stats strong,
+.hyd-ops-readback-grid strong {
+    color: var(--hyd-ops-ink);
+    font-size: 1.05rem;
+}
+
+.hyd-ops-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.95rem;
+}
+
+.hyd-ops-card {
+    grid-column: span 4;
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+}
+
+.hyd-ops-card-wide {
+    grid-column: span 8;
+}
+
+.hyd-ops-card-full {
+    grid-column: 1 / -1;
+}
+
+.hyd-ops-card-primary {
+    background: linear-gradient(160deg, var(--hyd-ops-panel-bg-soft), color-mix(in srgb, var(--hyd-ops-panel-bg) 82%, #8cb564 18%));
+}
+
+.hyd-ops-card-primary.is-accent {
+    background: var(--hyd-ops-surface-strong);
+    border-color: color-mix(in srgb, var(--hyd-ops-accent) 42%, white 58%);
+    box-shadow: inset 0 0 0 1px var(--hyd-ops-accent-soft);
+}
+
+.hyd-ops-card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.hyd-ops-card-head h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--hyd-ops-ink);
+}
+
+.hyd-ops-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    background: var(--app-surface-muted);
+    color: var(--hyd-ops-muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.hyd-ops-chip-live {
+    background: color-mix(in srgb, var(--hyd-ops-live) 16%, var(--app-surface-elevated) 84%);
+    color: var(--hyd-ops-live);
+}
+
+.hyd-ops-dual-grid,
+.hyd-ops-readback-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.hyd-ops-toggle-row,
+.hyd-ops-inline-status {
+    display: flex;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.hyd-ops-toggle {
+    flex: 1 1 210px;
+    padding: 0.8rem 0.95rem;
+    text-align: left;
+    border: 1px solid var(--hyd-ops-edge);
+    border-radius: 14px;
+    background: var(--hyd-ops-button-bg);
+    color: var(--hyd-ops-ink);
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.hyd-ops-toggle span,
+.hyd-ops-toggle small {
+    display: block;
+}
+
+.hyd-ops-toggle span {
+    font-weight: 700;
+}
+
+.hyd-ops-toggle small,
+.hyd-ops-mini-stat {
+    margin-top: 0.2rem;
+    color: var(--hyd-ops-muted);
+    font-size: 0.92rem;
+}
+
+.hyd-ops-toggle:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--hyd-ops-accent) 48%, white 52%);
+    box-shadow: var(--app-shadow-soft);
+}
+
+.hyd-ops-toggle.is-active {
+    border-color: color-mix(in srgb, var(--hyd-ops-accent) 52%, white 48%);
+    background: var(--hyd-ops-button-bg-active);
+}
+
+.hyd-ops-dual-grid.has-tertiary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.hyd-ops-dual-grid.has-quaternary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.hyd-ops-readback-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.hyd-ops-pid-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.hyd-ops-input-row,
+.hyd-ops-step-row,
+.hyd-ops-preset-row {
+    display: flex;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.hyd-ops-input,
+.hyd-ops-apply,
+.hyd-ops-step,
+.hyd-ops-preset {
+    border: 1px solid var(--hyd-ops-edge);
+    border-radius: 14px;
+    background: var(--hyd-ops-button-bg);
+    color: var(--hyd-ops-ink);
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.hyd-ops-input {
+    flex: 1 1 160px;
+    min-width: 0;
+    padding: 0.7rem 0.8rem;
+    border-color: color-mix(in srgb, var(--hyd-ops-edge) 70%, white 30%);
+    background: var(--hyd-ops-input-bg);
+}
+
+.hyd-ops-apply,
+.hyd-ops-step,
+.hyd-ops-preset {
+    padding: 0.7rem 0.9rem;
+    font-weight: 700;
+}
+
+.hyd-ops-apply {
+    background: color-mix(in srgb, var(--hyd-ops-button-bg) 78%, var(--hyd-ops-accent) 22%);
+}
+
+.hyd-ops-apply:hover,
+.hyd-ops-step:hover,
+.hyd-ops-preset:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--hyd-ops-accent) 48%, white 52%);
+    box-shadow: var(--app-shadow-soft);
+}
+
+.hyd-ops-readback-grid > div {
+    padding: 0.85rem 0.95rem;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--app-surface) 80%, var(--app-bg) 20%);
+    border: 1px solid var(--app-panel-stroke);
+}
+
+@media (max-width: 1100px) {
+    .hyd-ops-card,
+    .hyd-ops-card-wide {
+        grid-column: span 6;
+    }
+
+    .hyd-ops-dual-grid.has-tertiary,
+    .hyd-ops-dual-grid.has-quaternary,
+    .hyd-ops-readback-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .hyd-ops-shell {
+        padding: 0.85rem;
+    }
+
+    .hyd-ops-hero-stats,
+    .hyd-ops-card,
+    .hyd-ops-card-wide,
+    .hyd-ops-dual-grid,
+    .hyd-ops-pid-grid,
+    .hyd-ops-readback-grid {
+        grid-column: 1 / -1;
+        grid-template-columns: 1fr;
+    }
+
+    .hyd-ops-toggle,
+    .hyd-ops-input,
+    .hyd-ops-apply {
+        width: 100%;
+    }
+}

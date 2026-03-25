@@ -1,0 +1,295 @@
+.tank-ops-shell {
+    --tank-ops-edge: var(--app-panel-stroke);
+    --tank-ops-surface: linear-gradient(135deg, color-mix(in srgb, var(--app-surface) 88%, #d9c3a2 12%), color-mix(in srgb, var(--app-surface) 92%, #7f9bb2 8%));
+    --tank-ops-surface-strong: linear-gradient(145deg, color-mix(in srgb, var(--app-surface) 78%, #c89b63 22%), color-mix(in srgb, var(--app-surface) 86%, #6f8fa8 14%));
+    --tank-ops-ink: color-mix(in srgb, var(--app-fg) 88%, #1d2125 12%);
+    --tank-ops-muted: var(--app-muted);
+    --tank-ops-accent: #b86a1f;
+    --tank-ops-accent-soft: color-mix(in srgb, #b86a1f 16%, transparent);
+    --tank-ops-live: #1d8c5a;
+    --tank-ops-panel-bg: var(--app-panel-bg);
+    --tank-ops-panel-bg-soft: var(--app-panel-bg-soft);
+    --tank-ops-button-bg: var(--app-surface-muted);
+    --tank-ops-button-bg-active: linear-gradient(145deg, color-mix(in srgb, var(--app-surface) 72%, #c89b63 28%), color-mix(in srgb, var(--app-surface) 88%, #6f8fa8 12%));
+    --tank-ops-input-bg: var(--app-surface-elevated);
+    display: grid;
+    gap: 1rem;
+    margin: 1rem 0 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--tank-ops-edge);
+    border-radius: 22px;
+    background: var(--tank-ops-surface);
+    box-shadow: var(--app-shadow-strong);
+}
+
+.tank-ops-empty {
+    padding: 1rem;
+    border-radius: 14px;
+    background: var(--tank-ops-panel-bg-soft);
+    color: var(--tank-ops-muted);
+}
+
+.tank-ops-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.tank-ops-kicker {
+    margin: 0 0 0.3rem;
+    font-size: 0.77rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tank-ops-accent);
+}
+
+.tank-ops-hero h2 {
+    margin: 0;
+    color: var(--tank-ops-ink);
+    font-size: clamp(1.35rem, 2.4vw, 2rem);
+}
+
+.tank-ops-copy {
+    margin: 0.45rem 0 0;
+    max-width: 62ch;
+    color: var(--tank-ops-muted);
+}
+
+.tank-ops-hero-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    gap: 0.75rem;
+    min-width: min(100%, 380px);
+}
+
+.tank-ops-hero-stats > div,
+.tank-ops-card {
+    border: 1px solid color-mix(in srgb, var(--tank-ops-edge) 82%, white 18%);
+    border-radius: 18px;
+    background: var(--tank-ops-panel-bg);
+}
+
+.tank-ops-hero-stats > div {
+    padding: 0.8rem 0.9rem;
+}
+
+.tank-ops-stat-label,
+.tank-ops-readback-label,
+.tank-ops-field-label,
+.tank-ops-device-name {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tank-ops-muted);
+}
+
+.tank-ops-hero-stats strong,
+.tank-ops-readback-grid strong,
+.tank-ops-device strong {
+    color: var(--tank-ops-ink);
+    font-size: 1.05rem;
+}
+
+.tank-ops-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.95rem;
+}
+
+.tank-ops-card {
+    grid-column: span 4;
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+}
+
+.tank-ops-card-wide {
+    grid-column: span 8;
+}
+
+.tank-ops-card-primary {
+    background: linear-gradient(160deg, var(--tank-ops-panel-bg-soft), color-mix(in srgb, var(--tank-ops-panel-bg) 82%, #c89b63 18%));
+}
+
+.tank-ops-card-primary.is-accent {
+    background: var(--tank-ops-surface-strong);
+    border-color: color-mix(in srgb, var(--tank-ops-accent) 42%, white 58%);
+    box-shadow: inset 0 0 0 1px var(--tank-ops-accent-soft);
+}
+
+.tank-ops-card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.tank-ops-card-head h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--tank-ops-ink);
+}
+
+.tank-ops-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    background: var(--app-surface-muted);
+    color: var(--tank-ops-muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.tank-ops-chip-live {
+    background: color-mix(in srgb, var(--tank-ops-live) 16%, var(--app-surface-elevated) 84%);
+    color: var(--tank-ops-live);
+}
+
+.tank-ops-toggle-row,
+.tank-ops-equipment-grid,
+.tank-ops-step-row,
+.tank-ops-preset-row,
+.tank-ops-input-row,
+.tank-ops-inline-status {
+    display: flex;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.tank-ops-toggle,
+.tank-ops-device,
+.tank-ops-step,
+.tank-ops-preset,
+.tank-ops-apply {
+    border: 1px solid var(--tank-ops-edge);
+    border-radius: 14px;
+    background: var(--tank-ops-button-bg);
+    color: var(--tank-ops-ink);
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.tank-ops-toggle:hover,
+.tank-ops-device:hover,
+.tank-ops-step:hover,
+.tank-ops-preset:hover,
+.tank-ops-apply:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--tank-ops-accent) 48%, white 52%);
+    box-shadow: var(--app-shadow-soft);
+}
+
+.tank-ops-toggle {
+    flex: 1 1 210px;
+    padding: 0.8rem 0.95rem;
+    text-align: left;
+}
+
+.tank-ops-toggle span,
+.tank-ops-toggle small {
+    display: block;
+}
+
+.tank-ops-toggle span {
+    font-weight: 700;
+}
+
+.tank-ops-toggle small {
+    margin-top: 0.2rem;
+    color: var(--tank-ops-muted);
+}
+
+.tank-ops-toggle.is-active,
+.tank-ops-device.is-running {
+    border-color: color-mix(in srgb, var(--tank-ops-accent) 52%, white 48%);
+    background: var(--tank-ops-button-bg-active);
+}
+
+.tank-ops-device {
+    flex: 1 1 180px;
+    padding: 0.85rem 0.95rem;
+    text-align: left;
+}
+
+.tank-ops-caption,
+.tank-ops-mini-stat {
+    color: var(--tank-ops-muted);
+    font-size: 0.92rem;
+}
+
+.tank-ops-input {
+    flex: 1 1 180px;
+    min-width: 0;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--tank-ops-edge) 70%, white 30%);
+    border-radius: 12px;
+    background: var(--tank-ops-input-bg);
+    color: var(--tank-ops-ink);
+}
+
+.tank-ops-apply,
+.tank-ops-step,
+.tank-ops-preset {
+    padding: 0.7rem 0.9rem;
+    font-weight: 700;
+}
+
+.tank-ops-apply {
+    background: color-mix(in srgb, var(--tank-ops-button-bg) 78%, var(--tank-ops-accent) 22%);
+}
+
+.tank-ops-readback-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.tank-ops-readback-grid > div {
+    padding: 0.85rem 0.95rem;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--app-surface) 80%, var(--app-bg) 20%);
+    border: 1px solid var(--app-panel-stroke);
+}
+
+@media (max-width: 1100px) {
+    .tank-ops-card,
+    .tank-ops-card-wide {
+        grid-column: span 6;
+    }
+
+    .tank-ops-readback-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .tank-ops-shell {
+        padding: 0.85rem;
+    }
+
+    .tank-ops-hero-stats,
+    .tank-ops-card,
+    .tank-ops-card-wide {
+        grid-column: 1 / -1;
+    }
+
+    .tank-ops-hero-stats,
+    .tank-ops-readback-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tank-ops-toggle,
+    .tank-ops-device,
+    .tank-ops-input,
+    .tank-ops-apply {
+        width: 100%;
+    }
+}

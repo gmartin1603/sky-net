@@ -30,6 +30,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/5070 && printf \"GET / HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && grep -q \"SkyNet Simulator Daemon\" <&3'"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     ports:
       - "5070:5070"
 
@@ -38,7 +47,8 @@ services:
       context: .
       dockerfile: simulator/SkyNet.Simulator.Dashboard/Dockerfile
     depends_on:
-      - daemon
+      daemon:
+        condition: service_healthy
     ports:
       - "8080:80"
 

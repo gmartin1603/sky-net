@@ -1,13 +1,40 @@
 :root {
     color-scheme: light;
 
+    /* Shared theming contract for dashboard components.
+       Prefer these variables over hardcoded colors in Razor/CSS so light and dark
+       themes stay aligned. If you add a new semantic token here, define it in both
+       :root and :root[data-theme='dark']. */
+
     --app-bg: #ffffff;
     --app-fg: #212529;
     --app-muted: #6c757d;
     --app-link: #0071c1;
+    --app-accent: #1b6ec2;
+    --app-accent-strong: #1861ac;
+    --app-accent-contrast: #ffffff;
+    --app-success: #26b050;
+    --app-danger: #d94841;
+    --app-code: #c02d76;
 
     --app-surface: #f8f9fa;
+    --app-surface-elevated: #ffffff;
+    --app-surface-muted: #eef2f6;
     --app-border: rgba(0, 0, 0, 0.12);
+    --app-panel-bg: color-mix(in srgb, var(--app-surface) 88%, var(--app-bg) 12%);
+    --app-panel-bg-soft: color-mix(in srgb, var(--app-surface) 78%, var(--app-bg) 22%);
+    --app-panel-stroke: color-mix(in srgb, var(--app-border) 86%, #7f8c99 14%);
+    --app-shadow-soft: 0 5px 16px rgba(0, 0, 0, 0.12);
+    --app-shadow-strong: 0 18px 40px rgba(15, 23, 42, 0.08);
+    --app-panel-shadow: drop-shadow(0 5px 16px rgba(0, 0, 0, 0.12));
+    --app-focus-base: #258cfb;
+    --app-focus-outer: #ffffff;
+    --app-topbar-bg: linear-gradient(180deg, #163562 0%, #214a74 52%, #1f5f7a 100%);
+    --app-topbar-border: rgba(255, 255, 255, 0.15);
+    --app-topbar-fg: #ffffff;
+    --app-topbar-link: rgba(255, 255, 255, 0.92);
+    --app-topbar-link-hover-bg: rgba(255, 255, 255, 0.12);
+    --app-topbar-link-active-bg: rgba(255, 255, 255, 0.22);
 
     --schematic-bg-on: #f3fff5;
     --schematic-bg-off: #ffffff;
@@ -48,6 +75,54 @@
     --chart-border: rgba(0, 0, 0, 0.15);
     --chart-axis: #bbbbbb;
     --chart-label: #666666;
+    --chart-series-1: #d24a43;
+    --chart-series-2: #2e76c4;
+    --chart-series-3: #2f9a63;
+
+    --dryer-scene-bg-start: #f8f1df;
+    --dryer-scene-bg-end: #d9e8ec;
+    --dryer-scene-stroke: #8aa1a8;
+    --dryer-section-fill-top: rgba(255, 255, 255, 0.60);
+    --dryer-section-fill-bottom: rgba(255, 255, 255, 0.40);
+    --dryer-section-stroke: #b6c6cc;
+    --dryer-label-muted: #5e6c6f;
+    --dryer-flow-active: #39856a;
+    --dryer-flow-idle: #90a4ae;
+    --dryer-heat-active: #d65a2c;
+    --dryer-heat-idle: #b39b7a;
+    --dryer-grain-start: #d69b42;
+    --dryer-grain-end: #9d6426;
+    --dryer-heat-start: #ffcf6a;
+    --dryer-heat-end: #d65a2c;
+    --dryer-wet-shell: #e0edf2;
+    --dryer-wet-shell-stroke: #6f8790;
+    --dryer-wet-base: #c8d7de;
+    --dryer-wet-core: #f5fbfd;
+    --dryer-wet-core-stroke: #90aab2;
+    --dryer-wet-title: #26414a;
+    --dryer-burner-shell: #f5ebe1;
+    --dryer-burner-shell-stroke: #926b4f;
+    --dryer-burner-core: #fff7ef;
+    --dryer-burner-core-stroke: #c29b79;
+    --dryer-burner-text: #6a4b32;
+    --dryer-burner-title: #5f3920;
+    --dryer-column-shell: #fbf5e9;
+    --dryer-column-shell-stroke: #9f8b63;
+    --dryer-column-core: #fffdf8;
+    --dryer-column-core-stroke: #d0c3a0;
+    --dryer-column-text: #5d563f;
+    --dryer-column-cap-idle: #c7b08d;
+    --dryer-cap-text: #fff9f2;
+    --dryer-dry-shell: #e6f0df;
+    --dryer-dry-shell-stroke: #72846a;
+    --dryer-dry-base: #cedbc5;
+    --dryer-dry-core: #fbfef9;
+    --dryer-dry-core-stroke: #9cb18e;
+    --dryer-dry-fill: #9dbb67;
+    --dryer-dry-title: #30452e;
+    --dryer-dry-text: #5f6d59;
+    --dryer-status-bg: #16343c;
+    --dryer-status-text: #f8f4ea;
 }
 
 :root[data-theme='dark'] {
@@ -57,9 +132,31 @@
     --app-fg: #e6eaf2;
     --app-muted: #a7b0c0;
     --app-link: #7db4ff;
+    --app-accent: #5e9dff;
+    --app-accent-strong: #79b0ff;
+    --app-accent-contrast: #0b1220;
+    --app-success: #56c389;
+    --app-danger: #ff8c7f;
+    --app-code: #f199ca;
 
     --app-surface: #111b2e;
+    --app-surface-elevated: #17243a;
+    --app-surface-muted: #0e1728;
     --app-border: rgba(255, 255, 255, 0.14);
+    --app-panel-bg: color-mix(in srgb, var(--app-surface) 82%, var(--app-bg) 18%);
+    --app-panel-bg-soft: color-mix(in srgb, var(--app-surface) 68%, var(--app-bg) 32%);
+    --app-panel-stroke: color-mix(in srgb, var(--app-border) 78%, #89a6c2 22%);
+    --app-shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.32);
+    --app-shadow-strong: 0 18px 40px rgba(0, 0, 0, 0.34);
+    --app-panel-shadow: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.34));
+    --app-focus-base: #6ea8fe;
+    --app-focus-outer: rgba(11, 18, 32, 0.95);
+    --app-topbar-bg: linear-gradient(180deg, #10223b 0%, #15324d 55%, #15495b 100%);
+    --app-topbar-border: rgba(177, 206, 235, 0.16);
+    --app-topbar-fg: #edf4ff;
+    --app-topbar-link: rgba(237, 244, 255, 0.92);
+    --app-topbar-link-hover-bg: rgba(125, 180, 255, 0.12);
+    --app-topbar-link-active-bg: rgba(125, 180, 255, 0.22);
 
     --schematic-bg-on: rgba(46, 204, 113, 0.10);
     --schematic-bg-off: rgba(255, 255, 255, 0.04);
@@ -100,6 +197,54 @@
     --chart-border: rgba(255, 255, 255, 0.14);
     --chart-axis: rgba(255, 255, 255, 0.22);
     --chart-label: rgba(255, 255, 255, 0.70);
+    --chart-series-1: #ff8c7f;
+    --chart-series-2: #7db4ff;
+    --chart-series-3: #68c98f;
+
+    --dryer-scene-bg-start: #172436;
+    --dryer-scene-bg-end: #132636;
+    --dryer-scene-stroke: rgba(177, 206, 235, 0.24);
+    --dryer-section-fill-top: rgba(255, 255, 255, 0.06);
+    --dryer-section-fill-bottom: rgba(255, 255, 255, 0.04);
+    --dryer-section-stroke: rgba(177, 206, 235, 0.16);
+    --dryer-label-muted: #9bb2bf;
+    --dryer-flow-active: #68c98f;
+    --dryer-flow-idle: #6f8597;
+    --dryer-heat-active: #ff986e;
+    --dryer-heat-idle: #8f7a64;
+    --dryer-grain-start: #efb35c;
+    --dryer-grain-end: #a96b33;
+    --dryer-heat-start: #ffc870;
+    --dryer-heat-end: #f07f49;
+    --dryer-wet-shell: #203246;
+    --dryer-wet-shell-stroke: rgba(176, 203, 222, 0.46);
+    --dryer-wet-base: #31495d;
+    --dryer-wet-core: #162637;
+    --dryer-wet-core-stroke: rgba(176, 203, 222, 0.32);
+    --dryer-wet-title: #d7e8f0;
+    --dryer-burner-shell: #35261e;
+    --dryer-burner-shell-stroke: rgba(226, 188, 151, 0.36);
+    --dryer-burner-core: #251b16;
+    --dryer-burner-core-stroke: rgba(226, 188, 151, 0.28);
+    --dryer-burner-text: #d4b79b;
+    --dryer-burner-title: #f0ceb1;
+    --dryer-column-shell: #31281d;
+    --dryer-column-shell-stroke: rgba(229, 205, 156, 0.34);
+    --dryer-column-core: #231d15;
+    --dryer-column-core-stroke: rgba(229, 205, 156, 0.26);
+    --dryer-column-text: #d8c7a2;
+    --dryer-column-cap-idle: #7e6a54;
+    --dryer-cap-text: #fff3df;
+    --dryer-dry-shell: #203022;
+    --dryer-dry-shell-stroke: rgba(182, 210, 160, 0.32);
+    --dryer-dry-base: #304434;
+    --dryer-dry-core: #172419;
+    --dryer-dry-core-stroke: rgba(182, 210, 160, 0.24);
+    --dryer-dry-fill: #88b35c;
+    --dryer-dry-title: #d4e6c8;
+    --dryer-dry-text: #aac09c;
+    --dryer-status-bg: #10222b;
+    --dryer-status-text: #e8f0e9;
 }
 
 html, body {
@@ -264,7 +409,7 @@ a, .btn-link {
     fill: var(--schematic-label-bg);
     stroke: var(--schematic-border-off);
     stroke-width: 1.2;
-    filter: drop-shadow(0 5px 16px rgba(0, 0, 0, 0.12));
+    filter: var(--app-panel-shadow);
 }
 
 .schematic-node-panel-divider {
@@ -358,26 +503,28 @@ a, .btn-link {
 
 /* Charts */
 .chart-panel {
-    border: 1px solid var(--chart-border);
-    border-radius: 6px;
+    border: 1px solid var(--app-panel-stroke);
+    border-radius: 10px;
     padding: 0.75rem;
-    background: var(--chart-bg);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--chart-bg) 82%, var(--app-panel-bg) 18%), color-mix(in srgb, var(--app-panel-bg-soft) 88%, var(--chart-bg) 12%));
+    box-shadow: var(--app-shadow-soft);
 }
 
 /* Key signal tiles */
 .signal-tile {
-    border: 1px solid var(--app-border);
-    border-radius: 8px;
+    border: 1px solid var(--app-panel-stroke);
+    border-radius: 10px;
     padding: 0.75rem;
     min-width: 200px;
-    background: var(--app-surface);
+    background: linear-gradient(180deg, var(--app-panel-bg), var(--app-panel-bg-soft));
+    box-shadow: var(--app-shadow-soft);
 }
 
 .layout-editor-canvas {
     position: relative;
-    border: 1px dashed var(--app-border);
+    border: 1px dashed var(--app-panel-stroke);
     border-radius: 10px;
-    background: var(--app-surface);
+    background: linear-gradient(180deg, var(--app-panel-bg), var(--app-panel-bg-soft));
     overflow: hidden;
 }
 
@@ -385,8 +532,8 @@ a, .btn-link {
     position: absolute;
     border: 2px solid var(--schematic-border-off);
     border-radius: 8px;
-    background: var(--schematic-bg-off);
-    box-shadow: var(--schematic-shadow);
+    background: var(--app-surface-elevated);
+    box-shadow: var(--app-shadow-soft);
     color: var(--app-fg);
     user-select: none;
     padding: 0.5rem 0.6rem;
@@ -651,13 +798,13 @@ a, .btn-link {
 }
 
 .btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    color: var(--app-accent-contrast);
+    background-color: var(--app-accent);
+    border-color: var(--app-accent-strong);
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+  box-shadow: 0 0 0 0.1rem var(--app-focus-outer), 0 0 0 0.25rem var(--app-focus-base);
 }
 
 .content {
@@ -665,15 +812,15 @@ a, .btn-link {
 }
 
 .valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+    outline: 1px solid var(--app-success);
 }
 
 .invalid {
-    outline: 1px solid red;
+    outline: 1px solid var(--app-danger);
 }
 
 .validation-message {
-    color: red;
+    color: var(--app-danger);
 }
 
 #blazor-error-ui {
@@ -741,7 +888,7 @@ a, .btn-link {
     }
 
 code {
-    color: #c02d76;
+    color: var(--app-code);
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
