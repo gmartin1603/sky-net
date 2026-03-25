@@ -113,6 +113,10 @@
     grid-column: span 8;
 }
 
+.dryer-ops-card-full {
+    grid-column: 1 / -1;
+}
+
 .dryer-ops-card-primary {
     background: linear-gradient(160deg, var(--dryer-ops-panel-bg-soft), color-mix(in srgb, var(--dryer-ops-panel-bg) 82%, #c98946 18%));
 }
@@ -122,6 +126,11 @@
     background: var(--dryer-ops-surface-strong);
     border-color: color-mix(in srgb, var(--dryer-ops-accent) 42%, white 58%);
     box-shadow: inset 0 0 0 1px var(--dryer-ops-accent-soft);
+}
+
+.dryer-ops-card-trainer {
+    background: linear-gradient(160deg, color-mix(in srgb, var(--dryer-ops-panel-bg-soft) 80%, #3c2311 20%), color-mix(in srgb, var(--dryer-ops-panel-bg) 78%, #5f3c1a 22%));
+    border-color: color-mix(in srgb, var(--dryer-ops-accent) 38%, white 62%);
 }
 
 .dryer-ops-card-head {
@@ -155,6 +164,11 @@
     color: var(--dryer-ops-live);
 }
 
+.dryer-ops-chip-alert {
+    background: color-mix(in srgb, var(--dryer-ops-accent) 18%, var(--app-surface-elevated) 82%);
+    color: var(--dryer-ops-accent);
+}
+
 .dryer-ops-toggle-row,
 .dryer-ops-equipment-grid,
 .dryer-ops-step-row,
@@ -175,6 +189,29 @@
 
 .dryer-ops-readback-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dryer-ops-trainer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+
+.dryer-ops-trainer-grid > div {
+    min-width: 0;
+    padding: 0.95rem;
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--dryer-ops-edge) 82%, white 18%);
+    background: color-mix(in srgb, var(--app-surface-elevated) 72%, transparent);
+}
+
+.dryer-ops-card-trainer .dryer-ops-preset-row {
+    align-items: stretch;
+}
+
+.dryer-ops-card-trainer .dryer-ops-preset {
+    flex: 1 1 120px;
 }
 
 .dryer-ops-toggle,
@@ -274,6 +311,10 @@
     .dryer-ops-readback-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .dryer-ops-trainer-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 760px) {
@@ -285,7 +326,8 @@
     .dryer-ops-card,
     .dryer-ops-card-wide,
     .dryer-ops-dual-grid,
-    .dryer-ops-readback-grid {
+    .dryer-ops-readback-grid,
+    .dryer-ops-trainer-grid {
         grid-column: 1 / -1;
         grid-template-columns: 1fr;
     }

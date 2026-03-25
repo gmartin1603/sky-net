@@ -1,0 +1,154 @@
+@using System.Globalization
+@using SkyNet.Simulator.Contracts
+@using SkyNet.Simulator.Dashboard.Services
+
+@inject SimApiClient Api
+
+<section class="tank-ops-card tank-ops-card-wide tank-ops-card-full tank-ops-card-trainer">
+	<div class="tank-ops-card-head">
+		<h3>Trainer Disturbances</h3>
+		<span class="tank-ops-chip tank-ops-chip-alert">Scenario</span>
+	</div>
+	<p class="tank-ops-caption">Create flow and fill-limit faults while the trainee keeps the blower and airlock online and works from the process symptoms.</p>
+	<div class="tank-ops-trainer-grid">
+		<div>
+			<label class="tank-ops-field-label" for="tank-bridge-severity">Bridged Product Severity</label>
+			<div class="tank-ops-input-row">
+				<input id="tank-bridge-severity" class="tank-ops-input" type="number" min="0" max="100" step="5" value="@_bridgeSeverityDraft" @onchange="OnBridgeSeverityChanged" />
+				<button type="button" class="tank-ops-apply" @onclick="ApplyBridgeSeverityAsync">Apply</button>
+			</div>
+			<div class="tank-ops-step-row">
+				<button type="button" class="tank-ops-step" @onclick="() => NudgeParameterAsync(ParamBridgeSeverityPercent, BridgeSeverityPercent, -10.0, 0.0, 100.0)">-10%</button>
+				<button type="button" class="tank-ops-step" @onclick="() => NudgeParameterAsync(ParamBridgeSeverityPercent, BridgeSeverityPercent, 10.0, 0.0, 100.0)">+10%</button>
+			</div>
+			<div class="tank-ops-preset-row">
+				@foreach (var preset in BridgeSeverityPresets)
+				{
+					<button type="button" class="tank-ops-preset" @onclick="() => SetNumericParameterAsync(ParamBridgeSeverityPercent, preset, 0.0, 100.0)">@preset.ToString("0", CultureInfo.InvariantCulture)%</button>
+				}
+			</div>
+		</div>
+		<div>
+			<label class="tank-ops-field-label" for="tank-destination-capacity">Destination Capacity Clamp</label>
+			<div class="tank-ops-input-row">
+				<input id="tank-destination-capacity" class="tank-ops-input" type="number" min="1000" max="60000" step="500" value="@_destinationCapacityDraft" @onchange="OnDestinationCapacityChanged" />
+				<button type="button" class="tank-ops-apply" @onclick="ApplyDestinationCapacityAsync">Apply</button>
+			</div>
+			<div class="tank-ops-preset-row">
+				@foreach (var preset in DestinationCapacityPresets)
+				{
+					<button type="button" class="tank-ops-preset" @onclick="() => SetNumericParameterAsync(ParamDestinationTankCapacityLb, preset, 1000.0, 60000.0)">@preset.ToString("0", CultureInfo.InvariantCulture) lb</button>
+				}
+			</div>
+		</div>
+	</div>
+	<div class="tank-ops-readback-grid">
+		<div>
+			<span class="tank-ops-readback-label">Restriction</span>
+			<strong>@BridgeSeverityPercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
+		</div>
+		<div>
+			<span class="tank-ops-readback-label">Material available</span>
+			<strong>@(Math.Max(0.0, 100.0 - BridgeSeverityPercent).ToString("0.0", CultureInfo.InvariantCulture))%</strong>
+		</div>
+		<div>
+			<span class="tank-ops-readback-label">Destination capacity</span>
+			<strong>@DestinationTankCapacityLb.ToString("0", CultureInfo.InvariantCulture) lb</strong>
+		</div>
+		<div>
+			<span class="tank-ops-readback-label">Trainee symptom</span>
+			<strong>@SymptomLabel</strong>
+		</div>
+	</div>
+</section>
+
+@code {
+	[Parameter] public string SimId { get; set; } = string.Empty;
+	[Parameter] public TelemetrySnapshot? Snapshot { get; set; }
+
+	private const string ParamBridgeSeverityPercent = "BridgeSeverityPercent";
+	private const string ParamDestinationTankCapacityLb = "DestinationTankCapacityLb";
+
+	private static readonly double[] BridgeSeverityPresets = [0, 25, 50, 75, 100];
+	private static readonly double[] DestinationCapacityPresets = [12000, 20000, 30000, 40000, 50000];
+
+	private string _bridgeSeverityDraft = string.Empty;
+	private string _destinationCapacityDraft = string.Empty;
+	private double? _lastSyncedBridgeSeverityPercent;
+	private double? _lastSyncedDestinationCapacity;
+
+	protected override void OnParametersSet()
+	{
+		SyncDraft(ref _lastSyncedBridgeSeverityPercent, BridgeSeverityPercent, value => _bridgeSeverityDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+		SyncDraft(ref _lastSyncedDestinationCapacity, DestinationTankCapacityLb, value => _destinationCapacityDraft = value.ToString("0", CultureInfo.InvariantCulture));
+	}
+
+	private double BridgeSeverityPercent => GetParameter(ParamBridgeSeverityPercent);
+	private double DestinationTankCapacityLb => GetParameter(ParamDestinationTankCapacityLb);
+	private double DestinationTankWeightLb => GetSignal("DestinationTankWeightLb");
+	private string SymptomLabel => BridgeSeverityPercent >= 60.0
+		? "Severe starvation"
+		: DestinationTankWeightLb >= DestinationTankCapacityLb - 500.0
+			? "Destination near full"
+			: BridgeSeverityPercent >= 25.0
+				? "Restricted flow"
+				: "Normal feed";
+
+	private double GetParameter(string name) => Snapshot?.Parameters.TryGetValue(name, out var value) == true ? value : 0.0;
+	private double GetSignal(string name) => Snapshot?.Signals.TryGetValue(name, out var value) == true ? value : 0.0;
+
+	private void OnBridgeSeverityChanged(ChangeEventArgs e) => _bridgeSeverityDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnDestinationCapacityChanged(ChangeEventArgs e) => _destinationCapacityDraft = e.Value?.ToString() ?? string.Empty;
+
+	private Task ApplyBridgeSeverityAsync() => ApplyDraftAsync(ParamBridgeSeverityPercent, _bridgeSeverityDraft, BridgeSeverityPercent, 0.0, 100.0);
+	private Task ApplyDestinationCapacityAsync() => ApplyDraftAsync(ParamDestinationTankCapacityLb, _destinationCapacityDraft, DestinationTankCapacityLb, 1000.0, 60000.0);
+
+	private async Task ApplyDraftAsync(string parameterName, string draft, double fallbackValue, double min, double max)
+	{
+		var parsed = TryParseValue(draft, out var value) ? value : fallbackValue;
+		await SetNumericParameterAsync(parameterName, parsed, min, max);
+	}
+
+	private async Task NudgeParameterAsync(string parameterName, double current, double delta, double min, double max)
+	{
+		await SetNumericParameterAsync(parameterName, current + delta, min, max);
+	}
+
+	private async Task SetNumericParameterAsync(string parameterName, double value, double min, double max)
+	{
+		if (string.IsNullOrWhiteSpace(SimId))
+		{
+			return;
+		}
+
+		var clamped = Math.Clamp(value, min, max);
+		await Api.SetParameterAsync(SimId, parameterName, clamped);
+		await Api.AddTrainerEventAsync(SimId, $"Tank transfer disturbance updated: {parameterName}={clamped:0.###}");
+
+		if (string.Equals(parameterName, ParamBridgeSeverityPercent, StringComparison.OrdinalIgnoreCase))
+		{
+			_lastSyncedBridgeSeverityPercent = clamped;
+			_bridgeSeverityDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+		}
+		else if (string.Equals(parameterName, ParamDestinationTankCapacityLb, StringComparison.OrdinalIgnoreCase))
+		{
+			_lastSyncedDestinationCapacity = clamped;
+			_destinationCapacityDraft = clamped.ToString("0", CultureInfo.InvariantCulture);
+		}
+	}
+
+	private static bool TryParseValue(string? text, out double value)
+	{
+		return double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)
+			|| double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out value);
+	}
+
+	private static void SyncDraft(ref double? lastSynced, double current, Action<double> apply)
+	{
+		if (!lastSynced.HasValue || Math.Abs(lastSynced.Value - current) > 1e-9)
+		{
+			apply(current);
+			lastSynced = current;
+		}
+	}
+}

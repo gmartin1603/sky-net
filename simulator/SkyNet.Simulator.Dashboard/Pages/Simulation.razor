@@ -16,11 +16,15 @@
 <section class="opsb-shell">
 	<div class="opsb-hero">
 		<div>
-			<p class="opsb-kicker">Industrial Console</p>
+			<p class="opsb-kicker">@(IsTrainerView ? "Trainer Console" : "Industrial Console")</p>
 			<h1>@SimulationTitle</h1>
 			<p class="opsb-copy">@SimulationDescription</p>
 		</div>
 		<div class="opsb-hero-meta">
+			<div>
+				<span class="opsb-meta-label">View</span>
+				<strong class="@(IsTrainerView ? "is-alert" : "is-live")">@CurrentViewLabel</strong>
+			</div>
 			<div>
 				<span class="opsb-meta-label">Simulation</span>
 				<strong><code>@SimId</code></strong>
@@ -42,11 +46,18 @@
 
 	<div class="opsb-command-strip">
 		<div class="opsb-command-primary">
+			<div class="opsb-view-switch" role="tablist" aria-label="Dashboard view">
+				<a class="opsb-view-link @(!IsTrainerView ? "is-active" : string.Empty)" href="@BuildViewHref(false)">Trainee View</a>
+				<a class="opsb-view-link @(IsTrainerView ? "is-active" : string.Empty)" href="@BuildViewHref(true)">Trainer View</a>
+			</div>
 			<button type="button" class="opsb-command-button opsb-command-button-primary" @onclick="OpenRunOverlay">Console Runboard</button>
-			<button type="button" class="opsb-command-button" @onclick="OpenEngineeringOverlay">Maintenance Access</button>
-			@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
+			@if (IsTrainerView)
 			{
-				<a class="opsb-command-link" href="@($"sim/{Uri.EscapeDataString(SimId)}/creator")">Tune console layout</a>
+				<button type="button" class="opsb-command-button" @onclick="OpenEngineeringOverlay">Maintenance Access</button>
+				@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
+				{
+					<a class="opsb-command-link" href="@($"sim/{Uri.EscapeDataString(SimId)}/creator")">Tune console layout</a>
+				}
 			}
 		</div>
 		<div class="opsb-run-meta">
@@ -70,6 +81,38 @@
 		<div class="opsb-alert">
 			<strong>Error:</strong> @_error
 		</div>
+	}
+
+	@if (IsTrainerView)
+	{
+		<section class="opsb-trainer-workspace">
+			<div class="opsb-trainer-rail">
+				<div class="opsb-trainer-banner">
+					<strong>Trainer controls are live.</strong> Scenario disturbances, saved scenarios, and trainer events are grouped here so the trainee operating panel can stay focused on response and recovery.
+				</div>
+
+				@if (_uiSnapshot is not null)
+				{
+					@switch (SimId.ToLowerInvariant())
+					{
+						case "tank-transfer":
+							<TankTransferTrainerPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+							break;
+						case "grain-dryer":
+							<GrainDryerTrainerPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+							break;
+						default:
+							if (IsHydraulicSimulation(SimId))
+							{
+								<HydraulicTrainerPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+							}
+							break;
+					}
+				}
+			</div>
+
+			<TrainerConsole SimId="@SimId" Snapshot="@_uiSnapshot" PresetParameterNames="@TrainerPresetParameterNames" />
+		</section>
 	}
 
 	@if (_uiSnapshot is null)
@@ -101,6 +144,7 @@
 						</div>
 						<div class="opsb-viewport-badges">
 							<span class="opsb-badge">Embedded HMI</span>
+							<span class="opsb-badge">@CurrentViewLabel</span>
 							<span class="opsb-badge @(ActiveAlarmCount > 0 ? "is-alert" : "is-live")">@(ActiveAlarmCount > 0 ? "Respond now" : "Steady")</span>
 						</div>
 					</div>
@@ -403,6 +447,7 @@
 
 @code {
 	[Parameter] public string SimId { get; set; } = string.Empty;
+	[Parameter, SupplyParameterFromQuery(Name = "view")] public string? View { get; set; }
 
 	private readonly object _seriesLock = new();
 	private const int MaxPoints = 600;
@@ -464,6 +509,16 @@
 	private Task? _pollTask;
 	private Task? _renderTask;
 	private string? _currentSimId;
+	private bool IsTrainerView => string.Equals(View, "trainer", StringComparison.OrdinalIgnoreCase);
+	private string CurrentViewLabel => IsTrainerView ? "Trainer" : "Trainee";
+	private string[] TrainerPresetParameterNames =>
+		string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase)
+			? ["BridgeSeverityPercent", "DestinationTankCapacityLb"]
+			: string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase)
+				? ["AmbientAirTempF", "InletMoisturePercent", "AirflowRestrictionPercent"]
+				: IsHydraulicSimulation(SimId)
+					? ["SensorBiasPsi", "SensorFaultActive", "SupplyPressureSagPercent"]
+					: Array.Empty<string>();
 
 	private string SimulationTitle => string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase)
 		? "Tank Transfer"
@@ -523,8 +578,14 @@
 			return;
 		}
 
+		if (!IsTrainerView)
+		{
+			_showEngineeringOverlay = false;
+		}
+
 		if (string.Equals(_currentSimId, SimId, StringComparison.OrdinalIgnoreCase))
 		{
+			await InvokeAsync(StateHasChanged);
 			return;
 		}
 
@@ -1142,6 +1203,8 @@
 			_error = ex.Message;
 		}
 	}
+
+	private string BuildViewHref(bool trainer) => $"/sim/{Uri.EscapeDataString(SimId)}?view={(trainer ? "trainer" : "trainee")}";
 
 	public async ValueTask DisposeAsync()
 	{

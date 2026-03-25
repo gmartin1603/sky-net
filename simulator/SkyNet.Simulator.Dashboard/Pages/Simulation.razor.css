@@ -102,6 +102,33 @@
     align-items: center;
 }
 
+.opsb-view-switch {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.3rem;
+    border: 1px solid var(--opsb-line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--app-surface-elevated) 70%, transparent);
+}
+
+.opsb-view-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    color: var(--app-muted);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.opsb-view-link.is-active {
+    background: linear-gradient(145deg, color-mix(in srgb, #d18d3f 46%, var(--app-surface-elevated) 54%), color-mix(in srgb, #9a6323 58%, var(--app-surface) 42%));
+    color: var(--app-accent-contrast);
+}
+
 .opsb-command-button,
 .opsb-command-link,
 .opsb-badge,
@@ -315,6 +342,27 @@
     color: var(--opsb-alert);
 }
 
+.opsb-trainer-banner {
+    padding: 0.85rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--opsb-alert) 45%, var(--opsb-line) 55%);
+    border-radius: 20px;
+    background: linear-gradient(140deg, color-mix(in srgb, var(--app-panel-bg) 82%, #3b1d0b 18%), color-mix(in srgb, var(--app-panel-bg-soft) 80%, #6d3a12 20%));
+    color: color-mix(in srgb, var(--app-fg) 90%, #ffe3c5 10%);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2);
+}
+
+.opsb-trainer-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.9fr);
+    gap: 0.8rem;
+    align-items: start;
+}
+
+.opsb-trainer-rail {
+    display: grid;
+    gap: 0.8rem;
+}
+
 .opsb-modal-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
@@ -335,6 +383,7 @@
 }
 
 @media (max-width: 1200px) {
+    .opsb-trainer-workspace,
     .opsb-layout {
         grid-template-columns: 1fr;
     }
@@ -366,8 +415,14 @@
     }
 
     .opsb-command-button,
-    .opsb-command-link {
+    .opsb-command-link,
+    .opsb-view-link {
         width: 100%;
+    }
+
+    .opsb-view-switch {
+        width: 100%;
+        border-radius: 18px;
     }
 
     .opsb-viewport-scene {

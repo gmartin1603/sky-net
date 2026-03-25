@@ -216,6 +216,7 @@ else
 					</div>
 				</div>
 			</section>
+
 		</div>
 	</section>
 }
@@ -223,7 +224,6 @@ else
 @code {
 	[Parameter] public string SimId { get; set; } = string.Empty;
 	[Parameter] public TelemetrySnapshot? Snapshot { get; set; }
-
 	private const string ParamStartupAutomationEnable = "StartupAutomationEnable";
 	private const string ParamStartupAutomationFanSpeedPercent = "StartupAutomationFanSpeedPercent";
 	private const string ParamStartupAutomationBurnerFiringRatePercent = "StartupAutomationBurnerFiringRatePercent";
@@ -281,7 +281,6 @@ else
 	private double FeedRateCommandLbPerSec => GetParameter(ParamFeedRateCommandLbPerSec);
 	private double BurnerFiringRatePercent => GetParameter(ParamBurnerFiringRatePercent);
 	private double FanSpeedPercent => GetParameter(ParamFanSpeedPercent);
-
 	private double OutletMoisturePercent => GetSignal("OutletMoisturePercent");
 	private double MoistureControlErrorPercent => GetSignal("MoistureControlErrorPercent");
 	private double FeedRateLbPerSec => GetSignal("FeedRateLbPerSec");
@@ -354,8 +353,8 @@ else
 		var clamped = Math.Clamp(value, min, max);
 		await Api.SetParameterAsync(SimId, parameterName, clamped);
 
-		switch (parameterName)
-		{
+			switch (parameterName)
+			{
 			case ParamTargetOutletMoisturePercent:
 				_lastSyncedTargetMoisture = clamped;
 				_targetMoistureDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);

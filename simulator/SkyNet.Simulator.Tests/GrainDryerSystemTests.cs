@@ -93,6 +93,64 @@ public class GrainDryerSystemTests
 	}
 
 	[Fact]
+	public void WarmerAmbientAir_RaisesPlenumAndExhaustTemperatures_AtSameSettings()
+	{
+		var cold = RunScenario(feedRateLbPerSec: 18, burnerPercent: 70, fanPercent: 80, steps: 1200);
+		var warmParameters = new ParameterStore();
+		var warmSystem = new GrainDryerSystem(warmParameters);
+		var warmRunner = new SimulationRunner(warmSystem);
+
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.WetBinWeightLb.Name, 160000);
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.DryBinWeightLb.Name, 10000);
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.DryBinCapacityLb.Name, 220000);
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.FeedRateCommandLbPerSec.Name, 18);
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.BurnerFiringRatePercent.Name, 70);
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.FanSpeedPercent.Name, 80);
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.InletMoisturePercent.Name, 20);
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.TargetOutletMoisturePercent.Name, 15);
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.AmbientAirTempF.Name, 95);
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.FeedEnable.Name, 1);
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.BurnerEnable.Name, 1);
+		warmParameters.Set(GrainDryerSystem.ParameterKeys.FanEnable.Name, 1);
+
+		for (var i = 0; i < 1200; i++)
+		{
+			warmRunner.StepOnce();
+		}
+
+		var warm = warmSystem.Signals.Snapshot();
+
+		Assert.True(warm["PlenumTempF"] > cold["PlenumTempF"]);
+		Assert.True(warm["ExhaustTempF"] > cold["ExhaustTempF"]);
+	}
+
+	[Fact]
+	public void AirflowRestriction_LowersAirflow_AndRaisesLowAirflowAlarmRisk()
+	{
+		var parameters = new ParameterStore();
+		var system = new GrainDryerSystem(parameters);
+		var runner = new SimulationRunner(system);
+
+		parameters.Set(GrainDryerSystem.ParameterKeys.WetBinWeightLb.Name, 160000);
+		parameters.Set(GrainDryerSystem.ParameterKeys.DryBinWeightLb.Name, 10000);
+		parameters.Set(GrainDryerSystem.ParameterKeys.DryBinCapacityLb.Name, 220000);
+		parameters.Set(GrainDryerSystem.ParameterKeys.FeedRateCommandLbPerSec.Name, 18);
+		parameters.Set(GrainDryerSystem.ParameterKeys.BurnerFiringRatePercent.Name, 70);
+		parameters.Set(GrainDryerSystem.ParameterKeys.FanSpeedPercent.Name, 80);
+		parameters.Set(GrainDryerSystem.ParameterKeys.InletMoisturePercent.Name, 20);
+		parameters.Set(GrainDryerSystem.ParameterKeys.TargetOutletMoisturePercent.Name, 15);
+		parameters.Set(GrainDryerSystem.ParameterKeys.FeedEnable.Name, 1);
+		parameters.Set(GrainDryerSystem.ParameterKeys.BurnerEnable.Name, 1);
+		parameters.Set(GrainDryerSystem.ParameterKeys.FanEnable.Name, 1);
+		parameters.Set(GrainDryerSystem.ParameterKeys.AirflowRestrictionPercent.Name, 45);
+
+		runner.Step(1200);
+
+		Assert.True(system.Signals.Get("AirflowCfm") < 9000.0);
+		Assert.True(system.Signals.Get("BurnerOutputPercent") < 60.0);
+	}
+
+	[Fact]
 	public void FanDisable_DropsAirflow_StopsBurner_AndRaisesLowAirflowAlarmClear()
 	{
 		var (parameters, system, runner) = CreateRig();

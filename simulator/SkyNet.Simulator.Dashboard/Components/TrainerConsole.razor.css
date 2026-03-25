@@ -1,0 +1,112 @@
+.trainer-console {
+    display: grid;
+    gap: 0.9rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--app-panel-stroke) 76%, #c36b2d 24%);
+    border-radius: 22px;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--app-panel-bg) 82%, #27140b 18%), color-mix(in srgb, var(--app-panel-bg-soft) 80%, #4c2710 20%));
+    box-shadow: var(--app-shadow-strong);
+    position: sticky;
+    top: 5rem;
+}
+
+.trainer-console-head,
+.trainer-console-card-head,
+.trainer-console-item,
+.trainer-console-input-row,
+.trainer-console-item-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.trainer-console-kicker {
+    margin: 0 0 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, #f2ae62 75%, white 25%);
+}
+
+.trainer-console-head h3,
+.trainer-console-card-head h4,
+.trainer-console-item p {
+    margin: 0;
+}
+
+.trainer-console-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.trainer-console-card,
+.trainer-console-item {
+    border: 1px solid color-mix(in srgb, var(--app-panel-stroke) 82%, white 18%);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--app-surface-elevated) 82%, transparent);
+}
+
+.trainer-console-card {
+    display: grid;
+    gap: 0.8rem;
+    padding: 0.95rem;
+}
+
+.trainer-console-card-head h4 {
+    font-size: 0.98rem;
+}
+
+.trainer-console-list {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.trainer-console-item {
+    padding: 0.75rem 0.85rem;
+}
+
+.trainer-console-item p,
+.trainer-console-note {
+    color: var(--app-muted);
+}
+
+.trainer-console-input {
+    flex: 1 1 220px;
+    min-width: 0;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--app-panel-stroke) 70%, white 30%);
+    border-radius: 12px;
+    background: var(--app-surface-elevated);
+    color: var(--app-fg);
+}
+
+.trainer-console-button,
+.trainer-console-toggle,
+.trainer-console-reveal {
+    padding: 0.7rem 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--app-panel-stroke) 78%, white 22%);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--app-surface-muted) 82%, transparent);
+    color: var(--app-fg);
+    font-weight: 700;
+}
+
+.trainer-console-button-primary,
+.trainer-console-reveal {
+    background: linear-gradient(145deg, color-mix(in srgb, #d18d3f 48%, var(--app-surface-elevated) 52%), color-mix(in srgb, #9a6323 62%, var(--app-surface) 38%));
+    color: var(--app-accent-contrast);
+}
+
+@media (max-width: 900px) {
+    .trainer-console {
+        position: static;
+    }
+
+    .trainer-console-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,184 @@
+@using System.Globalization
+@using SkyNet.Simulator.Contracts
+@using SkyNet.Simulator.Dashboard.Services
+
+@inject SimApiClient Api
+@inject TrainerTimelineService TimelineService
+
+@if (_visible)
+{
+	<section class="trainer-console">
+		<div class="trainer-console-head">
+			<div>
+				<p class="trainer-console-kicker">Trainer Station</p>
+				<h3>Scenario Presets And Timeline</h3>
+			</div>
+			<button type="button" class="trainer-console-toggle" @onclick="ToggleVisible">Hide</button>
+		</div>
+		<div class="trainer-console-grid">
+			<section class="trainer-console-card">
+				<div class="trainer-console-card-head">
+					<h4>Saved Presets</h4>
+				</div>
+				<div class="trainer-console-input-row">
+					<input class="trainer-console-input" placeholder="Preset name" value="@_presetName" @onchange="OnPresetNameChanged" />
+					<button type="button" class="trainer-console-button trainer-console-button-primary" @onclick="SavePresetAsync">Save Current</button>
+				</div>
+				@if (!string.IsNullOrWhiteSpace(_message))
+				{
+					<p class="trainer-console-note">@_message</p>
+				}
+				@if (_presets.Count == 0)
+				{
+					<p class="trainer-console-note">No saved trainer presets yet.</p>
+				}
+				else
+				{
+					<div class="trainer-console-list">
+						@foreach (var preset in _presets)
+						{
+							<div class="trainer-console-item">
+								<div>
+									<strong>@preset.Name</strong>
+									<p>@preset.UpdatedAtUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</p>
+								</div>
+								<div class="trainer-console-item-actions">
+									<button type="button" class="trainer-console-button" @onclick="() => ApplyPresetAsync(preset)">Apply</button>
+									<button type="button" class="trainer-console-button" @onclick="() => DeletePresetAsync(preset.Name)">Delete</button>
+								</div>
+							</div>
+						}
+					</div>
+				}
+			</section>
+			<section class="trainer-console-card">
+				<div class="trainer-console-card-head">
+					<h4>Recent Trainer Events</h4>
+					<button type="button" class="trainer-console-button" @onclick="RefreshTimelineAsync">Refresh</button>
+				</div>
+				@if (_timeline.Count == 0)
+				{
+					<p class="trainer-console-note">No trainer actions recorded yet.</p>
+				}
+				else
+				{
+					<div class="trainer-console-list">
+						@foreach (var entry in _timeline)
+						{
+							<div class="trainer-console-item">
+								<div>
+									<strong>@entry.Level</strong>
+									<p>@entry.Message</p>
+								</div>
+								<span>@entry.Timestamp.ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture)</span>
+							</div>
+						}
+					</div>
+				}
+			</section>
+		</div>
+	</section>
+}
+else
+{
+	<button type="button" class="trainer-console-reveal" @onclick="ToggleVisible">Show Trainer Station</button>
+}
+
+@code {
+	[Parameter] public string SimId { get; set; } = string.Empty;
+	[Parameter] public TelemetrySnapshot? Snapshot { get; set; }
+	[Parameter] public string[] PresetParameterNames { get; set; } = Array.Empty<string>();
+
+	private readonly List<TrainerPresetDto> _presets = new();
+	private readonly List<LogEntryDto> _timeline = new();
+	private string _presetName = string.Empty;
+	private string? _message;
+	private bool _visible = true;
+	private string? _loadedSimId;
+
+	protected override async Task OnParametersSetAsync()
+	{
+		if (string.Equals(_loadedSimId, SimId, StringComparison.OrdinalIgnoreCase))
+		{
+			return;
+		}
+
+		_loadedSimId = SimId;
+		await RefreshPresetsAsync();
+		await RefreshTimelineAsync();
+	}
+
+	private void ToggleVisible() => _visible = !_visible;
+
+	private void OnPresetNameChanged(ChangeEventArgs e) => _presetName = e.Value?.ToString()?.Trim() ?? string.Empty;
+
+	private async Task SavePresetAsync()
+	{
+		if (string.IsNullOrWhiteSpace(SimId) || Snapshot is null || string.IsNullOrWhiteSpace(_presetName))
+		{
+			_message = "Enter a preset name first.";
+			return;
+		}
+
+		var parameters = BuildPresetParameters();
+		await Api.SaveTrainerPresetAsync(SimId, _presetName, parameters);
+		await Api.AddTrainerEventAsync(SimId, $"Trainer preset saved from console: {_presetName}");
+		_message = $"Saved preset '{_presetName}'.";
+		await RefreshPresetsAsync();
+		await RefreshTimelineAsync();
+	}
+
+	private async Task ApplyPresetAsync(TrainerPresetDto preset)
+	{
+		foreach (var kvp in preset.Parameters)
+		{
+			await Api.SetParameterAsync(SimId, kvp.Key, kvp.Value);
+		}
+		await Api.AddTrainerEventAsync(SimId, $"Trainer preset applied: {preset.Name}");
+
+		_message = $"Applied preset '{preset.Name}'.";
+		await RefreshTimelineAsync();
+	}
+
+	private async Task DeletePresetAsync(string presetName)
+	{
+		await Api.DeleteTrainerPresetAsync(SimId, presetName);
+		await Api.AddTrainerEventAsync(SimId, $"Trainer preset deleted from console: {presetName}");
+		_message = $"Deleted preset '{presetName}'.";
+		await RefreshPresetsAsync();
+		await RefreshTimelineAsync();
+	}
+
+	private async Task RefreshPresetsAsync()
+	{
+		_presets.Clear();
+		if (!string.IsNullOrWhiteSpace(SimId))
+		{
+			_presets.AddRange(await Api.GetTrainerPresetsAsync(SimId));
+		}
+	}
+
+	private async Task RefreshTimelineAsync()
+	{
+		_timeline.Clear();
+		if (!string.IsNullOrWhiteSpace(SimId))
+		{
+			_timeline.AddRange(await TimelineService.GetRecentEventsAsync(SimId));
+		}
+	}
+
+	private IReadOnlyDictionary<string, double> BuildPresetParameters()
+	{
+		var snapshotParameters = Snapshot?.Parameters ?? new Dictionary<string, double>();
+		var result = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+		foreach (var name in PresetParameterNames)
+		{
+			if (snapshotParameters.TryGetValue(name, out var value))
+			{
+				result[name] = value;
+			}
+		}
+
+		return result;
+	}
+}

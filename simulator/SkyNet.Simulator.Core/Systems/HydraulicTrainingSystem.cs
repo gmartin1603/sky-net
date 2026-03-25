@@ -26,6 +26,9 @@ public sealed class HydraulicTrainingSystem : ISimSystem
 		public static readonly ParameterKey<Ratio> PositionControlKp = new("PositionControlKp");
 		public static readonly ParameterKey<Ratio> PositionControlKi = new("PositionControlKi");
 		public static readonly ParameterKey<Ratio> PositionControlKd = new("PositionControlKd");
+		public static readonly ParameterKey<PressurePsi> SensorBiasPsi = new("SensorBiasPsi");
+		public static readonly ParameterKey<Ratio> SensorFaultActive = new("SensorFaultActive");
+		public static readonly ParameterKey<Ratio> SupplyPressureSagPercent = new("SupplyPressureSagPercent");
 	}
 
 	public static class SignalKeys
@@ -56,6 +59,9 @@ public sealed class HydraulicTrainingSystem : ISimSystem
 		Parameters.Define(ParameterKeys.PositionControlKp, Ratio.From(0.08), minValue: Ratio.From(0), maxValue: Ratio.From(1), description: "Proportional gain for the hydraulic position loop.");
 		Parameters.Define(ParameterKeys.PositionControlKi, Ratio.From(0.02), minValue: Ratio.From(0), maxValue: Ratio.From(1), description: "Integral gain for the hydraulic position loop.");
 		Parameters.Define(ParameterKeys.PositionControlKd, Ratio.From(0.08), minValue: Ratio.From(0), maxValue: Ratio.From(1), description: "Derivative gain for the hydraulic position loop.");
+		Parameters.Define(ParameterKeys.SensorBiasPsi, PressurePsi.From(0), minValue: PressurePsi.From(-500), maxValue: PressurePsi.From(500), description: "Trainer disturbance that biases the downstream pressure sensor.");
+		Parameters.Define(ParameterKeys.SensorFaultActive, Ratio.From(0), minValue: Ratio.From(0), maxValue: Ratio.From(1), description: "Trainer disturbance that freezes the pressure sensor at the last valid reading.");
+		Parameters.Define(ParameterKeys.SupplyPressureSagPercent, Ratio.From(0), minValue: Ratio.From(0), maxValue: Ratio.From(0.8), description: "Trainer disturbance that derates available hydraulic supply pressure.");
 
 		Signals.Set(SignalKeys.UpstreamPressurePsi, PressurePsi.From(0));
 		Signals.Set(SignalKeys.DownstreamPressurePsi, PressurePsi.From(0));
@@ -72,7 +78,7 @@ public sealed class HydraulicTrainingSystem : ISimSystem
 		_system = new SimSystemBuilder()
 			.Add(new ActuatorComponent(Parameters, Signals))
 			.Add(new PositionControllerComponent(Parameters, Signals))
-			.Add(new PressureSensorComponent(Signals))
+			.Add(new PressureSensorComponent(Parameters, Signals))
 			.Add(new ValveComponent(Parameters, Signals))
 			.Add(new SupplyComponent(Parameters, Signals))
 			.Build();
@@ -171,8 +177,9 @@ public sealed class HydraulicTrainingSystem : ISimSystem
 
 		public void Tick(SimTime time, double dtSeconds)
 		{
-			var p = parameters.Get(ParameterKeys.SupplyPressurePsi);
-			signals.Set(SignalKeys.UpstreamPressurePsi, p);
+			var p = parameters.Get(ParameterKeys.SupplyPressurePsi).Value;
+			var sagFactor = 1.0 - Math.Clamp(parameters.Get(ParameterKeys.SupplyPressureSagPercent).Value, 0.0, 0.8);
+			signals.Set(SignalKeys.UpstreamPressurePsi, PressurePsi.From(p * sagFactor));
 		}
 	}
 
@@ -202,8 +209,10 @@ public sealed class HydraulicTrainingSystem : ISimSystem
 		}
 	}
 
-	private sealed class PressureSensorComponent(SignalBus signals) : ISimComponent
+	private sealed class PressureSensorComponent(ParameterStore parameters, SignalBus signals) : ISimComponent
 	{
+		private double _lastGoodReadingPsi;
+
 		public IReadOnlyCollection<SignalDependency> Reads { get; } =
 			new[] { new SignalDependency(SignalKeys.DownstreamPressurePsi.Name, typeof(PressurePsi)) };
 
@@ -212,7 +221,16 @@ public sealed class HydraulicTrainingSystem : ISimSystem
 
 		public void Tick(SimTime time, double dtSeconds)
 		{
-			signals.Set(SignalKeys.DownstreamPressureSensorPsi, signals.Get(SignalKeys.DownstreamPressurePsi));
+			var processPressure = signals.Get(SignalKeys.DownstreamPressurePsi).Value;
+			var sensorFaultActive = parameters.Get(ParameterKeys.SensorFaultActive).Value >= 0.5;
+			var sensorBiasPsi = parameters.Get(ParameterKeys.SensorBiasPsi).Value;
+
+			if (!sensorFaultActive)
+			{
+				_lastGoodReadingPsi = processPressure + sensorBiasPsi;
+			}
+
+			signals.Set(SignalKeys.DownstreamPressureSensorPsi, PressurePsi.From(_lastGoodReadingPsi));
 		}
 	}
 

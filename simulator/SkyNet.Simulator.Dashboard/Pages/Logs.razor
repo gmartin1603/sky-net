@@ -17,6 +17,9 @@
 	</label>
 	<button @onclick="Refresh">Refresh</button>
 	<button @onclick="ToggleAuto">@(_auto ? "Stop" : "Auto")</button>
+	<label>
+		<input type="checkbox" @bind="_trainerOnly" /> Trainer events only
+	</label>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(_error))
@@ -37,6 +40,10 @@
 	<tbody>
 		@foreach (var e in _entries)
 		{
+			if (_trainerOnly && !e.Level.Contains("trainer", StringComparison.OrdinalIgnoreCase) && !e.Message.Contains("preset", StringComparison.OrdinalIgnoreCase) && !e.Message.Contains("disturbance", StringComparison.OrdinalIgnoreCase))
+			{
+				continue;
+			}
 			<tr>
 				<td><code>@e.Seq</code></td>
 				<td>@e.Timestamp.ToString("u")</td>
@@ -52,6 +59,7 @@
 	private string? _simId;
 	private string? _error;
 	private bool _auto = true;
+	private bool _trainerOnly;
 	private long _after;
 	private readonly List<LogEntryDto> _entries = new();
 	private CancellationTokenSource? _cts;

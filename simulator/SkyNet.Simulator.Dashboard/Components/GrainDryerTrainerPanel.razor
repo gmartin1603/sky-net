@@ -1,0 +1,169 @@
+@using System.Globalization
+@using SkyNet.Simulator.Contracts
+@using SkyNet.Simulator.Dashboard.Services
+
+@inject SimApiClient Api
+
+<section class="dryer-ops-card dryer-ops-card-wide dryer-ops-card-full dryer-ops-card-trainer">
+	<div class="dryer-ops-card-head">
+		<h3>Trainer Environment</h3>
+		<span class="dryer-ops-chip dryer-ops-chip-alert">Scenario</span>
+	</div>
+	<p class="dryer-ops-caption">Shift intake conditions, wet-grain quality, and available airflow so the trainee has to rebalance heat, fan, and throughput.</p>
+	<div class="dryer-ops-trainer-grid">
+		<div>
+			<label class="dryer-ops-field-label" for="dryer-ambient-air">Ambient Air Temperature</label>
+			<div class="dryer-ops-input-row">
+				<input id="dryer-ambient-air" class="dryer-ops-input" type="number" min="-20" max="120" step="5" value="@_ambientAirDraft" @onchange="OnAmbientAirChanged" />
+				<button type="button" class="dryer-ops-apply" @onclick="ApplyAmbientAirAsync">Apply</button>
+			</div>
+			<div class="dryer-ops-preset-row">
+				@foreach (var preset in AmbientAirPresets)
+				{
+					<button type="button" class="dryer-ops-preset" @onclick="() => SetNumericParameterAsync(ParamAmbientAirTempF, preset, -20.0, 120.0)">@preset.ToString("0", CultureInfo.InvariantCulture) F</button>
+				}
+			</div>
+		</div>
+		<div>
+			<label class="dryer-ops-field-label" for="dryer-inlet-moisture">Incoming Grain Moisture</label>
+			<div class="dryer-ops-input-row">
+				<input id="dryer-inlet-moisture" class="dryer-ops-input" type="number" min="10" max="35" step="0.5" value="@_inletMoistureDraft" @onchange="OnInletMoistureChanged" />
+				<button type="button" class="dryer-ops-apply" @onclick="ApplyInletMoistureAsync">Apply</button>
+			</div>
+			<div class="dryer-ops-preset-row">
+				@foreach (var preset in InletMoisturePresets)
+				{
+					<button type="button" class="dryer-ops-preset" @onclick="() => SetNumericParameterAsync(ParamInletMoisturePercent, preset, 10.0, 35.0)">@preset.ToString("0.0", CultureInfo.InvariantCulture)%</button>
+				}
+			</div>
+		</div>
+		<div>
+			<label class="dryer-ops-field-label" for="dryer-airflow-bias">Airflow Restriction</label>
+			<div class="dryer-ops-input-row">
+				<input id="dryer-airflow-bias" class="dryer-ops-input" type="number" min="0" max="60" step="5" value="@_airflowRestrictionDraft" @onchange="OnAirflowRestrictionChanged" />
+				<button type="button" class="dryer-ops-apply" @onclick="ApplyAirflowRestrictionAsync">Apply</button>
+			</div>
+			<div class="dryer-ops-preset-row">
+				@foreach (var preset in AirflowRestrictionPresets)
+				{
+					<button type="button" class="dryer-ops-preset" @onclick="() => SetNumericParameterAsync(ParamAirflowRestrictionPercent, preset, 0.0, 60.0)">@preset.ToString("0", CultureInfo.InvariantCulture)%</button>
+				}
+			</div>
+		</div>
+	</div>
+	<div class="dryer-ops-readback-grid">
+		<div>
+			<span class="dryer-ops-readback-label">Ambient air</span>
+			<strong>@AmbientAirTempF.ToString("0.0", CultureInfo.InvariantCulture) F</strong>
+		</div>
+		<div>
+			<span class="dryer-ops-readback-label">Inlet moisture</span>
+			<strong>@InletMoisturePercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
+		</div>
+		<div>
+			<span class="dryer-ops-readback-label">Airflow restriction</span>
+			<strong>@AirflowRestrictionPercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
+		</div>
+		<div>
+			<span class="dryer-ops-readback-label">Likely trainee response</span>
+			<strong>@ResponseLabel</strong>
+		</div>
+	</div>
+</section>
+
+@code {
+	[Parameter] public string SimId { get; set; } = string.Empty;
+	[Parameter] public TelemetrySnapshot? Snapshot { get; set; }
+
+	private const string ParamAmbientAirTempF = "AmbientAirTempF";
+	private const string ParamInletMoisturePercent = "InletMoisturePercent";
+	private const string ParamAirflowRestrictionPercent = "AirflowRestrictionPercent";
+
+	private static readonly double[] AmbientAirPresets = [20, 40, 55, 80, 100];
+	private static readonly double[] InletMoisturePresets = [16, 18, 20, 24, 28];
+	private static readonly double[] AirflowRestrictionPresets = [0, 10, 20, 35, 50];
+
+	private string _ambientAirDraft = string.Empty;
+	private string _inletMoistureDraft = string.Empty;
+	private string _airflowRestrictionDraft = string.Empty;
+	private double? _lastSyncedAmbientAir;
+	private double? _lastSyncedInletMoisture;
+	private double? _lastSyncedAirflowRestriction;
+
+	protected override void OnParametersSet()
+	{
+		SyncDraft(ref _lastSyncedAmbientAir, AmbientAirTempF, value => _ambientAirDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+		SyncDraft(ref _lastSyncedInletMoisture, InletMoisturePercent, value => _inletMoistureDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+		SyncDraft(ref _lastSyncedAirflowRestriction, AirflowRestrictionPercent, value => _airflowRestrictionDraft = value.ToString("0.0", CultureInfo.InvariantCulture));
+	}
+
+	private double AmbientAirTempF => GetParameter(ParamAmbientAirTempF);
+	private double InletMoisturePercent => GetParameter(ParamInletMoisturePercent);
+	private double AirflowRestrictionPercent => GetParameter(ParamAirflowRestrictionPercent);
+	private string ResponseLabel => AirflowRestrictionPercent >= 30.0
+		? "Raise fan, cut heat, watch low airflow alarm"
+		: AmbientAirTempF <= 35.0 || InletMoisturePercent >= 24.0
+			? "More heat or less feed"
+			: AmbientAirTempF >= 85.0 && InletMoisturePercent <= 18.0
+				? "Watch overdry risk"
+				: "Normal tuning";
+
+	private double GetParameter(string name) => Snapshot?.Parameters.TryGetValue(name, out var value) == true ? value : 0.0;
+
+	private void OnAmbientAirChanged(ChangeEventArgs e) => _ambientAirDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnInletMoistureChanged(ChangeEventArgs e) => _inletMoistureDraft = e.Value?.ToString() ?? string.Empty;
+	private void OnAirflowRestrictionChanged(ChangeEventArgs e) => _airflowRestrictionDraft = e.Value?.ToString() ?? string.Empty;
+
+	private Task ApplyAmbientAirAsync() => ApplyDraftAsync(ParamAmbientAirTempF, _ambientAirDraft, AmbientAirTempF, -20.0, 120.0);
+	private Task ApplyInletMoistureAsync() => ApplyDraftAsync(ParamInletMoisturePercent, _inletMoistureDraft, InletMoisturePercent, 10.0, 35.0);
+	private Task ApplyAirflowRestrictionAsync() => ApplyDraftAsync(ParamAirflowRestrictionPercent, _airflowRestrictionDraft, AirflowRestrictionPercent, 0.0, 60.0);
+
+	private async Task ApplyDraftAsync(string parameterName, string draft, double fallbackValue, double min, double max)
+	{
+		var parsed = TryParseValue(draft, out var value) ? value : fallbackValue;
+		await SetNumericParameterAsync(parameterName, parsed, min, max);
+	}
+
+	private async Task SetNumericParameterAsync(string parameterName, double value, double min, double max)
+	{
+		if (string.IsNullOrWhiteSpace(SimId))
+		{
+			return;
+		}
+
+		var clamped = Math.Clamp(value, min, max);
+		await Api.SetParameterAsync(SimId, parameterName, clamped);
+		await Api.AddTrainerEventAsync(SimId, $"Grain dryer disturbance updated: {parameterName}={clamped:0.###}");
+
+		switch (parameterName)
+		{
+			case ParamAmbientAirTempF:
+				_lastSyncedAmbientAir = clamped;
+				_ambientAirDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+				break;
+			case ParamInletMoisturePercent:
+				_lastSyncedInletMoisture = clamped;
+				_inletMoistureDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+				break;
+			case ParamAirflowRestrictionPercent:
+				_lastSyncedAirflowRestriction = clamped;
+				_airflowRestrictionDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+				break;
+		}
+	}
+
+	private static bool TryParseValue(string? text, out double value)
+	{
+		return double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)
+			|| double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out value);
+	}
+
+	private static void SyncDraft(ref double? lastSynced, double current, Action<double> apply)
+	{
+		if (!lastSynced.HasValue || Math.Abs(lastSynced.Value - current) > 1e-9)
+		{
+			apply(current);
+			lastSynced = current;
+		}
+	}
+}

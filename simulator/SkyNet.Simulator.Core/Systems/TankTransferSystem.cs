@@ -30,6 +30,7 @@ public sealed class TankTransferSystem : ISimSystem
 
 		public static readonly ParameterKey<PressurePsi> BlowlinePressureCommandPsi = new("BlowlinePressureCommandPsi");
 		public static readonly ParameterKey<FrequencyHz> AirlockSpeedCommandHz = new("AirlockSpeedCommandHz");
+		public static readonly ParameterKey<Percent> BridgeSeverityPercent = new("BridgeSeverityPercent");
 	}
 
 	public static class SignalKeys
@@ -72,6 +73,7 @@ public sealed class TankTransferSystem : ISimSystem
 		Parameters.Define(ParameterKeys.PressureControlEnable, Ratio.From(1), minValue: Ratio.From(0), maxValue: Ratio.From(1), description: "Enables PID pressure control. When enabled, the rotary airlock speed is adjusted automatically to hold the blowline PSI target.");
 		Parameters.Define(ParameterKeys.BlowlinePressureCommandPsi, PressurePsi.From(8), minValue: PressurePsi.From(0), maxValue: PressurePsi.From(25), description: "Blowline pressure target (psi) used by the PID loop.");
 		Parameters.Define(ParameterKeys.AirlockSpeedCommandHz, FrequencyHz.From(8), minValue: FrequencyHz.From(0), maxValue: FrequencyHz.From(30), description: "Manual rotary airlock speed command (Hz). Used when pressure control is disabled.");
+		Parameters.Define(ParameterKeys.BridgeSeverityPercent, Percent.From(0), minValue: Percent.From(0), maxValue: Percent.From(100), description: "Trainer disturbance that restricts product flow from the source vessel to simulate bridging.");
 
 		Signals.Set(SignalKeys.SourceTankWeightLb, parameters.Get(ParameterKeys.SourceTankWeightLb));
 		Signals.Set(SignalKeys.DestinationTankWeightLb, parameters.Get(ParameterKeys.DestinationTankWeightLb));
@@ -94,7 +96,7 @@ public sealed class TankTransferSystem : ISimSystem
 			.Add(new CommandSignalsComponent(Parameters, Signals))
 			.Add(new RunStateSignalsComponent(Parameters, Signals))
 			.Add(new AirlockDriveComponent(Parameters, Signals))
-			.Add(new TransferSetpointComponent(Signals))
+			.Add(new TransferSetpointComponent(Parameters, Signals))
 			.Add(new TankInventoryComponent(Parameters, Signals))
 			.Add(new BlowlinePressureDynamicsComponent(Signals))
 			.Add(new BlowerMotorComponent(Signals))
@@ -220,7 +222,7 @@ public sealed class TankTransferSystem : ISimSystem
 		}
 	}
 
-	private sealed class TransferSetpointComponent(SignalBus signals) : ISimComponent
+	private sealed class TransferSetpointComponent(ParameterStore parameters, SignalBus signals) : ISimComponent
 	{
 		public IReadOnlyCollection<SignalDependency> Reads { get; } =
 			new[]
@@ -251,10 +253,12 @@ public sealed class TankTransferSystem : ISimSystem
 			// f(p)=1-exp(-p/P50) gives diminishing returns.
 			const double p50 = 6.0;
 			var pressureFactor = 1.0 - Math.Exp(-Math.Max(0, pCmd) / p50);
+			var bridgeSeverity = Math.Clamp(parameters.Get(ParameterKeys.BridgeSeverityPercent).Value / 100.0, 0.0, 1.0);
+			var materialAvailability = 1.0 - bridgeSeverity;
 
 			// Base feed per Hz. Tuned for reasonable ranges: at 10 Hz and 10 psi -> ~25 lb/s.
 			const double baseLbPerSecPerHz = 3.0;
-			var commanded = baseLbPerSecPerHz * Math.Max(0, airlockHz) * pressureFactor;
+			var commanded = baseLbPerSecPerHz * Math.Max(0, airlockHz) * pressureFactor * materialAvailability;
 
 			signals.Set(SignalKeys.TransferRateCommandLbPerSec, MassRateLbPerSec.From(commanded));
 		}

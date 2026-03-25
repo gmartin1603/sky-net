@@ -74,4 +74,37 @@ public sealed class HydraulicTrainingSystemGoldenSnapshotTests
 		Assert.Equal(0.37, parameters.Get(HydraulicTrainingSystem.ParameterKeys.ValveOpening.Name), 6);
 		Assert.Equal(0.37, signals["ValveOpeningCommand"], 6);
 	}
+
+	[Fact]
+	public void TrainerDisturbances_BiasAndFreezeSensor_AndSagSupply()
+	{
+		var parameters = new ParameterStore();
+		var system = new HydraulicTrainingSystem(parameters);
+		var runner = new SimulationRunner(system);
+
+		parameters.Set(HydraulicTrainingSystem.ParameterKeys.SupplyPressurePsi.Name, 2400);
+		parameters.Set(HydraulicTrainingSystem.ParameterKeys.ValveOpening.Name, 0.45);
+		runner.Step(120);
+
+		var baselineProcess = system.Signals.Get("DownstreamPressurePsi");
+		parameters.Set(HydraulicTrainingSystem.ParameterKeys.SensorBiasPsi.Name, 180.0);
+		runner.Step(10);
+		var biasedSensor = system.Signals.Get("DownstreamPressureSensorPsi");
+
+		parameters.Set(HydraulicTrainingSystem.ParameterKeys.SensorFaultActive.Name, 1.0);
+		parameters.Set(HydraulicTrainingSystem.ParameterKeys.ValveOpening.Name, 0.10);
+		runner.Step(90);
+		var frozenSensor = system.Signals.Get("DownstreamPressureSensorPsi");
+		var changedProcess = system.Signals.Get("DownstreamPressurePsi");
+
+		parameters.Set(HydraulicTrainingSystem.ParameterKeys.SensorFaultActive.Name, 0.0);
+		parameters.Set(HydraulicTrainingSystem.ParameterKeys.SupplyPressureSagPercent.Name, 0.35);
+		runner.Step(120);
+		var saggedSupply = system.Signals.Get("UpstreamPressurePsi");
+
+		Assert.True(Math.Abs(biasedSensor - (baselineProcess + 180.0)) < 5.0);
+		Assert.True(Math.Abs(frozenSensor - biasedSensor) < 1.0);
+		Assert.True(Math.Abs(changedProcess - frozenSensor) > 50.0);
+		Assert.True(saggedSupply < 1700.0);
+	}
 }

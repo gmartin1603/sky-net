@@ -225,4 +225,48 @@ public class TankTransferSystemTests
 		Assert.True(pressureAfterDisable > 0.2);
 		Assert.True(pressureAfterDisable < 1.5);
 	}
+
+	[Fact]
+	public void BridgeSeverity_ReducesTransferWhileEquipmentKeepsRunning()
+	{
+		var (parameters, system, runner) = CreateRig();
+
+		runner.Step(900);
+		var baselineRate = system.Signals.Get("TransferRateLbPerSec");
+		var baselinePressure = system.Signals.Get("BlowlinePressurePsi");
+
+		parameters.Set(TankTransferSystem.ParameterKeys.BridgeSeverityPercent.Name, 70);
+		runner.Step(420);
+
+		var restrictedRate = system.Signals.Get("TransferRateLbPerSec");
+		var restrictedPressure = system.Signals.Get("BlowlinePressurePsi");
+		var blowerRunning = system.Signals.Get("BlowerRunning");
+		var airlockRunning = system.Signals.Get("AirlockRunning");
+
+		Assert.True(blowerRunning >= 0.999);
+		Assert.True(airlockRunning >= 0.999);
+		Assert.True(restrictedRate < baselineRate * 0.45);
+		Assert.True(restrictedPressure > 1.0);
+		Assert.True(Math.Abs(restrictedPressure - baselinePressure) < 3.0);
+	}
+
+	[Fact]
+	public void DestinationCapacityClamp_StopsTransferAtReducedLimit()
+	{
+		var (parameters, system, runner) = CreateRig();
+		parameters.Set(TankTransferSystem.ParameterKeys.DestinationTankWeightLb.Name, 7800);
+		parameters.Set(TankTransferSystem.ParameterKeys.DestinationTankCapacityLb.Name, 8000);
+
+		runner.Step(300);
+
+		var destinationWeight = system.Signals.Get("DestinationTankWeightLb");
+		var transferRateWhenFull = system.Signals.Get("TransferRateLbPerSec");
+
+		runner.Step(180);
+		var settledTransferRate = system.Signals.Get("TransferRateLbPerSec");
+
+		Assert.True(destinationWeight <= 8000.0 + 1e-6);
+		Assert.True(destinationWeight >= 7900.0);
+		Assert.True(settledTransferRate <= 1e-6);
+	}
 }

@@ -44,6 +44,14 @@ public sealed record ParameterDefinitionDto(
 
 public sealed record SetParameterRequest(double Value);
 
+public sealed record SaveTrainerPresetRequest(
+	IReadOnlyDictionary<string, double> Parameters);
+
+public sealed record TrainerPresetDto(
+	string Name,
+	DateTimeOffset UpdatedAtUtc,
+	IReadOnlyDictionary<string, double> Parameters);
+
 public sealed class TankTransferSchematicLayout
 {
 	public double CanvasWidth { get; set; } = 1160;

@@ -174,4 +174,38 @@ public sealed class SimApiClient(HttpClient http)
 				await EnsureSuccessAsync(resp).ConfigureAwait(false);
 			}, cancellationToken)
 			.Unwrap();
+
+	public async Task<TrainerPresetDto[]> GetTrainerPresetsAsync(string simId, CancellationToken cancellationToken = default) =>
+		await http.GetFromJsonAsync<TrainerPresetDto[]>($"/api/sims/{Uri.EscapeDataString(simId)}/trainer-presets", cancellationToken).ConfigureAwait(false)
+		?? Array.Empty<TrainerPresetDto>();
+
+	public Task SaveTrainerPresetAsync(string simId, string presetName, IReadOnlyDictionary<string, double> parameters, CancellationToken cancellationToken = default) =>
+		http.PutAsJsonAsync(
+			$"/api/sims/{Uri.EscapeDataString(simId)}/trainer-presets/{Uri.EscapeDataString(presetName)}",
+			new SaveTrainerPresetRequest(parameters),
+			cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
+
+	public Task DeleteTrainerPresetAsync(string simId, string presetName, CancellationToken cancellationToken = default) =>
+		http.DeleteAsync($"/api/sims/{Uri.EscapeDataString(simId)}/trainer-presets/{Uri.EscapeDataString(presetName)}", cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
+
+	public Task AddTrainerEventAsync(string simId, string message, CancellationToken cancellationToken = default) =>
+		http.PostAsync($"/api/sims/{Uri.EscapeDataString(simId)}/trainer-events?message={Uri.EscapeDataString(message)}", content: null, cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
 }

@@ -35,4 +35,24 @@ public sealed class ContractsJsonRoundTripTests
 		Assert.Equal(snapshot.Parameters["ValveOpening"], parsed.Parameters["ValveOpening"]);
 		Assert.Equal(snapshot.Signals["DownstreamPressurePsi"], parsed.Signals["DownstreamPressurePsi"]);
 	}
+
+	[Fact]
+	public void TrainerPresetDto_RoundTrips_Json()
+	{
+		var preset = new TrainerPresetDto(
+			Name: "cold-wet-grain",
+			UpdatedAtUtc: DateTimeOffset.Parse("2026-03-25T12:00:00Z"),
+			Parameters: new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+			{
+				["AmbientAirTempF"] = 25.0,
+				["InletMoisturePercent"] = 27.5
+			});
+
+		var json = JsonSerializer.Serialize(preset);
+		var parsed = JsonSerializer.Deserialize<TrainerPresetDto>(json);
+
+		Assert.NotNull(parsed);
+		Assert.Equal(preset.Name, parsed!.Name);
+		Assert.Equal(preset.Parameters["AmbientAirTempF"], parsed.Parameters["AmbientAirTempF"]);
+	}
 }

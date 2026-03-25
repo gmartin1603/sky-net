@@ -16,9 +16,14 @@ public sealed class InMemoryLogStore
 
 	public void Add(string simId, string level, string message)
 	{
+		Add(simId, level, message, DateTimeOffset.UtcNow);
+	}
+
+	public void Add(string simId, string level, string message, DateTimeOffset timestamp)
+	{
 		var entry = new LogEntryDto(
 			Seq: Interlocked.Increment(ref _seq),
-			Timestamp: DateTimeOffset.UtcNow,
+			Timestamp: timestamp,
 			SimId: simId,
 			Level: level,
 			Message: message);

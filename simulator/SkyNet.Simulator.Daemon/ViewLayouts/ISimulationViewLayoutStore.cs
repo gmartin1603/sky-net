@@ -7,4 +7,8 @@ public interface ISimulationViewLayoutStore
 	Task<TankTransferSchematicLayout> GetTankTransferLayoutAsync(string simId, CancellationToken cancellationToken = default);
 	Task SaveTankTransferLayoutAsync(string simId, TankTransferSchematicLayout layout, CancellationToken cancellationToken = default);
 	Task ResetTankTransferLayoutAsync(string simId, CancellationToken cancellationToken = default);
+	Task<TrainerPresetDto?> GetTrainerPresetAsync(string simId, string presetName, CancellationToken cancellationToken = default);
+	Task<IReadOnlyList<TrainerPresetDto>> ListTrainerPresetsAsync(string simId, CancellationToken cancellationToken = default);
+	Task SaveTrainerPresetAsync(string simId, TrainerPresetDto preset, CancellationToken cancellationToken = default);
+	Task ResetTrainerPresetAsync(string simId, string presetName, CancellationToken cancellationToken = default);
 }

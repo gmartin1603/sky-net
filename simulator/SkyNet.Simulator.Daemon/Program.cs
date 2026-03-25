@@ -260,6 +260,76 @@ app.MapDelete("/api/sims/{id}/view-layout/tank-transfer", async (
 	return Results.NoContent();
 });
 
+app.MapGet("/api/sims/{id}/trainer-presets", async (
+	string id,
+	SimulationRegistry registry,
+	ISimulationViewLayoutStore store,
+	CancellationToken ct) =>
+{
+	if (!registry.TryGet(id, out _))
+	{
+		return Results.NotFound(new { error = $"Unknown simulation '{id}'." });
+	}
+
+	var presets = await store.ListTrainerPresetsAsync(id, ct).ConfigureAwait(false);
+	return Results.Ok(presets);
+});
+
+app.MapPut("/api/sims/{id}/trainer-presets/{presetName}", async (
+	string id,
+	string presetName,
+	SaveTrainerPresetRequest request,
+	SimulationRegistry registry,
+	ISimulationViewLayoutStore store,
+	CancellationToken ct) =>
+{
+	if (!registry.TryGet(id, out var slot))
+	{
+		return Results.NotFound(new { error = $"Unknown simulation '{id}'." });
+	}
+
+	var preset = new TrainerPresetDto(
+		presetName,
+		DateTimeOffset.UtcNow,
+		new Dictionary<string, double>(request.Parameters, StringComparer.OrdinalIgnoreCase));
+	await store.SaveTrainerPresetAsync(id, preset, ct).ConfigureAwait(false);
+	slot.Logs.Add(id, "Trainer", $"Trainer preset saved: {presetName}");
+	return Results.NoContent();
+});
+
+app.MapDelete("/api/sims/{id}/trainer-presets/{presetName}", async (
+	string id,
+	string presetName,
+	SimulationRegistry registry,
+	ISimulationViewLayoutStore store,
+	CancellationToken ct) =>
+{
+	if (!registry.TryGet(id, out var slot))
+	{
+		return Results.NotFound(new { error = $"Unknown simulation '{id}'." });
+	}
+
+	await store.ResetTrainerPresetAsync(id, presetName, ct).ConfigureAwait(false);
+	slot.Logs.Add(id, "Trainer", $"Trainer preset deleted: {presetName}");
+	return Results.NoContent();
+});
+
+app.MapPost("/api/sims/{id}/trainer-events", (string id, string message, SimulationRegistry registry) =>
+{
+	if (!registry.TryGet(id, out var slot))
+	{
+		return Results.NotFound(new { error = $"Unknown simulation '{id}'." });
+	}
+
+	if (string.IsNullOrWhiteSpace(message))
+	{
+		return Results.BadRequest(new { error = "message is required" });
+	}
+
+	slot.Logs.Add(id, "Trainer", message.Trim());
+	return Results.NoContent();
+});
+
 app.MapPost("/api/sims/{id}/pause", (string id, SimulationRegistry registry) =>
 {
 	if (!registry.TryGet(id, out var slot))

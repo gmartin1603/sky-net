@@ -25,15 +25,15 @@
 }
 else
 {
-	<table class="table">
-		<thead>
-			<tr>
-				<th>Name</th>
-				<th>Id</th>
-				<th>Description</th>
-				<th></th>
-			</tr>
-		</thead>
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Id</th>
+					<th>Description</th>
+					<th>Views</th>
+				</tr>
+			</thead>
 		<tbody>
 			@foreach (var sim in _sims)
 			{
@@ -43,7 +43,8 @@ else
 					<td><code>@sim.Id</code></td>
 					<td>@sim.Description</td>
 					<td style="white-space: nowrap;">
-						<button @onclick="() => Open(sim.Id)">Open</button>
+						<button @onclick="() => Open(sim.Id, false)">Trainee</button>
+						<button @onclick="() => Open(sim.Id, true)">Trainer</button>
 					</td>
 				</tr>
 			}
@@ -70,6 +71,6 @@ else
 		}
 	}
 
-	private void Open(string simId)	=> Nav.NavigateTo($"sim/{Uri.EscapeDataString(simId)}");
+	private void Open(string simId, bool trainer)
+		=> Nav.NavigateTo($"sim/{Uri.EscapeDataString(simId)}?view={(trainer ? "trainer" : "trainee")}");
 }
-

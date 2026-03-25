@@ -229,6 +229,11 @@ else
 					}
 				</div>
 			</section>
+
+			@if (IsTrainingSim)
+			{
+				<HydraulicTrainerPanel SimId="@SimId" Snapshot="@Snapshot" />
+			}
 		</div>
 	</section>
 }

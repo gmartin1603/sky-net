@@ -40,6 +40,7 @@ public sealed class GrainDryerSystem : ISimSystem
 		public static readonly ParameterKey<Percent> InletMoisturePercent = new("InletMoisturePercent");
 		public static readonly ParameterKey<Percent> TargetOutletMoisturePercent = new("TargetOutletMoisturePercent");
 		public static readonly ParameterKey<TemperatureF> AmbientAirTempF = new("AmbientAirTempF");
+		public static readonly ParameterKey<Percent> AirflowRestrictionPercent = new("AirflowRestrictionPercent");
 		public static readonly ParameterKey<TemperatureF> HighTempAlarmThresholdF = new("HighTempAlarmThresholdF");
 	}
 
@@ -109,6 +110,7 @@ public sealed class GrainDryerSystem : ISimSystem
 		Parameters.Define(ParameterKeys.InletMoisturePercent, Percent.From(19.5), minValue: Percent.From(10), maxValue: Percent.From(35), description: "Incoming wet grain moisture.");
 		Parameters.Define(ParameterKeys.TargetOutletMoisturePercent, Percent.From(15), minValue: Percent.From(10), maxValue: Percent.From(20), description: "Target dried grain moisture used for quality error reporting.");
 		Parameters.Define(ParameterKeys.AmbientAirTempF, TemperatureF.From(55), minValue: TemperatureF.From(-20), maxValue: TemperatureF.From(120), description: "Ambient intake air temperature.");
+		Parameters.Define(ParameterKeys.AirflowRestrictionPercent, Percent.From(0), minValue: Percent.From(0), maxValue: Percent.From(60), description: "Trainer disturbance that restricts available fan airflow without changing the trainee's speed command.");
 		Parameters.Define(ParameterKeys.HighTempAlarmThresholdF, TemperatureF.From(180), minValue: TemperatureF.From(100), maxValue: TemperatureF.From(260), description: "High temperature alarm threshold.");
 
 		Signals.Set(SignalKeys.WetBinWeightLb, parameters.Get(ParameterKeys.WetBinWeightLb));
@@ -151,7 +153,7 @@ public sealed class GrainDryerSystem : ISimSystem
 			.Add(new StartupAutomationComponent(Parameters, Signals))
 			.Add(new CommandSignalsComponent(Parameters, Signals))
 			.Add(new RunStateSignalsComponent(Parameters, Signals))
-			.Add(new FanAirflowComponent(Signals))
+			.Add(new FanAirflowComponent(Parameters, Signals))
 			.Add(new BurnerHeatComponent(Parameters, Signals))
 			.Add(new InventoryDryingComponent(Parameters, Signals))
 			.Add(new ExhaustAndAlarmComponent(Parameters, Signals))
@@ -477,7 +479,7 @@ public sealed class GrainDryerSystem : ISimSystem
 		}
 	}
 
-	private sealed class FanAirflowComponent(SignalBus signals) : ISimComponent
+	private sealed class FanAirflowComponent(ParameterStore parameters, SignalBus signals) : ISimComponent
 	{
 		private const double MaxAirflowCfm = 18500;
 		private double _airflowCfm;
@@ -497,7 +499,8 @@ public sealed class GrainDryerSystem : ISimSystem
 		{
 			var fanRunning = signals.Get(SignalKeys.FanRunning).Value >= 0.5;
 			var speedPct = fanRunning ? Math.Clamp(signals.Get(SignalKeys.FanSpeedPercent).Value, 0, 100) : 0.0;
-			var targetCfm = MaxAirflowCfm * (speedPct / 100.0);
+			var restrictionFactor = 1.0 - Math.Clamp(parameters.Get(ParameterKeys.AirflowRestrictionPercent).Value / 100.0, 0.0, 0.6);
+			var targetCfm = MaxAirflowCfm * (speedPct / 100.0) * restrictionFactor;
 
 			const double tauSeconds = 2.2;
 			var alpha = 1.0 - Math.Exp(-dtSeconds / tauSeconds);
@@ -754,7 +757,9 @@ public sealed class GrainDryerSystem : ISimSystem
 			var coolingEffectF = Math.Clamp((outletMoisturePercent - 10.0) * 3.1, 0.0, 28.0);
 			var airflowBoost = Math.Clamp(airflowCfm / 18500.0, 0.0, 1.0);
 			var targetExhaustF = ambientF + ((plenumTempF - ambientF) * (0.42 + (0.18 * airflowBoost))) - coolingEffectF;
-			targetExhaustF = Math.Clamp(targetExhaustF, ambientF, plenumTempF);
+			var minExhaustF = Math.Min(ambientF, plenumTempF);
+			var maxExhaustF = Math.Max(ambientF, plenumTempF);
+			targetExhaustF = Math.Clamp(targetExhaustF, minExhaustF, maxExhaustF);
 
 			const double tauSeconds = 5.0;
 			var alpha = 1.0 - Math.Exp(-dtSeconds / tauSeconds);
