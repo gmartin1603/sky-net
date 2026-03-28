@@ -24,14 +24,14 @@ else
 					<span class="tank-ops-stat-label">Mode</span>
 					<strong>@ControlModeLabel</strong>
 				</div>
-				<div>
+				<button type="button" class="tank-ops-hero-stat-button" @onclick='() => OpenTrend(TrendKeys.BlowlinePressurePsi)'>
 					<span class="tank-ops-stat-label">Line PSI</span>
 					<strong>@BlowlinePressurePsi.ToString("0.0", CultureInfo.InvariantCulture)</strong>
-				</div>
-				<div>
+				</button>
+				<button type="button" class="tank-ops-hero-stat-button" @onclick='() => OpenTrend(TrendKeys.TransferRateLbPerSec)'>
 					<span class="tank-ops-stat-label">Transfer</span>
 					<strong>@TransferRateLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</strong>
-				</div>
+				</button>
 			</div>
 		</div>
 
@@ -125,36 +125,53 @@ else
 					<span class="tank-ops-chip">Process</span>
 				</div>
 				<div class="tank-ops-readback-grid">
-					<div>
+					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.BlowlinePressurePsi)'>
 						<span class="tank-ops-readback-label">Actual line pressure</span>
 						<strong>@BlowlinePressurePsi.ToString("0.0", CultureInfo.InvariantCulture) psi</strong>
-					</div>
-					<div>
+					</button>
+					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.BlowlinePressureCommandPsi)'>
 						<span class="tank-ops-readback-label">Pressure target</span>
 						<strong>@BlowlinePressureCommandPsi.ToString("0.0", CultureInfo.InvariantCulture) psi</strong>
-					</div>
-					<div>
+					</button>
+					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.AirlockCommandHz)'>
 						<span class="tank-ops-readback-label">Airlock cmd</span>
 						<strong>@AirlockCommandHz.ToString("0.0", CultureInfo.InvariantCulture) Hz</strong>
-					</div>
-					<div>
+					</button>
+					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.AirlockSpeedHz)'>
 						<span class="tank-ops-readback-label">Airlock actual</span>
 						<strong>@AirlockSpeedHz.ToString("0.0", CultureInfo.InvariantCulture) Hz</strong>
-					</div>
-					<div>
+					</button>
+					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.TransferRateLbPerSec)'>
 						<span class="tank-ops-readback-label">Transfer rate</span>
 						<strong>@TransferRateLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</strong>
-					</div>
-					<div>
+					</button>
+					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.BlowerMotorPercentFla)'>
 						<span class="tank-ops-readback-label">Blower load</span>
 						<strong>@BlowerMotorPercentFla.ToString("0.0", CultureInfo.InvariantCulture)% FLA</strong>
-					</div>
+					</button>
 				</div>
 			</section>
 
 		</div>
 	</section>
 }
+
+<OpsModal Visible="@_showTrendModal" Title="@(_selectedTrend?.Title ?? "Signal Trend")" Subtitle="Click any live readback to inspect its recent history." OnClose="CloseTrendAsync">
+	@if (_selectedTrend is not null)
+	{
+		<div class="tank-ops-trend-meta">
+			<div>
+				<span class="tank-ops-readback-label">Current value</span>
+				<strong>@FormatTrendValue(_selectedTrend)</strong>
+			</div>
+			<div>
+				<span class="tank-ops-readback-label">Tracked signal</span>
+				<strong>@_selectedTrend.Title</strong>
+			</div>
+		</div>
+		<LineChart Title="@_selectedTrend.Title" SubTitle="@_selectedTrend.Unit" Stroke="var(--chart-series-2)" Points="@GetTrendPoints(_selectedTrend.Key)" YFormat="@_selectedTrend.Format" Width="880" Height="240" />
+	}
+</OpsModal>
 
 @code {
 	[Parameter] public string SimId { get; set; } = string.Empty;
@@ -172,6 +189,33 @@ else
 	private string _airlockSpeedDraft = string.Empty;
 	private double? _lastSyncedPressureCommandPsi;
 	private double? _lastSyncedAirlockSpeedHz;
+	private double _lastTrendTimeSeconds = double.NaN;
+	private bool _showTrendModal;
+	private TrendMetric? _selectedTrend;
+	private readonly Dictionary<string, List<LineChart.Point>> _trendHistory = new(StringComparer.OrdinalIgnoreCase);
+	private const int MaxTrendPoints = 300;
+
+	private static class TrendKeys
+	{
+		public const string BlowlinePressurePsi = nameof(BlowlinePressurePsi);
+		public const string BlowlinePressureCommandPsi = nameof(BlowlinePressureCommandPsi);
+		public const string AirlockCommandHz = nameof(AirlockCommandHz);
+		public const string AirlockSpeedHz = nameof(AirlockSpeedHz);
+		public const string TransferRateLbPerSec = nameof(TransferRateLbPerSec);
+		public const string BlowerMotorPercentFla = nameof(BlowerMotorPercentFla);
+	}
+
+	private sealed record TrendMetric(string Key, string Title, string Unit, string Format, Func<TankTransferOperatorPanel, double> ReadValue);
+
+	private static readonly IReadOnlyDictionary<string, TrendMetric> TrendMetrics = new Dictionary<string, TrendMetric>(StringComparer.OrdinalIgnoreCase)
+	{
+		[TrendKeys.BlowlinePressurePsi] = new(TrendKeys.BlowlinePressurePsi, "Actual Line Pressure", "psi", "0.0", panel => panel.BlowlinePressurePsi),
+		[TrendKeys.BlowlinePressureCommandPsi] = new(TrendKeys.BlowlinePressureCommandPsi, "Pressure Target", "psi", "0.0", panel => panel.BlowlinePressureCommandPsi),
+		[TrendKeys.AirlockCommandHz] = new(TrendKeys.AirlockCommandHz, "Airlock Command", "Hz", "0.0", panel => panel.AirlockCommandHz),
+		[TrendKeys.AirlockSpeedHz] = new(TrendKeys.AirlockSpeedHz, "Airlock Actual", "Hz", "0.0", panel => panel.AirlockSpeedHz),
+		[TrendKeys.TransferRateLbPerSec] = new(TrendKeys.TransferRateLbPerSec, "Transfer Rate", "lb/s", "0.0", panel => panel.TransferRateLbPerSec),
+		[TrendKeys.BlowerMotorPercentFla] = new(TrendKeys.BlowerMotorPercentFla, "Blower Load", "% FLA", "0.0", panel => panel.BlowerMotorPercentFla),
+	};
 
 	protected override void OnParametersSet()
 	{
@@ -187,6 +231,7 @@ else
 			_lastSyncedAirlockSpeedHz = ManualAirlockSpeedCommandHz;
 		}
 
+		CaptureTrendSnapshot();
 	}
 
 	private bool BlowerEnabled => GetParameter(ParamBlowerEnable) >= 0.5;
@@ -251,6 +296,64 @@ else
 		{
 			_lastSyncedAirlockSpeedHz = clamped;
 			_airlockSpeedDraft = clamped.ToString("0.0", CultureInfo.InvariantCulture);
+		}
+	}
+
+	private void OpenTrend(string trendKey)
+	{
+		if (!TrendMetrics.TryGetValue(trendKey, out var metric))
+		{
+			return;
+		}
+
+		_selectedTrend = metric;
+		_showTrendModal = true;
+	}
+
+	private Task CloseTrendAsync()
+	{
+		_showTrendModal = false;
+		return Task.CompletedTask;
+	}
+
+	private LineChart.Point[] GetTrendPoints(string trendKey) =>
+		_trendHistory.TryGetValue(trendKey, out var points) ? points.ToArray() : Array.Empty<LineChart.Point>();
+
+	private string FormatTrendValue(TrendMetric metric)
+	{
+		var value = metric.ReadValue(this);
+		return string.IsNullOrWhiteSpace(metric.Unit)
+			? value.ToString(metric.Format, CultureInfo.InvariantCulture)
+			: $"{value.ToString(metric.Format, CultureInfo.InvariantCulture)} {metric.Unit}";
+	}
+
+	private void CaptureTrendSnapshot()
+	{
+		if (Snapshot is null)
+		{
+			return;
+		}
+
+		var timeSeconds = Snapshot.TimeSeconds;
+		if (!double.IsNaN(_lastTrendTimeSeconds) && Math.Abs(_lastTrendTimeSeconds - timeSeconds) < 1e-9)
+		{
+			return;
+		}
+
+		_lastTrendTimeSeconds = timeSeconds;
+		foreach (var metric in TrendMetrics.Values)
+		{
+			if (!_trendHistory.TryGetValue(metric.Key, out var points))
+			{
+				points = new List<LineChart.Point>(MaxTrendPoints);
+				_trendHistory[metric.Key] = points;
+			}
+
+			points.Add(new LineChart.Point(timeSeconds, metric.ReadValue(this)));
+			if (points.Count > MaxTrendPoints)
+			{
+				points.RemoveRange(0, points.Count - MaxTrendPoints);
+			}
 		}
 	}
 

@@ -76,6 +76,18 @@
     padding: 0.8rem 0.9rem;
 }
 
+.tank-ops-hero-stat-button {
+    padding: 0.8rem 0.9rem;
+    text-align: left;
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.tank-ops-hero-stat-button:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--tank-ops-accent) 48%, white 52%);
+    box-shadow: var(--app-shadow-soft);
+}
+
 .tank-ops-stat-label,
 .tank-ops-readback-label,
 .tank-ops-field-label,
@@ -296,6 +308,34 @@
     border: 1px solid var(--app-panel-stroke);
 }
 
+.tank-ops-readback-card {
+    padding: 0.85rem 0.95rem;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--app-surface) 80%, var(--app-bg) 20%);
+    border: 1px solid var(--app-panel-stroke);
+    text-align: left;
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.tank-ops-readback-card:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--tank-ops-accent) 48%, white 52%);
+    box-shadow: var(--app-shadow-soft);
+}
+
+.tank-ops-trend-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.tank-ops-trend-meta > div {
+    padding: 0.85rem 0.95rem;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--app-surface) 84%, var(--app-bg) 16%);
+    border: 1px solid var(--app-panel-stroke);
+}
+
 @media (max-width: 1100px) {
     .tank-ops-card,
     .tank-ops-card-wide {
@@ -304,6 +344,10 @@
 
     .tank-ops-readback-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tank-ops-trend-meta {
+        grid-template-columns: 1fr;
     }
 
     .tank-ops-trainer-grid {
@@ -324,7 +368,8 @@
 
     .tank-ops-hero-stats,
     .tank-ops-readback-grid,
-    .tank-ops-trainer-grid {
+    .tank-ops-trainer-grid,
+    .tank-ops-trend-meta {
         grid-template-columns: 1fr;
     }
 

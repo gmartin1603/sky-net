@@ -236,7 +236,7 @@ public class TankTransferSystemTests
 		var baselinePressure = system.Signals.Get("BlowlinePressurePsi");
 
 		parameters.Set(TankTransferSystem.ParameterKeys.BridgeSeverityPercent.Name, 70);
-		runner.Step(420);
+		runner.Step(90);
 
 		var restrictedRate = system.Signals.Get("TransferRateLbPerSec");
 		var restrictedPressure = system.Signals.Get("BlowlinePressurePsi");
@@ -247,7 +247,27 @@ public class TankTransferSystemTests
 		Assert.True(airlockRunning >= 0.999);
 		Assert.True(restrictedRate < baselineRate * 0.45);
 		Assert.True(restrictedPressure > 1.0);
-		Assert.True(Math.Abs(restrictedPressure - baselinePressure) < 3.0);
+		Assert.True(restrictedPressure < baselinePressure - 1.0);
+	}
+
+	[Fact]
+	public void BridgeSeverity_CausesPressureControl_ToRaiseAirlockSpeed()
+	{
+		var (parameters, system, runner) = CreateRig();
+
+		runner.Step(900);
+		var baselineCommandHz = system.Signals.Get("AirlockSpeedCommandHz");
+		var baselinePressure = system.Signals.Get("BlowlinePressurePsi");
+
+		parameters.Set(TankTransferSystem.ParameterKeys.BridgeSeverityPercent.Name, 70);
+		runner.Step(420);
+
+		var bridgedCommandHz = system.Signals.Get("AirlockSpeedCommandHz");
+		var bridgedPressure = system.Signals.Get("BlowlinePressurePsi");
+
+		Assert.True(bridgedCommandHz > baselineCommandHz + 2.0);
+		Assert.True(bridgedPressure > 6.0);
+		Assert.True(bridgedPressure < baselinePressure);
 	}
 
 	[Fact]
