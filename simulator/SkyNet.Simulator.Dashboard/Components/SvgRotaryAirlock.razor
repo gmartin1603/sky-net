@@ -2,30 +2,38 @@
 
 @{
 	var centerX = Width / 2.0;
-	var housingLeft = 48.0;
-	var housingTop = CenterY - 24.0;
-	var housingWidth = 124.0;
-	var housingHeight = 48.0;
+	var bodyLeft = 46.0;
+	var bodyTop = CenterY - 20.0;
+	var bodyWidth = 126.0;
+	var bodyHeight = 40.0;
+	var hopperTop = TopInletY + 2.0;
+	var hopperPath = $"M{F(centerX - 34)} {F(hopperTop)} L{F(centerX + 34)} {F(hopperTop)} L{F(centerX + 18)} {F(bodyTop - 2)} L{F(centerX - 18)} {F(bodyTop - 2)} Z";
+	var hopperHighlightPath = $"M{F(centerX - 20)} {F(hopperTop + 6)} Q{F(centerX)} {F(hopperTop - 6)} {F(centerX + 20)} {F(hopperTop + 6)}";
+	var rotorPath = $"M{F(centerX)} {F(CenterY - 16)} L{F(centerX + 14)} {F(CenterY)} L{F(centerX)} {F(CenterY + 16)} L{F(centerX - 14)} {F(CenterY)} Z";
 }
 
 <g class="schematic-glyph schematic-airlock">
-	<rect x="58" y="@(CenterY + 33)" width="108" height="12" rx="6" ry="6" fill="var(--node-shell-shadow)" opacity="0.22" />
-	<line x1="@centerX" y1="@TopInletY" x2="@centerX" y2="@(housingTop - 6)" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
-	<path d="M@(centerX - 22) @(housingTop - 6) L@(centerX + 22) @(housingTop - 6) L@(centerX + 36) @housingTop L@(centerX - 36) @housingTop Z" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
-	<path d="M@(centerX - 20) @(housingTop - 3) Q@centerX @(housingTop - 16) @(centerX + 20) @(housingTop - 3)" fill="none" stroke="var(--node-shell-highlight)" stroke-width="2.1" stroke-linecap="round" opacity="0.75" />
-
-	<line x1="10" y1="@CenterY" x2="@housingLeft" y2="@CenterY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
-	<line x1="@(housingLeft + housingWidth)" y1="@CenterY" x2="@(Width - 10)" y2="@CenterY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
-	<rect x="@housingLeft" y="@housingTop" width="@housingWidth" height="@housingHeight" rx="18" ry="18" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
-	<circle cx="@centerX" cy="@CenterY" r="20" fill="@VisualStyle.CoreFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.8" />
-	<path d="M@centerX @(CenterY - 18) L@(centerX + 16) @CenterY L@centerX @(CenterY + 18) L@(centerX - 16) @CenterY Z" fill="@VisualStyle.CoreFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.6" />
-	<circle cx="@(housingLeft + 14)" cy="@CenterY" r="5" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.6" />
-	<circle cx="@(housingLeft + housingWidth - 14)" cy="@CenterY" r="5" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.6" />
-	<circle cx="@centerX" cy="@CenterY" r="4.5" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="2" />
-	<rect x="64" y="@(CenterY + 30)" width="92" height="10" rx="5" ry="5" fill="@VisualStyle.BaseFill" />
+	<rect x="58" y="@(CenterY + 31)" width="106" height="12" rx="6" ry="6" fill="var(--node-shell-shadow)" opacity="0.22" />
+	<line x1="@centerX" y1="@TopInletY" x2="@centerX" y2="@(hopperTop + 14)" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<path d="@hopperPath" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.2" />
+	<path d="@hopperHighlightPath" fill="none" stroke="var(--node-shell-highlight)" stroke-width="2" opacity="0.78" />
+	<line x1="10" y1="@CenterY" x2="@bodyLeft" y2="@CenterY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<line x1="@(bodyLeft + bodyWidth)" y1="@CenterY" x2="@(Width - 10)" y2="@CenterY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<rect x="@bodyLeft" y="@bodyTop" width="@bodyWidth" height="@bodyHeight" rx="16" ry="16" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.2" />
+	<circle cx="@centerX" cy="@CenterY" r="17" fill="@VisualStyle.CoreFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.8" />
+	<path d="@rotorPath" fill="@VisualStyle.CoreFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.5" />
+	<rect x="@(bodyLeft + 8)" y="@(CenterY - 6)" width="12" height="12" rx="3" ry="3" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.4" />
+	<rect x="@(bodyLeft + bodyWidth - 20)" y="@(CenterY - 6)" width="12" height="12" rx="3" ry="3" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.4" />
+	<line x1="@(bodyLeft + bodyWidth)" y1="@(CenterY - 14)" x2="@(bodyLeft + bodyWidth + 16)" y2="@(CenterY - 14)" stroke="@VisualStyle.DetailStroke" stroke-width="2" stroke-linecap="round" />
+	<circle cx="@(bodyLeft + bodyWidth + 22)" cy="@(CenterY - 14)" r="8" fill="#d74628" stroke="#6f2217" stroke-width="1.4" />
+	<line x1="@(bodyLeft + bodyWidth + 15)" y1="@(CenterY - 14)" x2="@(bodyLeft + bodyWidth + 29)" y2="@(CenterY - 14)" stroke="#f7cabc" stroke-width="1.8" stroke-linecap="round" />
+	<line x1="@(bodyLeft + bodyWidth + 22)" y1="@(CenterY - 21)" x2="@(bodyLeft + bodyWidth + 22)" y2="@(CenterY - 7)" stroke="#f7cabc" stroke-width="1.8" stroke-linecap="round" />
+	<rect x="64" y="@(CenterY + 28)" width="92" height="10" rx="5" ry="5" fill="@VisualStyle.BaseFill" />
 </g>
 
 @code {
+	private static string F(double value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+
 	[CascadingParameter] public SchematicVisualStyle VisualStyle { get; set; } = SchematicVisualStyle.Default;
 	[Parameter] public double Width { get; set; } = 220;
 	[Parameter] public double TopInletY { get; set; } = 26;

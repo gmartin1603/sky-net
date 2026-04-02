@@ -5,7 +5,9 @@
 
 @if (Snapshot is null)
 {
-	<div>Waiting for telemetry...</div>
+	<div class="tank-hmi-shell tank-hmi-shell-empty">
+		<div class="tank-hmi-empty">Waiting for telemetry...</div>
+	</div>
 }
 else
 {
@@ -23,121 +25,354 @@ else
 	var destinationInletY = schematicLayout.TopRowY + schematicLayout.DestinationInletAnchorY;
 	var destinationCapacity = GetParameter("DestinationTankCapacityLb");
 	var destinationFillRatio = destinationCapacity > 0 ? Math.Clamp(DestinationTankWeight / destinationCapacity, 0.0, 1.0) : (double?)null;
+	var sourceFillRatio = SourceTankCapacity > 0 ? Math.Clamp(SourceTankWeight / SourceTankCapacity, 0.0, 1.0) : (double?)null;
 	var sourceAlert = IsStarved;
 	var destinationAlert = IsFull;
-	var sceneInset = 18.0;
+	var sceneInset = 22.0;
 	var sceneWidth = schematicLayout.CanvasWidth - (sceneInset * 2.0);
 	var sceneHeight = schematicLayout.CanvasHeight - (sceneInset * 2.0);
+	var sceneRightX = sceneInset + sceneWidth;
+	var pipeStroke = TransferPermitted ? 8.0 : 7.0;
+	var pipeGlow = TransferPermitted ? 12.0 : 9.0;
+	var pipeColor = TransferPermitted ? "var(--tank-hmi-flow-live)" : "var(--tank-hmi-flow-idle)";
+	var pipeShadow = TransferPermitted ? "0.7" : "0.3";
 	var svgPaletteStyle = string.Join(" ",
 	[
-		"--node-shell-fill: var(--schematic-shell-fill);",
-		"--node-shell-shadow: var(--schematic-shell-shadow);",
-		"--node-shell-highlight: var(--schematic-shell-highlight);",
-		"--node-shell-stroke: var(--schematic-shell-stroke);",
-		"--node-core-fill: var(--schematic-core-fill);",
-		"--node-detail-stroke: var(--schematic-detail-stroke);",
-		"--node-base-fill: var(--schematic-base-fill);",
-		"--node-port-cap-fill: var(--schematic-shell-fill);",
-		"--node-tank-fill: var(--schematic-fill);",
-		"--node-alert: var(--schematic-alert);",
-		"--node-panel-fill: var(--schematic-label-bg);",
-		"--node-border-on: var(--schematic-border-on);",
-		"--node-border-off: var(--schematic-border-off);",
-		"--node-panel-divider: var(--schematic-label-divider);",
-		"--node-title-color: var(--schematic-label-text);",
-		"--node-muted-color: var(--schematic-label-muted);",
-		"--node-value-color: var(--schematic-label-value);",
-		"--scene-top: var(--schematic-scene-top);",
-		"--scene-bottom: var(--schematic-scene-bottom);",
-		"--scene-border: var(--schematic-scene-border);",
-		"--scene-grid: var(--schematic-grid);",
-		"--scene-band-fill: var(--schematic-band-fill);",
-		"--scene-band-fill-strong: var(--schematic-band-fill-strong);",
-		"--scene-band-stroke: var(--schematic-band-stroke);",
-		"--scene-label-muted: var(--schematic-label-muted);",
-		"--scene-label-accent: color-mix(in srgb, var(--schematic-label-text) 70%, var(--schematic-flow-on));",
-		"--scene-flow-on: var(--schematic-flow-on);",
-		"--scene-flow-off: var(--schematic-flow-off);"
+		"--node-shell-fill: url(#steel-shell);",
+		"--node-shell-shadow: rgba(18, 24, 28, 0.34);",
+		"--node-shell-highlight: rgba(255, 255, 255, 0.88);",
+		"--node-shell-stroke: #2b2f32;",
+		"--node-core-fill: #747b81;",
+		"--node-detail-stroke: #6a7076;",
+		"--node-base-fill: #5f6468;",
+		"--node-port-cap-fill: #bcc4ca;",
+		"--node-tank-fill: url(#cyan-fill);",
+		"--node-alert: #d64529;",
+		"--node-panel-fill: rgba(28, 31, 34, 0.92);",
+		"--node-border-on: #50efe4;",
+		"--node-border-off: #50555b;",
+		"--node-panel-divider: rgba(255, 255, 255, 0.16);",
+		"--node-title-color: #eef4f8;",
+		"--node-muted-color: #9fb0bc;",
+		"--node-value-color: #87ff8c;"
 	]);
 	var canvasWidth = schematicLayout.CanvasWidth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
 	var canvasHeight = schematicLayout.CanvasHeight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+	var sourceDropPath = $"M{F(sourceCenterX)} {F(sourceBottomY)} L{F(sourceCenterX)} {F(airlockTopY)}";
+	var blowerFeedPath = $"M{F(blowerRightX)} {F(equipmentMidY)} L{F(airlockLeftX)} {F(equipmentMidY)}";
+	var airlockToLinePath = $"M{F(airlockRightX)} {F(equipmentMidY)} L{F(blowlineLeftX)} {F(equipmentMidY)}";
+	var lineToDestinationPath = $"M{F(blowlineRightX)} {F(equipmentMidY)} L{F(destinationInletX)} {F(destinationInletY)}";
+	var destinationFillPercent = destinationFillRatio.HasValue ? destinationFillRatio.Value * 100.0 : 0.0;
 
-	<div style="position: relative; max-width: @(schematicLayout.CanvasWidth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; height: @(schematicLayout.CanvasHeight.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px; margin: 0 auto;">
-		<svg viewBox="@($"0 0 {canvasWidth} {canvasHeight}")" style="position:absolute; inset: 0; width: 100%; height: 100%; @svgPaletteStyle">
-			<defs>
-				<linearGradient id="scene-bg" x1="0" y1="0" x2="1" y2="1">
-					<stop offset="0%" style="stop-color: var(--scene-top);" />
-					<stop offset="100%" style="stop-color: var(--scene-bottom);" />
-				</linearGradient>
-				<linearGradient id="scene-band-top" x1="0" y1="0" x2="1" y2="0">
-					<stop offset="0%" style="stop-color: var(--scene-band-fill); stop-opacity: 0.75;" />
-					<stop offset="100%" style="stop-color: var(--scene-band-fill); stop-opacity: 0.16;" />
-				</linearGradient>
-				<linearGradient id="scene-band-bottom" x1="0" y1="0" x2="1" y2="0">
-					<stop offset="0%" style="stop-color: var(--scene-band-fill-strong); stop-opacity: 0.20;" />
-					<stop offset="100%" style="stop-color: var(--scene-band-fill); stop-opacity: 0.06;" />
-				</linearGradient>
-				<pattern id="scene-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-					<path d="M32 0 L0 0 0 32" fill="none" stroke="var(--scene-grid)" stroke-width="1" />
-				</pattern>
-				<filter id="flow-glow" x="-20%" y="-20%" width="140%" height="140%">
-					<feGaussianBlur stdDeviation="4" result="blur" />
-					<feMerge>
-						<feMergeNode in="blur" />
-						<feMergeNode in="SourceGraphic" />
-					</feMerge>
-				</filter>
-				<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-					<path d="M0,0 L10,3 L0,6 z" fill="currentColor"></path>
-				</marker>
-			</defs>
+	<section class="tank-hmi-shell">
+		<header class="tank-hmi-header">
+			<div>
+				<p class="tank-hmi-kicker">Area 300 Transfer</p>
+				<h3>Tank Transfer Station C3</h3>
+				<p class="tank-hmi-copy">Operations screen with permissives, live route status, and inline equipment values on a single process graphic.</p>
+			</div>
+			<div class="tank-hmi-header-metrics">
+				<div>
+					<span class="tank-hmi-label">Mode</span>
+					<strong>@ControlModeLabel</strong>
+				</div>
+				<div>
+					<span class="tank-hmi-label">Transfer</span>
+					<strong>@TransferRateLbPerSec.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) lb/s</strong>
+				</div>
+				<div>
+					<span class="tank-hmi-label">Status</span>
+					<strong class="@(ActiveFault ? "is-alert" : "is-live")">@(ActiveFault ? FaultLabel : "Stable")</strong>
+				</div>
+			</div>
+		</header>
 
-			@{
-				var permitted = TransferPermitted; // user requested arrows represent 'permitted flow'
-				var color = permitted ? "var(--scene-flow-on)" : "var(--scene-flow-off)";
-				var strokeWidth = permitted ? 4 : 3;
-			}
+		<div class="tank-hmi-board">
+			<div class="tank-hmi-scene-wrap">
+				<div class="tank-hmi-scene-titlebar">
+					<span>Transfer Overview</span>
+					<span>Simulation @Snapshot.TimeSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)s</span>
+					<span>Route @LoopStatusLabel</span>
+				</div>
+				<div class="tank-hmi-scene">
+					<svg viewBox="@($"0 0 {canvasWidth} {canvasHeight}")" class="tank-hmi-svg" style="@svgPaletteStyle">
+						<defs>
+							<linearGradient id="steel-shell" x1="0" y1="0" x2="1" y2="1">
+								<stop offset="0%" stop-color="#f0f2f3" />
+								<stop offset="18%" stop-color="#a0a8af" />
+								<stop offset="48%" stop-color="#6d757d" />
+								<stop offset="78%" stop-color="#c0c8cd" />
+								<stop offset="100%" stop-color="#8f979d" />
+							</linearGradient>
+							<linearGradient id="cyan-fill" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%" stop-color="#72fff1" />
+								<stop offset="100%" stop-color="#00b7d2" />
+							</linearGradient>
+							<linearGradient id="plate-shadow" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%" stop-color="#eef2f4" />
+								<stop offset="100%" stop-color="#d7dde1" />
+							</linearGradient>
+							<pattern id="pegboard" width="24" height="24" patternUnits="userSpaceOnUse">
+								<rect width="24" height="24" fill="#eef2f4" />
+								<path d="M24 0 H0 V24" fill="none" stroke="#d5dce1" stroke-width="1" />
+							</pattern>
+							<filter id="pipe-glow" x="-25%" y="-25%" width="150%" height="150%">
+								<feGaussianBlur stdDeviation="4.5" result="blur" />
+								<feMerge>
+									<feMergeNode in="blur" />
+									<feMergeNode in="SourceGraphic" />
+								</feMerge>
+							</filter>
+							<marker id="flow-arrow" markerWidth="12" markerHeight="12" refX="10" refY="5" orient="auto" markerUnits="strokeWidth">
+								<path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+							</marker>
+						</defs>
 
-			<rect x="@sceneInset" y="@sceneInset" width="@sceneWidth" height="@sceneHeight" rx="28" ry="28" fill="url(#scene-bg)" stroke="var(--scene-border)" stroke-width="1.4" />
-			<rect x="@(sceneInset + 18)" y="@(sceneInset + 18)" width="@(sceneWidth - 36)" height="@(sceneHeight - 36)" rx="22" ry="22" fill="url(#scene-grid)" opacity="0.55" />
-			<rect x="@(sceneInset + 22)" y="@(sceneInset + 26)" width="@(sceneWidth - 44)" height="132" rx="18" ry="18" fill="url(#scene-band-top)" stroke="var(--scene-band-stroke)" stroke-width="1" />
-			<rect x="@(sceneInset + 22)" y="@(sceneInset + 186)" width="@(sceneWidth - 44)" height="134" rx="18" ry="18" fill="url(#scene-band-bottom)" stroke="var(--scene-band-stroke)" stroke-width="1" />
-			<svg:text x="@(sceneInset + 36)" y="@(sceneInset + 52)" style="fill: var(--scene-label-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">Storage</svg:text>
-			<svg:text x="@(sceneInset + 36)" y="@(sceneInset + 212)" style="fill: var(--scene-label-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">Conveying Train</svg:text>
-			<svg:text x="@(schematicLayout.DestinationX + 10)" y="@(sceneInset + 52)" style="fill: var(--scene-label-accent); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">Receiving Vessel</svg:text>
+						<rect x="@sceneInset" y="@sceneInset" width="@sceneWidth" height="@sceneHeight" rx="10" ry="10" fill="url(#pegboard)" stroke="#8e9aa2" stroke-width="1.6" />
+						<rect x="@(sceneInset + 12)" y="@(sceneInset + 12)" width="108" height="30" rx="4" ry="4" fill="#c4ccd2" stroke="#87949c" stroke-width="1.1" />
+						<rect x="@(sceneInset + 124)" y="@(sceneInset + 12)" width="108" height="30" rx="4" ry="4" fill="#d7dde1" stroke="#9aa7af" stroke-width="1.1" />
+						<rect x="@(sceneInset + 236)" y="@(sceneInset + 12)" width="108" height="30" rx="4" ry="4" fill="#d7dde1" stroke="#9aa7af" stroke-width="1.1" />
+						<rect x="@(sceneInset + 12)" y="@(sceneInset + 54)" width="@(sceneWidth - 24)" height="54" rx="6" ry="6" fill="#f5f7f8" stroke="#bac4cb" stroke-width="1.2" />
+						<rect x="@(sceneInset + 12)" y="@(sceneInset + 216)" width="@(sceneWidth - 24)" height="88" rx="6" ry="6" fill="#f0f3f5" stroke="#bac4cb" stroke-width="1.2" />
+						<rect x="@(sceneInset + 18)" y="@(sceneInset + 82)" width="88" height="92" rx="4" ry="4" fill="#b7c0c7" stroke="#5d6870" stroke-width="1.2" />
+						<circle cx="@(sceneInset + 45)" cy="@(sceneInset + 114)" r="14" fill="@(TransferPermitted ? "#54d261" : "#cfd4d8")" stroke="#34473a" stroke-width="2" />
+						<circle cx="@(sceneInset + 45)" cy="@(sceneInset + 146)" r="14" fill="@(ActiveFault ? "#e14d36" : "#cfd4d8")" stroke="#523029" stroke-width="2" />
+						<text x="@(sceneInset + 62)" y="@(sceneInset + 118)" class="tank-hmi-svg-box-label">Run</text>
+						<text x="@(sceneInset + 62)" y="@(sceneInset + 150)" class="tank-hmi-svg-box-label">Fault</text>
+						<text x="@(sceneInset + 28)" y="@(sceneInset + 100)" class="tank-hmi-svg-caption">TS-301</text>
+						<rect x="@(sceneRightX - 106)" y="@(sceneInset + 82)" width="88" height="92" rx="4" ry="4" fill="#b7c0c7" stroke="#5d6870" stroke-width="1.2" />
+						<circle cx="@(sceneRightX - 79)" cy="@(sceneInset + 114)" r="14" fill="@(BlowerRunning ? "#54d261" : "#cfd4d8")" stroke="#34473a" stroke-width="2" />
+						<circle cx="@(sceneRightX - 79)" cy="@(sceneInset + 146)" r="14" fill="@(IsFull ? "#e14d36" : "#cfd4d8")" stroke="#523029" stroke-width="2" />
+						<text x="@(sceneRightX - 62)" y="@(sceneInset + 118)" class="tank-hmi-svg-box-label">Drive</text>
+						<text x="@(sceneRightX - 62)" y="@(sceneInset + 150)" class="tank-hmi-svg-box-label">Full</text>
+						<text x="@(sceneRightX - 96)" y="@(sceneInset + 100)" class="tank-hmi-svg-caption">TS-302</text>
+						<rect x="@(sceneInset + 342)" y="@(sceneInset + 34)" width="124" height="114" rx="4" ry="4" fill="#d9dfe4" stroke="#8d99a1" stroke-width="1.1" />
+						<rect x="@(sceneInset + 356)" y="@(sceneInset + 48)" width="62" height="12" rx="2" ry="2" fill="#f7f9fa" stroke="#a6b2b9" stroke-width="1" />
+						<rect x="@(sceneInset + 356)" y="@(sceneInset + 68)" width="94" height="42" rx="2" ry="2" fill="#eef2f4" stroke="#a6b2b9" stroke-width="1" />
+						@foreach (var controlBar in ControlBars(sceneInset + 356, sceneInset + 72))
+						{
+							<g>
+								<line x1="@controlBar.X" y1="@controlBar.Y1" x2="@controlBar.X" y2="@controlBar.Y2" stroke="#a49172" stroke-width="1" />
+								<rect x="@(controlBar.X - 4)" y="@controlBar.HandleY" width="8" height="6" rx="2" ry="2" fill="#7c7266" stroke="#4d473f" stroke-width="0.8" />
+							</g>
+						}
+						<rect x="@(sceneInset + 360)" y="@(sceneInset + 120)" width="20" height="8" rx="2" ry="2" fill="#f6efe3" stroke="#a9987c" stroke-width="1" />
+						<rect x="@(sceneInset + 388)" y="@(sceneInset + 120)" width="20" height="8" rx="2" ry="2" fill="#f6efe3" stroke="#a9987c" stroke-width="1" />
+						<rect x="@(sceneInset + 416)" y="@(sceneInset + 120)" width="20" height="8" rx="2" ry="2" fill="#f6efe3" stroke="#a9987c" stroke-width="1" />
+						<text x="@(sceneInset + 66)" y="@(sceneInset + 32)" text-anchor="middle" class="tank-hmi-svg-tab is-active">Overview</text>
+						<text x="@(sceneInset + 178)" y="@(sceneInset + 32)" text-anchor="middle" class="tank-hmi-svg-tab">Permissives</text>
+						<text x="@(sceneInset + 290)" y="@(sceneInset + 32)" text-anchor="middle" class="tank-hmi-svg-tab">Equipment</text>
+						<text x="@(sceneInset + 352)" y="@(sceneInset + 28)" class="tank-hmi-svg-caption">Operator Select</text>
+						<text x="@(sceneInset + 26)" y="@(sceneInset + 76)" class="tank-hmi-svg-title">Tank Transfer Route</text>
+						<text x="@(sceneInset + 26)" y="@(sceneInset + 94)" class="tank-hmi-svg-subtitle">Source vessel to destination vessel with blower, rotary valve, and line permissives</text>
+						<rect x="@(sceneInset + 114)" y="@(sceneInset + 86)" width="88" height="44" rx="4" ry="4" fill="#9ba6af" stroke="#d5d8df" stroke-width="1.1" />
+						<rect x="@(sceneInset + 214)" y="@(sceneInset + 86)" width="88" height="44" rx="4" ry="4" fill="#9ba6af" stroke="#d5d8df" stroke-width="1.1" />
+						<rect x="@(sceneInset + 474)" y="@(sceneInset + 86)" width="88" height="44" rx="4" ry="4" fill="#9ba6af" stroke="#d5d8df" stroke-width="1.1" />
+						<rect x="@(sceneInset + 574)" y="@(sceneInset + 86)" width="88" height="44" rx="4" ry="4" fill="#9ba6af" stroke="#d5d8df" stroke-width="1.1" />
+						<text x="@(sceneInset + 158)" y="@(sceneInset + 101)" text-anchor="middle" class="tank-hmi-svg-box-label">Source Wt</text>
+						<text x="@(sceneInset + 158)" y="@(sceneInset + 118)" text-anchor="middle" class="tank-hmi-svg-box-value">@SourceTankWeight.ToString("0", System.Globalization.CultureInfo.InvariantCulture) lb</text>
+						<text x="@(sceneInset + 258)" y="@(sceneInset + 101)" text-anchor="middle" class="tank-hmi-svg-box-label">Line PSI</text>
+						<text x="@(sceneInset + 258)" y="@(sceneInset + 118)" text-anchor="middle" class="tank-hmi-svg-box-value">@BlowlinePressurePsi.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)</text>
+						<text x="@(sceneInset + 518)" y="@(sceneInset + 101)" text-anchor="middle" class="tank-hmi-svg-box-label">Airlock Hz</text>
+						<text x="@(sceneInset + 518)" y="@(sceneInset + 118)" text-anchor="middle" class="tank-hmi-svg-box-value">@AirlockSpeedHz.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)</text>
+						<text x="@(sceneInset + 618)" y="@(sceneInset + 101)" text-anchor="middle" class="tank-hmi-svg-box-label">Dest Fill</text>
+						<text x="@(sceneInset + 618)" y="@(sceneInset + 118)" text-anchor="middle" class="tank-hmi-svg-box-value">@destinationFillPercent.ToString("0", System.Globalization.CultureInfo.InvariantCulture)%</text>
+						<text x="@(schematicLayout.SourceX + 30)" y="@(sceneInset + 96)" class="tank-hmi-svg-caption">Source hopper</text>
+						<text x="@(schematicLayout.DestinationX + 18)" y="@(sceneInset + 96)" class="tank-hmi-svg-caption">Destination vessel</text>
+						<text x="@(schematicLayout.BlowerX + 18)" y="@(sceneInset + 238)" class="tank-hmi-svg-caption">Blower set</text>
+						<text x="@(schematicLayout.AirlockX + 18)" y="@(sceneInset + 238)" class="tank-hmi-svg-caption">Rotary lock</text>
+						<text x="@(schematicLayout.BlowlineX + 18)" y="@(sceneInset + 238)" class="tank-hmi-svg-caption">Transfer line</text>
+						<rect x="@(sceneInset + 470)" y="@(sceneInset + 240)" width="120" height="56" rx="4" ry="4" fill="#e1e7ea" stroke="#93a0a8" stroke-width="1.2" />
+						<rect x="@(sceneInset + 484)" y="@(sceneInset + 250)" width="92" height="34" rx="4" ry="4" fill="#f3f6f7" stroke="#aab5bc" stroke-width="1.1" />
+						<line x1="@(sceneInset + 530)" y1="@(sceneInset + 250)" x2="@(sceneInset + 530)" y2="@(sceneInset + 282)" stroke="#8a8174" stroke-width="3" stroke-linecap="round" />
+						<circle cx="@(sceneInset + 530)" cy="@(sceneInset + 270)" r="8" fill="#a1a6ab" stroke="#646a70" stroke-width="1.4" />
+						<text x="@(sceneInset + 490)" y="@(sceneInset + 292)" class="tank-hmi-svg-caption">Receiver bay</text>
+						<rect x="@(sceneInset + 430)" y="@(sceneInset + 188)" width="196" height="24" rx="3" ry="3" fill="@(ActiveFault ? "#c8352e" : "#66b94d")" stroke="@(ActiveFault ? "#7c1c17" : "#356526")" stroke-width="1" />
+						<text x="@(sceneInset + 528)" y="@(sceneInset + 205)" text-anchor="middle" class="tank-hmi-svg-alert is-banner">@(ActiveFault ? FaultLabel.ToUpperInvariant() : "TRANSFER PERMITTED")</text>
+						<line x1="@(sceneInset + 122)" y1="@(equipmentMidY - 42)" x2="@(sceneInset + 122)" y2="@(equipmentMidY - 10)" stroke="#7d735f" stroke-width="4" stroke-linecap="round" />
+						<line x1="@(sceneInset + 328)" y1="@(equipmentMidY - 42)" x2="@(sceneInset + 328)" y2="@(equipmentMidY - 10)" stroke="#7d735f" stroke-width="4" stroke-linecap="round" />
+						<line x1="@(sceneInset + 534)" y1="@(equipmentMidY - 42)" x2="@(sceneInset + 534)" y2="@(equipmentMidY - 10)" stroke="#7d735f" stroke-width="4" stroke-linecap="round" />
 
-			<g style="pointer-events: none; color: @color;">
-				<path d="M@sourceCenterX @sourceBottomY L@sourceCenterX @airlockTopY" fill="none" stroke="currentColor" stroke-width="@(strokeWidth + 6)" opacity="0.18" filter="url(#flow-glow)" />
-				<path d="M@blowerRightX @equipmentMidY L@airlockLeftX @equipmentMidY" fill="none" stroke="currentColor" stroke-width="@(strokeWidth + 6)" opacity="0.18" filter="url(#flow-glow)" />
-				<path d="M@airlockRightX @equipmentMidY L@blowlineLeftX @equipmentMidY" fill="none" stroke="currentColor" stroke-width="@(strokeWidth + 6)" opacity="0.18" filter="url(#flow-glow)" />
-				<path d="M@blowlineRightX @equipmentMidY L@destinationInletX @destinationInletY" fill="none" stroke="currentColor" stroke-width="@(strokeWidth + 6)" opacity="0.18" filter="url(#flow-glow)" />
-				<path d="M@sourceCenterX @sourceBottomY L@sourceCenterX @airlockTopY" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
-				<path d="M@blowerRightX @equipmentMidY L@airlockLeftX @equipmentMidY" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
-				<path d="M@airlockRightX @equipmentMidY L@blowlineLeftX @equipmentMidY" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
-				<path d="M@blowlineRightX @equipmentMidY L@destinationInletX @destinationInletY" fill="none" stroke="currentColor" stroke-width="@strokeWidth" marker-end="url(#arrow)" />
-			</g>
+						<g style="pointer-events: none; color: @pipeColor; opacity: @pipeShadow;">
+							<path d="@sourceDropPath" fill="none" stroke="currentColor" stroke-width="@pipeGlow" opacity="0.22" filter="url(#pipe-glow)" />
+							<path d="@blowerFeedPath" fill="none" stroke="currentColor" stroke-width="@pipeGlow" opacity="0.22" filter="url(#pipe-glow)" />
+							<path d="@airlockToLinePath" fill="none" stroke="currentColor" stroke-width="@pipeGlow" opacity="0.22" filter="url(#pipe-glow)" />
+							<path d="@lineToDestinationPath" fill="none" stroke="currentColor" stroke-width="@pipeGlow" opacity="0.22" filter="url(#pipe-glow)" />
+						</g>
+						<g style="pointer-events: none; color: #8b959d;">
+							<path d="@sourceDropPath" fill="none" stroke="currentColor" stroke-width="@pipeStroke" stroke-linecap="round" />
+							<path d="@blowerFeedPath" fill="none" stroke="currentColor" stroke-width="@pipeStroke" stroke-linecap="round" />
+							<path d="@airlockToLinePath" fill="none" stroke="currentColor" stroke-width="@pipeStroke" stroke-linecap="round" />
+							<path d="@lineToDestinationPath" fill="none" stroke="currentColor" stroke-width="@pipeStroke" stroke-linecap="round" />
+						</g>
+						<g style="pointer-events: none; color: @pipeColor;">
+							<path d="@sourceDropPath" fill="none" stroke="currentColor" stroke-width="@(pipeStroke - 4)" stroke-linecap="round" marker-end="url(#flow-arrow)" />
+							<path d="@blowerFeedPath" fill="none" stroke="currentColor" stroke-width="@(pipeStroke - 4)" stroke-linecap="round" marker-end="url(#flow-arrow)" />
+							<path d="@airlockToLinePath" fill="none" stroke="currentColor" stroke-width="@(pipeStroke - 4)" stroke-linecap="round" marker-end="url(#flow-arrow)" />
+							<path d="@lineToDestinationPath" fill="none" stroke="currentColor" stroke-width="@(pipeStroke - 4)" stroke-linecap="round" marker-end="url(#flow-arrow)" />
+						</g>
 
-			<SchematicNode X="@(schematicLayout.SourceX)" Y="@(schematicLayout.TopRowY)" Width="@(schematicLayout.BoxWidth)" Title="Source Tank" IsOn="@TransferPermitted" IsAlert="@sourceAlert" IsClickable="false" PanelX="14" PanelY="144" PanelWidthOverride="192" Lines="@SourceTankLines">
-				<SvgTank Width="@(schematicLayout.BoxWidth)" OutletY="@(schematicLayout.TankBottomAnchorY)" IsAlert="@sourceAlert" />
-			</SchematicNode>
+						@foreach (var knob in ValveKnobs(sourceCenterX, sourceBottomY, blowerRightX, equipmentMidY, airlockRightX, blowlineRightX, destinationInletX, destinationInletY))
+						{
+							<g>
+								<circle cx="@knob.X" cy="@knob.Y" r="10" fill="#d33b22" stroke="#702116" stroke-width="2" />
+								<line x1="@(knob.X - 7)" y1="@knob.Y" x2="@(knob.X + 7)" y2="@knob.Y" stroke="#f5c0b4" stroke-width="2.2" stroke-linecap="round" />
+								<line x1="@knob.X" y1="@(knob.Y - 7)" x2="@knob.X" y2="@(knob.Y + 7)" stroke="#f5c0b4" stroke-width="2.2" stroke-linecap="round" />
+							</g>
+						}
 
-			<SchematicNode X="@(schematicLayout.DestinationX)" Y="@(schematicLayout.TopRowY)" Width="@(schematicLayout.BoxWidth)" Title="Destination Tank" IsOn="@TransferPermitted" IsAlert="@destinationAlert" IsClickable="false" PanelX="14" PanelY="144" PanelWidthOverride="192" Lines="@DestinationTankLines">
-				<SvgTank Width="@(schematicLayout.BoxWidth)" OutletX="@(schematicLayout.DestinationInletOffsetX)" OutletY="@(schematicLayout.DestinationInletAnchorY)" FillRatio="@destinationFillRatio" IsAlert="@destinationAlert" />
-			</SchematicNode>
+						<SchematicNode X="@(schematicLayout.SourceX)" Y="@(schematicLayout.TopRowY)" Width="@(schematicLayout.BoxWidth)" Title="Source Tank" IsOn="@TransferPermitted" IsAlert="@sourceAlert" IsClickable="false" PanelX="14" PanelY="144" PanelWidthOverride="196" Lines="@SourceTankLines">
+							<SvgTank Width="@(schematicLayout.BoxWidth)" OutletY="@(schematicLayout.TankBottomAnchorY)" FillRatio="@sourceFillRatio" IsAlert="@sourceAlert" />
+						</SchematicNode>
 
-			<SchematicNode X="@(schematicLayout.BlowerX)" Y="@(schematicLayout.BottomRowY)" Width="@(schematicLayout.BoxWidth)" Title="Blower" StatusText="@BlowerStatus" IsOn="@BlowerRunning" IsClickable="true" PanelX="18" PanelY="128" PanelWidthOverride="184" OnClick="@(() => ToggleAsync(ParamBlowerEnable))" Lines="@BlowerLines">
-				<SvgBlower CenterY="@(schematicLayout.EquipmentMidAnchorY)" />
-			</SchematicNode>
+						<SchematicNode X="@(schematicLayout.DestinationX)" Y="@(schematicLayout.TopRowY)" Width="@(schematicLayout.BoxWidth)" Title="Destination Tank" IsOn="@TransferPermitted" IsAlert="@destinationAlert" IsClickable="false" PanelX="14" PanelY="144" PanelWidthOverride="196" Lines="@DestinationTankLines">
+							<SvgTank Width="@(schematicLayout.BoxWidth)" OutletX="@(schematicLayout.DestinationInletOffsetX)" OutletY="@(schematicLayout.DestinationInletAnchorY)" FillRatio="@destinationFillRatio" IsAlert="@destinationAlert" />
+						</SchematicNode>
 
-			<SchematicNode X="@(schematicLayout.AirlockX)" Y="@(schematicLayout.BottomRowY)" Width="@(schematicLayout.BoxWidth)" Title="Rotary Airlock" StatusText="@AirlockStatus" IsOn="@AirlockRunning" IsClickable="true" PanelX="12" PanelY="128" PanelWidthOverride="196" OnClick="@(() => ToggleAsync(ParamAirlockEnable))" Lines="@AirlockLines">
-				<SvgRotaryAirlock Width="@(schematicLayout.BoxWidth)" TopInletY="@(schematicLayout.EquipmentTopAnchorY)" CenterY="@(schematicLayout.EquipmentMidAnchorY)" />
-			</SchematicNode>
+						<SchematicNode X="@(schematicLayout.BlowerX)" Y="@(schematicLayout.BottomRowY)" Width="@(schematicLayout.BoxWidth)" Title="Blower" StatusText="@BlowerStatus" IsOn="@BlowerRunning" IsClickable="true" PanelX="18" PanelY="128" PanelWidthOverride="184" OnClick="@(() => ToggleAsync(ParamBlowerEnable))" Lines="@BlowerLines">
+							<SvgBlower CenterY="@(schematicLayout.EquipmentMidAnchorY)" />
+						</SchematicNode>
 
-			<SchematicNode X="@(schematicLayout.BlowlineX)" Y="@(schematicLayout.BottomRowY)" Width="@(schematicLayout.BoxWidth)" Title="Blowline" IsOn="@TransferPermitted" IsClickable="false" PanelX="14" PanelY="128" PanelWidthOverride="192" Lines="@BlowlineLines">
-				<SvgPipeModule Width="@(schematicLayout.BoxWidth)" CenterY="@(schematicLayout.EquipmentMidAnchorY)" />
-			</SchematicNode>
-		</svg>
-	</div>
+						<SchematicNode X="@(schematicLayout.AirlockX)" Y="@(schematicLayout.BottomRowY)" Width="@(schematicLayout.BoxWidth)" Title="Rotary Airlock" StatusText="@AirlockStatus" IsOn="@AirlockRunning" IsClickable="true" PanelX="12" PanelY="128" PanelWidthOverride="196" OnClick="@(() => ToggleAsync(ParamAirlockEnable))" Lines="@AirlockLines">
+							<SvgRotaryAirlock Width="@(schematicLayout.BoxWidth)" TopInletY="@(schematicLayout.EquipmentTopAnchorY)" CenterY="@(schematicLayout.EquipmentMidAnchorY)" />
+						</SchematicNode>
+
+						<SchematicNode X="@(schematicLayout.BlowlineX)" Y="@(schematicLayout.BottomRowY)" Width="@(schematicLayout.BoxWidth)" Title="Blowline" IsOn="@TransferPermitted" IsClickable="false" PanelX="14" PanelY="128" PanelWidthOverride="192" Lines="@BlowlineLines">
+							<SvgPipeModule Width="@(schematicLayout.BoxWidth)" CenterY="@(schematicLayout.EquipmentMidAnchorY)" />
+						</SchematicNode>
+
+						<rect x="@(sceneInset + 112)" y="@(sceneInset + 312)" width="118" height="44" rx="4" ry="4" fill="#9ba6af" stroke="#d5d8df" stroke-width="1.1" />
+						<rect x="@(sceneInset + 252)" y="@(sceneInset + 312)" width="118" height="44" rx="4" ry="4" fill="#9ba6af" stroke="#d5d8df" stroke-width="1.1" />
+						<rect x="@(sceneInset + 392)" y="@(sceneInset + 312)" width="118" height="44" rx="4" ry="4" fill="#9ba6af" stroke="#d5d8df" stroke-width="1.1" />
+						<text x="@(sceneInset + 171)" y="@(sceneInset + 328)" text-anchor="middle" class="tank-hmi-svg-box-label">Pressure Cmd</text>
+						<text x="@(sceneInset + 171)" y="@(sceneInset + 345)" text-anchor="middle" class="tank-hmi-svg-box-value">@BlowlinePressureCmdPsi.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) psi</text>
+						<text x="@(sceneInset + 311)" y="@(sceneInset + 328)" text-anchor="middle" class="tank-hmi-svg-box-label">Transfer</text>
+						<text x="@(sceneInset + 311)" y="@(sceneInset + 345)" text-anchor="middle" class="tank-hmi-svg-box-value">@TransferRateLbPerSec.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) lb/s</text>
+						<text x="@(sceneInset + 451)" y="@(sceneInset + 328)" text-anchor="middle" class="tank-hmi-svg-box-label">Blower Load</text>
+						<text x="@(sceneInset + 451)" y="@(sceneInset + 345)" text-anchor="middle" class="tank-hmi-svg-box-value">@BlowerMotorPercentFla.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)%</text>
+					</svg>
+				</div>
+			</div>
+
+			<div class="tank-hmi-lower-grid">
+				<section class="tank-hmi-panel">
+					<div class="tank-hmi-panel-head">
+						<h4>Source Vessel</h4>
+						<span class="tank-hmi-tag">Product A</span>
+					</div>
+					<div class="tank-hmi-display-stack">
+						<div class="tank-hmi-display-card">
+							<span class="tank-hmi-label">Inventory</span>
+							<strong>@SourceTankWeight.ToString("0", System.Globalization.CultureInfo.InvariantCulture) lb</strong>
+						</div>
+						<div class="tank-hmi-display-card">
+							<span class="tank-hmi-label">Fill</span>
+							<strong>@(sourceFillRatio.HasValue ? $"{sourceFillRatio.Value * 100:0}%" : "--")</strong>
+						</div>
+						<div class="tank-hmi-display-card @(sourceAlert ? "is-alert" : string.Empty)">
+							<span class="tank-hmi-label">Feed Path</span>
+							<strong>@(sourceAlert ? "Starved" : "Open")</strong>
+						</div>
+					</div>
+				</section>
+
+				<section class="tank-hmi-panel">
+					<div class="tank-hmi-panel-head">
+						<h4>Drive Lamps</h4>
+						<span class="tank-hmi-tag">Interlocks</span>
+					</div>
+					<div class="tank-hmi-lamp-bank">
+						<div class="tank-hmi-lamp-row">
+							<span class="tank-hmi-lamp @(BlowerRunning ? "is-live" : string.Empty)"></span>
+							<div>
+								<span class="tank-hmi-label">Blower</span>
+								<strong>@BlowerStatus</strong>
+							</div>
+						</div>
+						<div class="tank-hmi-lamp-row">
+							<span class="tank-hmi-lamp @(AirlockRunning ? "is-live" : string.Empty)"></span>
+							<div>
+								<span class="tank-hmi-label">Airlock</span>
+								<strong>@AirlockStatus</strong>
+							</div>
+						</div>
+						<div class="tank-hmi-lamp-row">
+							<span class="tank-hmi-lamp @(TransferPermitted ? "is-live" : string.Empty)"></span>
+							<div>
+								<span class="tank-hmi-label">Flow Permit</span>
+								<strong>@(TransferPermitted ? "Enabled" : "Waiting")</strong>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<section class="tank-hmi-panel">
+					<div class="tank-hmi-panel-head">
+						<h4>Receiving Vessel</h4>
+						<span class="tank-hmi-tag">Product B</span>
+					</div>
+					<div class="tank-hmi-display-stack">
+						<div class="tank-hmi-display-card">
+							<span class="tank-hmi-label">Weight</span>
+							<strong>@DestinationTankWeight.ToString("0", System.Globalization.CultureInfo.InvariantCulture) lb</strong>
+						</div>
+						<div class="tank-hmi-display-card">
+							<span class="tank-hmi-label">Capacity</span>
+							<strong>@destinationCapacity.ToString("0", System.Globalization.CultureInfo.InvariantCulture) lb</strong>
+						</div>
+						<div class="tank-hmi-display-card @(destinationAlert ? "is-alert" : string.Empty)">
+							<span class="tank-hmi-label">Tank Status</span>
+							<strong>@(destinationAlert ? "Full" : "Receiving")</strong>
+						</div>
+					</div>
+				</section>
+
+				<section class="tank-hmi-panel">
+					<div class="tank-hmi-panel-head">
+						<h4>Instrument Rack</h4>
+						<span class="tank-hmi-tag">Analog</span>
+					</div>
+					<div class="tank-hmi-display-stack">
+						<div class="tank-hmi-display-card">
+							<span class="tank-hmi-label">Blowline PSI</span>
+							<strong>@BlowlinePressurePsi.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)</strong>
+						</div>
+						<div class="tank-hmi-display-card">
+							<span class="tank-hmi-label">Command</span>
+							<strong>@BlowlinePressureCmdPsi.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) psi</strong>
+						</div>
+						<div class="tank-hmi-display-card">
+							<span class="tank-hmi-label">Airlock</span>
+							<strong>@AirlockSpeedHz.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) Hz</strong>
+						</div>
+						<div class="tank-hmi-display-card">
+							<span class="tank-hmi-label">Transfer Rate</span>
+							<strong>@TransferRateLbPerSec.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) lb/s</strong>
+						</div>
+						<div class="tank-hmi-display-card @(BlowerMotorPercentFla > 85.0 ? "is-alert" : string.Empty)">
+							<span class="tank-hmi-label">Blower Load</span>
+							<strong>@BlowerMotorPercentFla.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)% FLA</strong>
+						</div>
+					</div>
+				</section>
+			</div>
+		</div>
+
+		<footer class="tank-hmi-footer">
+			<div class="tank-hmi-console-pill">
+				<span class="tank-hmi-label">Simulation</span>
+				<strong>@(TransferPermitted ? "Process" : "Standby")</strong>
+			</div>
+			<div class="tank-hmi-console-pill">
+				<span class="tank-hmi-label">Cycle</span>
+				<strong>@Snapshot.TimeSeconds.ToString("000.0", System.Globalization.CultureInfo.InvariantCulture)</strong>
+			</div>
+			<div class="tank-hmi-console-pill @(ActiveFault ? "is-alert" : string.Empty)">
+				<span class="tank-hmi-label">Alarms</span>
+				<strong>@FaultLabel</strong>
+			</div>
+		</footer>
+	</section>
 }
 
 @code {
@@ -164,14 +399,17 @@ else
 		await Api.SetParameterAsync(SimId, parameterName, next);
 	}
 
-	private double GetSignal(string name) => Snapshot?.Signals.TryGetValue(name, out var v) == true ? v : double.NaN;
-	private double GetParameter(string name) => Snapshot?.Parameters.TryGetValue(name, out var v) == true ? v : double.NaN;
+	private double GetSignal(string name) => Snapshot?.Signals.TryGetValue(name, out var value) == true ? value : double.NaN;
+	private double GetParameter(string name) => Snapshot?.Parameters.TryGetValue(name, out var value) == true ? value : double.NaN;
 
 	private bool BlowerRunning => GetSignal("BlowerRunning") >= 0.5;
 	private bool AirlockRunning => GetSignal("AirlockRunning") >= 0.5;
-	private bool TransferPermitted => BlowerRunning; // matches arrow logic
+	private bool PressureControlEnabled => GetParameter("PressureControlEnable") >= 0.5;
+	private bool TransferPermitted => BlowerRunning;
 	private string BlowerStatus => BlowerRunning ? "Running" : "Stopped";
 	private string AirlockStatus => AirlockRunning ? "Running" : "Stopped";
+	private string ControlModeLabel => PressureControlEnabled ? "Auto hold" : "Manual rate";
+	private string LoopStatusLabel => TransferPermitted ? "Enabled" : "Waiting";
 
 	private double SourceTankWeight => GetSignal("SourceTankWeightLb");
 	private double DestinationTankWeight => GetSignal("DestinationTankWeightLb");
@@ -180,14 +418,17 @@ else
 	private double BlowlinePressureCmdPsi => GetSignal("BlowlinePressureCommandPsi");
 	private double AirlockSpeedHz => GetSignal("AirlockSpeedHz");
 	private double BlowerMotorPercentFla => GetSignal("BlowerMotorPercentFla");
+	private double SourceTankCapacity => GetParameter("SourceTankCapacityLb");
 
 	private bool IsStarved => GetSignal("IsStarved") >= 0.5;
 	private bool IsFull => GetSignal("IsFull") >= 0.5;
+	private bool ActiveFault => IsStarved || IsFull;
+	private string FaultLabel => IsFull ? "Destination full" : IsStarved ? "Feed starved" : "None";
 
 	private SchematicNode.Line[] SourceTankLines =>
 	[
 		new("Weight", $"{SourceTankWeight:0.#} lb"),
-		new("Starved", IsStarved ? "YES" : "no"),
+		new("Feed", IsStarved ? "STARVED" : "clear"),
 	];
 
 	private SchematicNode.Line[] AirlockLines =>
@@ -205,7 +446,7 @@ else
 	private SchematicNode.Line[] DestinationTankLines =>
 	[
 		new("Weight", $"{DestinationTankWeight:0.#} lb"),
-		new("Full", IsFull ? "YES" : "no"),
+		new("Status", IsFull ? "FULL" : "ready"),
 	];
 
 	private SchematicNode.Line[] BlowerLines =>
@@ -214,4 +455,22 @@ else
 		new("Load", $"{BlowerMotorPercentFla:0.0}%"),
 		new("P cmd", $"{BlowlinePressureCmdPsi:0.0} psi"),
 	];
+
+	private static (double X, double Y)[] ValveKnobs(double sourceCenterX, double sourceBottomY, double blowerRightX, double equipmentMidY, double airlockRightX, double blowlineRightX, double destinationInletX, double destinationInletY) =>
+	[
+		(sourceCenterX + 16, sourceBottomY - 24),
+		(blowerRightX - 12, equipmentMidY + 16),
+		(airlockRightX + 12, equipmentMidY + 16),
+		((blowlineRightX + destinationInletX) / 2.0, (equipmentMidY + destinationInletY) / 2.0 + 14),
+	];
+
+	private static (double X, double Y1, double Y2, double HandleY)[] ControlBars(double startX, double startY) =>
+	[
+		(startX + 12, startY, startY + 32, startY + 8),
+		(startX + 32, startY, startY + 32, startY + 18),
+		(startX + 52, startY, startY + 32, startY + 12),
+		(startX + 72, startY, startY + 32, startY + 22),
+	];
+
+	private static string F(double value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 }

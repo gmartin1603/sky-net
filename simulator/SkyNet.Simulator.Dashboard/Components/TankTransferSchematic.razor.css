@@ -1,0 +1,309 @@
+.tank-hmi-shell {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid #a8b4bc;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #e8edef, #dde4e8);
+    box-shadow: 0 14px 32px rgba(18, 27, 34, 0.14);
+    color: #1f2a30;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    --tank-hmi-flow-live: #63d94e;
+    --tank-hmi-flow-idle: #98a4ab;
+}
+
+.tank-hmi-shell-empty {
+    min-height: 240px;
+    place-items: center;
+}
+
+.tank-hmi-empty {
+    padding: 1rem 1.2rem;
+    border: 1px solid rgba(92, 70, 45, 0.34);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.34);
+}
+
+.tank-hmi-header,
+.tank-hmi-footer,
+.tank-hmi-panel,
+.tank-hmi-scene-titlebar {
+    border: 1px solid #b5c0c7;
+    border-radius: 6px;
+    background: #f5f7f8;
+    box-shadow: none;
+}
+
+.tank-hmi-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: end;
+    flex-wrap: wrap;
+    padding: 0.9rem 1rem;
+}
+
+.tank-hmi-kicker,
+.tank-hmi-label,
+.tank-hmi-tag {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.tank-hmi-kicker,
+.tank-hmi-label {
+    color: #5e7079;
+}
+
+.tank-hmi-header h3 {
+    margin: 0.1rem 0 0;
+    font-size: clamp(1.35rem, 2.5vw, 2rem);
+    color: #203038;
+}
+
+.tank-hmi-copy {
+    margin: 0.35rem 0 0;
+    max-width: 64ch;
+    color: #51636c;
+}
+
+.tank-hmi-header-metrics,
+.tank-hmi-board,
+.tank-hmi-lower-grid,
+.tank-hmi-display-stack,
+.tank-hmi-lamp-bank {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.tank-hmi-header-metrics {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    min-width: min(100%, 390px);
+}
+
+.tank-hmi-header-metrics > div,
+.tank-hmi-display-card,
+.tank-hmi-console-pill,
+.tank-hmi-lamp-row {
+    border: 1px solid #7b8992;
+    border-radius: 4px;
+    background: #687780;
+    color: #eef3f6;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.tank-hmi-header-metrics > div,
+.tank-hmi-console-pill {
+    padding: 0.7rem 0.8rem;
+}
+
+.tank-hmi-header-metrics strong,
+.tank-hmi-display-card strong,
+.tank-hmi-console-pill strong,
+.tank-hmi-lamp-row strong {
+    display: block;
+    margin-top: 0.18rem;
+    font-size: 1rem;
+    color: #ffffff;
+}
+
+.tank-hmi-header-metrics strong.is-alert,
+.tank-hmi-display-card.is-alert strong,
+.tank-hmi-console-pill.is-alert strong {
+    color: #ffd3cf;
+}
+
+.tank-hmi-header-metrics strong.is-live {
+    color: #9fff92;
+}
+
+.tank-hmi-board {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+
+.tank-hmi-lower-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.tank-hmi-panel {
+    padding: 0.8rem;
+}
+
+.tank-hmi-panel-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.tank-hmi-panel-head h4 {
+    margin: 0;
+    color: #203038;
+}
+
+.tank-hmi-tag {
+    padding: 0.28rem 0.5rem;
+    border: 1px solid #b8c4ca;
+    border-radius: 4px;
+    background: #e4eaed;
+    color: #4e616b;
+}
+
+.tank-hmi-display-card,
+.tank-hmi-lamp-row {
+    padding: 0.72rem 0.8rem;
+}
+
+.tank-hmi-display-card.is-alert {
+    border-color: #a6433c;
+}
+
+.tank-hmi-lamp-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.tank-hmi-lamp {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.5);
+    background: radial-gradient(circle at 35% 35%, #cfd7dc, #5c6870 72%);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.tank-hmi-lamp.is-live {
+    background: radial-gradient(circle at 35% 35%, #d4ffe1, #57dd60 52%, #17731e 100%);
+    box-shadow: 0 0 14px rgba(84, 226, 110, 0.5);
+}
+
+.tank-hmi-scene-wrap {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.tank-hmi-scene-titlebar,
+.tank-hmi-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.7rem;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 0.55rem 0.8rem;
+    color: #5f4f3d;
+    font-weight: 700;
+}
+
+.tank-hmi-scene {
+    overflow: hidden;
+    border: 1px solid #aeb9c0;
+    border-radius: 6px;
+    background: #dde4e8;
+    box-shadow: none;
+}
+
+.tank-hmi-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.tank-hmi-svg-title,
+.tank-hmi-svg-subtitle,
+.tank-hmi-svg-caption,
+.tank-hmi-svg-box-label,
+.tank-hmi-svg-box-value,
+.tank-hmi-svg-alert,
+.tank-hmi-svg-tab {
+    fill: #2d3d45;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.tank-hmi-svg-title {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.tank-hmi-svg-subtitle {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.tank-hmi-svg-caption {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.tank-hmi-svg-box-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.tank-hmi-svg-box-value {
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.tank-hmi-svg-alert {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.tank-hmi-svg-alert.is-banner {
+    fill: #f9fbfc;
+}
+
+.tank-hmi-svg-tab {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.tank-hmi-svg-tab.is-active {
+    fill: #203038;
+}
+
+.tank-hmi-footer {
+    justify-content: start;
+}
+
+.tank-hmi-console-pill {
+    min-width: 140px;
+}
+
+@media (max-width: 1180px) {
+    .tank-hmi-lower-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .tank-hmi-shell {
+        padding: 0.65rem;
+    }
+
+    .tank-hmi-header-metrics,
+    .tank-hmi-lower-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tank-hmi-scene-titlebar,
+    .tank-hmi-footer {
+        align-items: start;
+    }
+}

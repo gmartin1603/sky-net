@@ -260,6 +260,52 @@ app.MapDelete("/api/sims/{id}/view-layout/tank-transfer", async (
 	return Results.NoContent();
 });
 
+app.MapGet("/api/sims/{id}/view-layout/grain-dryer", async (
+	string id,
+	SimulationRegistry registry,
+	ISimulationViewLayoutStore store,
+	CancellationToken ct) =>
+{
+	if (!registry.TryGet(id, out _))
+	{
+		return Results.NotFound(new { error = $"Unknown simulation '{id}'." });
+	}
+
+	var layout = await store.GetGrainDryerLayoutAsync(id, ct).ConfigureAwait(false);
+	return Results.Ok(layout);
+});
+
+app.MapPut("/api/sims/{id}/view-layout/grain-dryer", async (
+	string id,
+	GrainDryerSchematicLayout request,
+	SimulationRegistry registry,
+	ISimulationViewLayoutStore store,
+	CancellationToken ct) =>
+{
+	if (!registry.TryGet(id, out _))
+	{
+		return Results.NotFound(new { error = $"Unknown simulation '{id}'." });
+	}
+
+	await store.SaveGrainDryerLayoutAsync(id, request, ct).ConfigureAwait(false);
+	return Results.NoContent();
+});
+
+app.MapDelete("/api/sims/{id}/view-layout/grain-dryer", async (
+	string id,
+	SimulationRegistry registry,
+	ISimulationViewLayoutStore store,
+	CancellationToken ct) =>
+{
+	if (!registry.TryGet(id, out _))
+	{
+		return Results.NotFound(new { error = $"Unknown simulation '{id}'." });
+	}
+
+	await store.ResetGrainDryerLayoutAsync(id, ct).ConfigureAwait(false);
+	return Results.NoContent();
+});
+
 app.MapGet("/api/sims/{id}/trainer-presets", async (
 	string id,
 	SimulationRegistry registry,

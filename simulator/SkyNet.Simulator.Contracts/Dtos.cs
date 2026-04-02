@@ -54,8 +54,11 @@ public sealed record TrainerPresetDto(
 
 public sealed class TankTransferSchematicLayout
 {
-	public double CanvasWidth { get; set; } = 1160;
-	public double CanvasHeight { get; set; } = 420;
+	public const double DefaultCanvasWidth = 1160;
+	public const double DefaultCanvasHeight = 840;
+
+	public double CanvasWidth { get; set; } = DefaultCanvasWidth;
+	public double CanvasHeight { get; set; } = DefaultCanvasHeight;
 	public double BoxWidth { get; set; } = 220;
 
 	public double TopRowY { get; set; } = 0;
@@ -75,7 +78,14 @@ public sealed class TankTransferSchematicLayout
 
 	public static TankTransferSchematicLayout Default => new();
 
-	public TankTransferSchematicLayout Clone() => new()
+	public TankTransferSchematicLayout Normalize()
+	{
+		CanvasWidth = Math.Max(CanvasWidth, DefaultCanvasWidth);
+		CanvasHeight = Math.Max(CanvasHeight, DefaultCanvasHeight);
+		return this;
+	}
+
+	public TankTransferSchematicLayout Clone() => new TankTransferSchematicLayout
 	{
 		CanvasWidth = CanvasWidth,
 		CanvasHeight = CanvasHeight,
@@ -92,5 +102,72 @@ public sealed class TankTransferSchematicLayout
 		EquipmentTopAnchorY = EquipmentTopAnchorY,
 		EquipmentMidAnchorY = EquipmentMidAnchorY,
 		DestinationInletOffsetX = DestinationInletOffsetX,
-	};
+	}.Normalize();
+}
+
+public sealed class GrainDryerSchematicLayout
+{
+	public const double DefaultCanvasWidth = 1040;
+	public const double DefaultCanvasHeight = 1240;
+
+	public double CanvasWidth { get; set; } = DefaultCanvasWidth;
+	public double CanvasHeight { get; set; } = DefaultCanvasHeight;
+
+	public double FilterBoxX { get; set; } = 250;
+	public double FilterBoxY { get; set; } = 52;
+	public double ExhaustBoxX { get; set; } = 706;
+	public double ExhaustBoxY { get; set; } = 52;
+
+	public double WetBinX { get; set; } = 88;
+	public double WetBinY { get; set; } = 168;
+	public double DryerColumnX { get; set; } = 422;
+	public double DryerColumnY { get; set; } = 146;
+	public double DryBinX { get; set; } = 826;
+	public double DryBinY { get; set; } = 168;
+
+	public double FanModuleX { get; set; } = 244;
+	public double FanModuleY { get; set; } = 430;
+	public double FeedScrewX { get; set; } = 384;
+	public double FeedScrewY { get; set; } = 348;
+	public double BurnerModuleX { get; set; } = 414;
+	public double BurnerModuleY { get; set; } = 430;
+	public double FeedModuleX { get; set; } = 584;
+	public double FeedModuleY { get; set; } = 430;
+	public double DischargeConveyorX { get; set; } = 744;
+	public double DischargeConveyorY { get; set; } = 448;
+
+	public static GrainDryerSchematicLayout Default => new();
+
+	public GrainDryerSchematicLayout Normalize()
+	{
+		CanvasWidth = Math.Max(CanvasWidth, DefaultCanvasWidth);
+		CanvasHeight = Math.Max(CanvasHeight, DefaultCanvasHeight);
+		return this;
+	}
+
+	public GrainDryerSchematicLayout Clone() => new GrainDryerSchematicLayout
+	{
+		CanvasWidth = CanvasWidth,
+		CanvasHeight = CanvasHeight,
+		FilterBoxX = FilterBoxX,
+		FilterBoxY = FilterBoxY,
+		ExhaustBoxX = ExhaustBoxX,
+		ExhaustBoxY = ExhaustBoxY,
+		WetBinX = WetBinX,
+		WetBinY = WetBinY,
+		DryerColumnX = DryerColumnX,
+		DryerColumnY = DryerColumnY,
+		DryBinX = DryBinX,
+		DryBinY = DryBinY,
+		FanModuleX = FanModuleX,
+		FanModuleY = FanModuleY,
+		FeedScrewX = FeedScrewX,
+		FeedScrewY = FeedScrewY,
+		BurnerModuleX = BurnerModuleX,
+		BurnerModuleY = BurnerModuleY,
+		FeedModuleX = FeedModuleX,
+		FeedModuleY = FeedModuleY,
+		DischargeConveyorX = DischargeConveyorX,
+		DischargeConveyorY = DischargeConveyorY,
+	}.Normalize();
 }

@@ -10,8 +10,28 @@
 		<span class="tank-ops-chip tank-ops-chip-alert">Scenario</span>
 	</div>
 	<p class="tank-ops-caption">Create flow and fill-limit faults while the trainee keeps the blower and airlock online and works from the process symptoms.</p>
+	<div class="tank-ops-trainer-banner-row">
+		<div class="tank-ops-trainer-banner tank-ops-trainer-banner-bridge">
+			<span class="tank-ops-readback-label">Blockage level</span>
+			<strong>@BridgeSeverityPercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
+			<small>@BridgeSeverityLabel</small>
+		</div>
+		<div class="tank-ops-trainer-banner tank-ops-trainer-banner-capacity">
+			<span class="tank-ops-readback-label">Destination tank cap</span>
+			<strong>@DestinationTankCapacityLb.ToString("0", CultureInfo.InvariantCulture) lb</strong>
+			<small>@CapacityLabel</small>
+		</div>
+	</div>
 	<div class="tank-ops-trainer-grid">
-		<div>
+		<section class="tank-ops-trainer-zone tank-ops-trainer-zone-bridge">
+			<div class="tank-ops-trainer-zone-head">
+				<div>
+					<p class="tank-ops-kicker">Feed Path</p>
+					<h4>Blockage / Bridging</h4>
+				</div>
+				<span class="tank-ops-chip tank-ops-chip-alert">Starvation Fault</span>
+			</div>
+			<p class="tank-ops-caption">Restrict how much product reaches the airlock inlet and force the trainee to recognize a starving line.</p>
 			<label class="tank-ops-field-label" for="tank-bridge-severity">Bridged Product Severity</label>
 			<div class="tank-ops-input-row">
 				<input id="tank-bridge-severity" class="tank-ops-input" type="number" min="0" max="100" step="5" value="@_bridgeSeverityDraft" @onchange="OnBridgeSeverityChanged" />
@@ -27,8 +47,20 @@
 					<button type="button" class="tank-ops-preset" @onclick="() => SetNumericParameterAsync(ParamBridgeSeverityPercent, preset, 0.0, 100.0)">@preset.ToString("0", CultureInfo.InvariantCulture)%</button>
 				}
 			</div>
-		</div>
-		<div>
+			<div class="tank-ops-trainer-note">
+				<span class="tank-ops-readback-label">Expected symptom</span>
+				<strong>@BridgeSeverityLabel</strong>
+			</div>
+		</section>
+		<section class="tank-ops-trainer-zone tank-ops-trainer-zone-capacity">
+			<div class="tank-ops-trainer-zone-head">
+				<div>
+					<p class="tank-ops-kicker">Receiving Tank</p>
+					<h4>Destination Capacity Clamp</h4>
+				</div>
+				<span class="tank-ops-chip">Inventory Limit</span>
+			</div>
+			<p class="tank-ops-caption">Lower the receiving tank limit to create a fill-stop condition without changing the rest of the transfer train.</p>
 			<label class="tank-ops-field-label" for="tank-destination-capacity">Destination Capacity Clamp</label>
 			<div class="tank-ops-input-row">
 				<input id="tank-destination-capacity" class="tank-ops-input" type="number" min="1000" max="60000" step="500" value="@_destinationCapacityDraft" @onchange="OnDestinationCapacityChanged" />
@@ -40,7 +72,11 @@
 					<button type="button" class="tank-ops-preset" @onclick="() => SetNumericParameterAsync(ParamDestinationTankCapacityLb, preset, 1000.0, 60000.0)">@preset.ToString("0", CultureInfo.InvariantCulture) lb</button>
 				}
 			</div>
-		</div>
+			<div class="tank-ops-trainer-note">
+				<span class="tank-ops-readback-label">Expected symptom</span>
+				<strong>@CapacityLabel</strong>
+			</div>
+		</section>
 	</div>
 	<div class="tank-ops-readback-grid">
 		<div>
@@ -86,6 +122,18 @@
 	private double BridgeSeverityPercent => GetParameter(ParamBridgeSeverityPercent);
 	private double DestinationTankCapacityLb => GetParameter(ParamDestinationTankCapacityLb);
 	private double DestinationTankWeightLb => GetSignal("DestinationTankWeightLb");
+	private string BridgeSeverityLabel => BridgeSeverityPercent >= 75.0
+		? "Severe bridge"
+		: BridgeSeverityPercent >= 40.0
+			? "Partial bridge"
+			: BridgeSeverityPercent > 0.0
+				? "Light restriction"
+				: "Clear feed path";
+	private string CapacityLabel => DestinationTankCapacityLb <= 12000.0
+		? "Tight receiving limit"
+		: DestinationTankCapacityLb <= 25000.0
+			? "Moderate receiving limit"
+			: "Normal receiving headroom";
 	private string SymptomLabel => BridgeSeverityPercent >= 60.0
 		? "Severe starvation"
 		: DestinationTankWeightLb >= DestinationTankCapacityLb - 500.0

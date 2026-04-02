@@ -24,69 +24,34 @@ public sealed class SqliteSimulationViewLayoutStore : ISimulationViewLayoutStore
 
 	public async Task<TankTransferSchematicLayout> GetTankTransferLayoutAsync(string simId, CancellationToken cancellationToken = default)
 	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(simId);
-		await using var connection = new SqliteConnection(_connectionString);
-		await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-		await using var command = connection.CreateCommand();
-		command.CommandText = """
-			SELECT tank_transfer_layout_json
-			FROM sim_view_layouts
-			WHERE sim_id = $simId
-			LIMIT 1;
-			""";
-		command.Parameters.AddWithValue("$simId", simId.Trim());
-
-		var raw = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as string;
-		if (string.IsNullOrWhiteSpace(raw))
-		{
-			return TankTransferSchematicLayout.Default;
-		}
-
-		try
-		{
-			return JsonSerializer.Deserialize<TankTransferSchematicLayout>(raw, JsonOptions) ?? TankTransferSchematicLayout.Default;
-		}
-		catch
-		{
-			return TankTransferSchematicLayout.Default;
-		}
+		return (await GetLayoutAsync(simId, "tank-transfer", TankTransferSchematicLayout.Default, cancellationToken).ConfigureAwait(false)).Normalize();
 	}
 
 	public async Task SaveTankTransferLayoutAsync(string simId, TankTransferSchematicLayout layout, CancellationToken cancellationToken = default)
 	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(simId);
-		ArgumentNullException.ThrowIfNull(layout);
-
-		await using var connection = new SqliteConnection(_connectionString);
-		await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-
-		await using var command = connection.CreateCommand();
-		command.CommandText = """
-			INSERT INTO sim_view_layouts (sim_id, tank_transfer_layout_json, updated_at_utc)
-			VALUES ($simId, $layoutJson, $updatedAtUtc)
-			ON CONFLICT(sim_id)
-			DO UPDATE SET
-				tank_transfer_layout_json = excluded.tank_transfer_layout_json,
-				updated_at_utc = excluded.updated_at_utc;
-			""";
-		command.Parameters.AddWithValue("$simId", simId.Trim());
-		command.Parameters.AddWithValue("$layoutJson", JsonSerializer.Serialize(layout, JsonOptions));
-		command.Parameters.AddWithValue("$updatedAtUtc", DateTimeOffset.UtcNow.ToString("O"));
-
-		await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+		layout.Normalize();
+		await SaveLayoutAsync(simId, "tank-transfer", layout, cancellationToken).ConfigureAwait(false);
 	}
 
 	public async Task ResetTankTransferLayoutAsync(string simId, CancellationToken cancellationToken = default)
 	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(simId);
-		await using var connection = new SqliteConnection(_connectionString);
-		await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+		await ResetLayoutAsync(simId, "tank-transfer", cancellationToken).ConfigureAwait(false);
+	}
 
-		await using var command = connection.CreateCommand();
-		command.CommandText = "DELETE FROM sim_view_layouts WHERE sim_id = $simId;";
-		command.Parameters.AddWithValue("$simId", simId.Trim());
-		await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+	public async Task<GrainDryerSchematicLayout> GetGrainDryerLayoutAsync(string simId, CancellationToken cancellationToken = default)
+	{
+		return (await GetLayoutAsync(simId, "grain-dryer", GrainDryerSchematicLayout.Default, cancellationToken).ConfigureAwait(false)).Normalize();
+	}
+
+	public async Task SaveGrainDryerLayoutAsync(string simId, GrainDryerSchematicLayout layout, CancellationToken cancellationToken = default)
+	{
+		layout.Normalize();
+		await SaveLayoutAsync(simId, "grain-dryer", layout, cancellationToken).ConfigureAwait(false);
+	}
+
+	public async Task ResetGrainDryerLayoutAsync(string simId, CancellationToken cancellationToken = default)
+	{
+		await ResetLayoutAsync(simId, "grain-dryer", cancellationToken).ConfigureAwait(false);
 	}
 
 	public async Task<TrainerPresetDto?> GetTrainerPresetAsync(string simId, string presetName, CancellationToken cancellationToken = default)
@@ -192,6 +157,14 @@ public sealed class SqliteSimulationViewLayoutStore : ISimulationViewLayoutStore
 		connection.Open();
 		using var command = connection.CreateCommand();
 		command.CommandText = """
+			CREATE TABLE IF NOT EXISTS sim_view_layout_entries (
+				sim_id TEXT NOT NULL,
+				layout_type TEXT NOT NULL,
+				layout_json TEXT NOT NULL,
+				updated_at_utc TEXT NOT NULL,
+				PRIMARY KEY (sim_id, layout_type)
+			);
+
 			CREATE TABLE IF NOT EXISTS sim_view_layouts (
 				sim_id TEXT PRIMARY KEY,
 				tank_transfer_layout_json TEXT NOT NULL,
@@ -205,8 +178,89 @@ public sealed class SqliteSimulationViewLayoutStore : ISimulationViewLayoutStore
 				updated_at_utc TEXT NOT NULL,
 				PRIMARY KEY (sim_id, preset_name)
 			);
+
+			INSERT INTO sim_view_layout_entries (sim_id, layout_type, layout_json, updated_at_utc)
+			SELECT sim_id, 'tank-transfer', tank_transfer_layout_json, updated_at_utc
+			FROM sim_view_layouts
+			WHERE tank_transfer_layout_json IS NOT NULL
+			ON CONFLICT(sim_id, layout_type) DO NOTHING;
 			""";
 		command.ExecuteNonQuery();
+	}
+
+	private async Task<TLayout> GetLayoutAsync<TLayout>(string simId, string layoutType, TLayout fallback, CancellationToken cancellationToken)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(simId);
+		ArgumentException.ThrowIfNullOrWhiteSpace(layoutType);
+
+		await using var connection = new SqliteConnection(_connectionString);
+		await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+		await using var command = connection.CreateCommand();
+		command.CommandText = """
+			SELECT layout_json
+			FROM sim_view_layout_entries
+			WHERE sim_id = $simId AND layout_type = $layoutType
+			LIMIT 1;
+			""";
+		command.Parameters.AddWithValue("$simId", simId.Trim());
+		command.Parameters.AddWithValue("$layoutType", layoutType.Trim());
+
+		var raw = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as string;
+		if (string.IsNullOrWhiteSpace(raw))
+		{
+			return fallback;
+		}
+
+		try
+		{
+			return JsonSerializer.Deserialize<TLayout>(raw, JsonOptions) ?? fallback;
+		}
+		catch
+		{
+			return fallback;
+		}
+	}
+
+	private async Task SaveLayoutAsync<TLayout>(string simId, string layoutType, TLayout layout, CancellationToken cancellationToken)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(simId);
+		ArgumentException.ThrowIfNullOrWhiteSpace(layoutType);
+		ArgumentNullException.ThrowIfNull(layout);
+
+		await using var connection = new SqliteConnection(_connectionString);
+		await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+		await using var command = connection.CreateCommand();
+		command.CommandText = """
+			INSERT INTO sim_view_layout_entries (sim_id, layout_type, layout_json, updated_at_utc)
+			VALUES ($simId, $layoutType, $layoutJson, $updatedAtUtc)
+			ON CONFLICT(sim_id, layout_type)
+			DO UPDATE SET
+				layout_json = excluded.layout_json,
+				updated_at_utc = excluded.updated_at_utc;
+			""";
+		command.Parameters.AddWithValue("$simId", simId.Trim());
+		command.Parameters.AddWithValue("$layoutType", layoutType.Trim());
+		command.Parameters.AddWithValue("$layoutJson", JsonSerializer.Serialize(layout, JsonOptions));
+		command.Parameters.AddWithValue("$updatedAtUtc", DateTimeOffset.UtcNow.ToString("O"));
+
+		await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+	}
+
+	private async Task ResetLayoutAsync(string simId, string layoutType, CancellationToken cancellationToken)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(simId);
+		ArgumentException.ThrowIfNullOrWhiteSpace(layoutType);
+
+		await using var connection = new SqliteConnection(_connectionString);
+		await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+		await using var command = connection.CreateCommand();
+		command.CommandText = "DELETE FROM sim_view_layout_entries WHERE sim_id = $simId AND layout_type = $layoutType;";
+		command.Parameters.AddWithValue("$simId", simId.Trim());
+		command.Parameters.AddWithValue("$layoutType", layoutType.Trim());
+		await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 	}
 
 	private static TrainerPresetDto? DeserializePreset(string presetName, string rawJson, string rawUpdatedAtUtc)

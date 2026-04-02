@@ -2,34 +2,39 @@
 
 @{
 	var centerY = CenterY;
-	var shellLeft = 46.0;
-	var shellRight = 138.0;
-	var shellWidth = shellRight - shellLeft;
-	var shellCenterX = shellLeft + (shellWidth / 2.0);
-	var wheelRadius = 34.0;
+	var bodyLeft = 44.0;
+	var bodyCenterX = 94.0;
+	var bodyRadius = 28.0;
 	var motorLeft = 146.0;
-	var motorTop = centerY - 21.0;
+	var motorTop = centerY - 18.0;
+	var baseTop = centerY + 30.0;
+	var bodyPath = $"M{F(bodyLeft)} {F(centerY - 22)} Q{F(bodyCenterX + 22)} {F(centerY - 34)} {F(bodyCenterX + bodyRadius)} {F(centerY - 6)} L{F(bodyCenterX + bodyRadius)} {F(centerY + 18)} Q{F(bodyCenterX + 4)} {F(centerY + 26)} {F(bodyLeft)} {F(centerY + 16)} Z";
+	var bodyHighlightPath = $"M{F(bodyLeft + 8)} {F(centerY - 14)} Q{F(bodyCenterX - 4)} {F(centerY - 30)} {F(bodyCenterX + 18)} {F(centerY - 14)}";
 }
 
 <g class="schematic-glyph schematic-blower">
-	<rect x="58" y="@(centerY + 37)" width="118" height="12" rx="6" ry="6" fill="var(--node-shell-shadow)" opacity="0.22" />
-	<line x1="10" y1="@centerY" x2="@shellLeft" y2="@centerY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
-	<line x1="@shellRight" y1="@centerY" x2="210" y2="@centerY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
-	<circle cx="@shellCenterX" cy="@centerY" r="@wheelRadius" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
-	<path d="M@shellLeft @centerY A@wheelRadius @wheelRadius 0 0 1 @shellRight @centerY" fill="none" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
-	<path d="M@(shellCenterX - 24) @(centerY - 18) Q@(shellCenterX - 4) @(centerY - 40) @(shellCenterX + 22) @(centerY - 12)" fill="none" stroke="var(--node-shell-highlight)" stroke-width="2.2" stroke-linecap="round" opacity="0.8" />
-	<circle cx="@shellCenterX" cy="@centerY" r="8" fill="@VisualStyle.CoreFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.8" />
-	<path d="M@(shellCenterX - 10) @(centerY - 10) L@(shellCenterX + 10) @centerY L@(shellCenterX - 10) @(centerY + 10) Z" fill="@VisualStyle.CoreFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.6" />
-
-	<rect x="@motorLeft" y="@motorTop" width="44" height="42" rx="10" ry="10" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
-	<line x1="184" y1="@(centerY - 11)" x2="184" y2="@(centerY + 11)" stroke="@VisualStyle.DetailStroke" stroke-width="2" stroke-linecap="round" />
-	<line x1="190" y1="@(centerY - 11)" x2="190" y2="@(centerY + 11)" stroke="@VisualStyle.DetailStroke" stroke-width="2" stroke-linecap="round" />
-	<line x1="196" y1="@(centerY - 11)" x2="196" y2="@(centerY + 11)" stroke="@VisualStyle.DetailStroke" stroke-width="2" stroke-linecap="round" />
-	<line x1="180" y1="@centerY" x2="@motorLeft" y2="@centerY" stroke="@VisualStyle.DetailStroke" stroke-width="2.8" stroke-linecap="round" />
-	<rect x="58" y="@(centerY + 34)" width="124" height="10" rx="5" ry="5" fill="@VisualStyle.BaseFill" />
+	<rect x="42" y="@(baseTop + 8)" width="150" height="10" rx="5" ry="5" fill="var(--node-shell-shadow)" opacity="0.22" />
+	<rect x="36" y="@baseTop" width="156" height="10" rx="5" ry="5" fill="@VisualStyle.BaseFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.2" />
+	<line x1="10" y1="@centerY" x2="@bodyLeft" y2="@centerY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<line x1="122" y1="@centerY" x2="212" y2="@centerY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<path d="@bodyPath" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.2" />
+	<path d="@bodyHighlightPath" fill="none" stroke="var(--node-shell-highlight)" stroke-width="2.2" stroke-linecap="round" opacity="0.82" />
+	<circle cx="@bodyCenterX" cy="@centerY" r="14" fill="@VisualStyle.CoreFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.8" />
+	<circle cx="@bodyCenterX" cy="@centerY" r="5.5" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.4" />
+	<rect x="@motorLeft" y="@motorTop" width="46" height="36" rx="8" ry="8" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.2" />
+	<line x1="160" y1="@(centerY - 8)" x2="160" y2="@(centerY + 8)" stroke="@VisualStyle.DetailStroke" stroke-width="2" stroke-linecap="round" />
+	<line x1="166" y1="@(centerY - 8)" x2="166" y2="@(centerY + 8)" stroke="@VisualStyle.DetailStroke" stroke-width="2" stroke-linecap="round" />
+	<line x1="172" y1="@(centerY - 8)" x2="172" y2="@(centerY + 8)" stroke="@VisualStyle.DetailStroke" stroke-width="2" stroke-linecap="round" />
+	<rect x="138" y="@(centerY - 5)" width="10" height="10" rx="2" ry="2" fill="#d74628" stroke="#6f2217" stroke-width="1.2" />
+	<line x1="148" y1="@centerY" x2="@motorLeft" y2="@centerY" stroke="@VisualStyle.DetailStroke" stroke-width="2.6" stroke-linecap="round" />
+	<circle cx="132" cy="@(centerY + 18)" r="7" fill="#d74628" stroke="#6f2217" stroke-width="1.4" />
+	<line x1="125" y1="@(centerY + 18)" x2="139" y2="@(centerY + 18)" stroke="#f7cabc" stroke-width="1.8" stroke-linecap="round" />
+	<line x1="132" y1="@(centerY + 11)" x2="132" y2="@(centerY + 25)" stroke="#f7cabc" stroke-width="1.8" stroke-linecap="round" />
 </g>
 
 @code {
+	private static string F(double value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+
 	[CascadingParameter] public SchematicVisualStyle VisualStyle { get; set; } = SchematicVisualStyle.Default;
 	[Parameter] public double CenterY { get; set; } = 104;
 }

@@ -13,74 +13,70 @@
 else
 {
 	<section class="tank-ops-shell">
-		<div class="tank-ops-hero">
+		<div class="tank-ops-marquee">
 			<div>
-				<p class="tank-ops-kicker">Operator Deck</p>
-				<h2>Tank Transfer Controls</h2>
-				<p class="tank-ops-copy">Run the blower and airlock, then switch between auto pressure hold and manual lock speed without digging through raw parameters.</p>
-			</div>
-			<div class="tank-ops-hero-stats">
-				<div>
-					<span class="tank-ops-stat-label">Mode</span>
-					<strong>@ControlModeLabel</strong>
-				</div>
-				<button type="button" class="tank-ops-hero-stat-button" @onclick='() => OpenTrend(TrendKeys.BlowlinePressurePsi)'>
-					<span class="tank-ops-stat-label">Line PSI</span>
-					<strong>@BlowlinePressurePsi.ToString("0.0", CultureInfo.InvariantCulture)</strong>
-				</button>
-				<button type="button" class="tank-ops-hero-stat-button" @onclick='() => OpenTrend(TrendKeys.TransferRateLbPerSec)'>
-					<span class="tank-ops-stat-label">Transfer</span>
-					<strong>@TransferRateLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</strong>
-				</button>
+				<p class="tank-ops-kicker">Operator Console</p>
+				<h2>Transfer Station A3</h2>
+				<p class="tank-ops-copy">Dedicated control shelf for mode selection, motor starters, and setpoint entry. Live gauges and status indicators now stay on the main HMI.</p>
 			</div>
 		</div>
 
 		<div class="tank-ops-grid">
-			<section class="tank-ops-card">
-				<div class="tank-ops-card-head">
-					<h3>Control Mode</h3>
+			<section class="tank-ops-module tank-ops-module-wide">
+				<div class="tank-ops-module-head">
+					<div>
+						<p class="tank-ops-kicker">Selector Bank</p>
+						<h3>Control Mode</h3>
+					</div>
 					<span class="tank-ops-chip @(PressureControlEnabled ? "tank-ops-chip-live" : string.Empty)">@ControlModeLabel</span>
 				</div>
-				<div class="tank-ops-toggle-row">
-					<button type="button" class="tank-ops-toggle @(PressureControlEnabled ? "is-active" : string.Empty)" @onclick="() => SetPressureControlModeAsync(true)">
+				<div class="tank-ops-selector-bank">
+					<button type="button" class="tank-ops-selector @(PressureControlEnabled ? "is-active" : string.Empty)" @onclick="() => SetPressureControlModeAsync(true)">
 						<span>Auto PSI</span>
-						<small>PID trims airlock speed</small>
+						<small>Pressure loop trims the airlock</small>
 					</button>
-					<button type="button" class="tank-ops-toggle @(!PressureControlEnabled ? "is-active" : string.Empty)" @onclick="() => SetPressureControlModeAsync(false)">
+					<button type="button" class="tank-ops-selector @(!PressureControlEnabled ? "is-active" : string.Empty)" @onclick="() => SetPressureControlModeAsync(false)">
 						<span>Manual Hz</span>
-						<small>Operator commands the lock</small>
+						<small>Operator drives the rotary lock directly</small>
 					</button>
-				</div>
-				<p class="tank-ops-caption">Auto mode holds line pressure at the target. Manual mode leaves the rotary airlock at the entered speed command.</p>
-			</section>
-
-			<section class="tank-ops-card">
-				<div class="tank-ops-card-head">
-					<h3>Equipment</h3>
-					<span class="tank-ops-chip">Start / stop</span>
-				</div>
-				<div class="tank-ops-equipment-grid">
-					<button type="button" class="tank-ops-device @(BlowerEnabled ? "is-running" : string.Empty)" @onclick="() => ToggleBinaryParameterAsync(ParamBlowerEnable, !BlowerEnabled)">
-						<span class="tank-ops-device-name">Blower</span>
-						<strong>@(BlowerEnabled ? "Running" : "Stopped")</strong>
-					</button>
-					<button type="button" class="tank-ops-device @(AirlockEnabled ? "is-running" : string.Empty)" @onclick="() => ToggleBinaryParameterAsync(ParamAirlockEnable, !AirlockEnabled)">
-						<span class="tank-ops-device-name">Airlock</span>
-						<strong>@(AirlockEnabled ? "Running" : "Stopped")</strong>
-					</button>
-				</div>
-				<div class="tank-ops-inline-status">
-					<span class="tank-ops-mini-stat">Source @SourceTankWeightLb.ToString("0", CultureInfo.InvariantCulture) lb</span>
-					<span class="tank-ops-mini-stat">Destination @DestinationTankWeightLb.ToString("0", CultureInfo.InvariantCulture) lb</span>
 				</div>
 			</section>
 
-			<section class="tank-ops-card tank-ops-card-primary @(PressureControlEnabled ? "is-accent" : string.Empty)">
-				<div class="tank-ops-card-head">
-					<h3>Pressure Target</h3>
+			<section class="tank-ops-module">
+				<div class="tank-ops-module-head">
+					<div>
+						<p class="tank-ops-kicker">Motor Starters</p>
+						<h3>Equipment</h3>
+					</div>
+					<span class="tank-ops-chip">Run / stop</span>
+				</div>
+				<div class="tank-ops-starter-bank">
+					<button type="button" class="tank-ops-starter @(BlowerEnabled ? "is-running" : string.Empty)" @onclick="() => ToggleBinaryParameterAsync(ParamBlowerEnable, !BlowerEnabled)">
+						<span class="tank-ops-lamp @(BlowerEnabled ? "is-live" : string.Empty)"></span>
+						<div>
+							<span class="tank-ops-device-name">Blower</span>
+							<strong>@(BlowerEnabled ? "Running" : "Stopped")</strong>
+						</div>
+					</button>
+					<button type="button" class="tank-ops-starter @(AirlockEnabled ? "is-running" : string.Empty)" @onclick="() => ToggleBinaryParameterAsync(ParamAirlockEnable, !AirlockEnabled)">
+						<span class="tank-ops-lamp @(AirlockEnabled ? "is-live" : string.Empty)"></span>
+						<div>
+							<span class="tank-ops-device-name">Airlock</span>
+							<strong>@(AirlockEnabled ? "Running" : "Stopped")</strong>
+						</div>
+					</button>
+				</div>
+			</section>
+
+			<section class="tank-ops-module tank-ops-module-primary @(PressureControlEnabled ? "is-accent" : string.Empty)">
+				<div class="tank-ops-module-head">
+					<div>
+						<p class="tank-ops-kicker">Pressure Controller</p>
+						<h3>Line PSI Setpoint</h3>
+					</div>
 					<span class="tank-ops-chip @(PressureControlEnabled ? "tank-ops-chip-live" : string.Empty)">Auto</span>
 				</div>
-				<label class="tank-ops-field-label" for="tank-pressure-target">Line PSI Setpoint</label>
+				<label class="tank-ops-field-label" for="tank-pressure-target">Target PSI</label>
 				<div class="tank-ops-input-row">
 					<input id="tank-pressure-target" class="tank-ops-input" type="number" min="0" max="25" step="0.5" value="@_pressureCommandDraft" @onchange="OnPressureDraftChanged" />
 					<button type="button" class="tank-ops-apply" @onclick="ApplyPressureTargetAsync">Apply</button>
@@ -97,12 +93,15 @@ else
 				</div>
 			</section>
 
-			<section class="tank-ops-card tank-ops-card-primary @(!PressureControlEnabled ? "is-accent" : string.Empty)">
-				<div class="tank-ops-card-head">
-					<h3>Manual Lock Speed</h3>
+			<section class="tank-ops-module tank-ops-module-primary @(!PressureControlEnabled ? "is-accent" : string.Empty)">
+				<div class="tank-ops-module-head">
+					<div>
+						<p class="tank-ops-kicker">Rate Controller</p>
+						<h3>Manual Airlock Hz</h3>
+					</div>
 					<span class="tank-ops-chip @(!PressureControlEnabled ? "tank-ops-chip-live" : string.Empty)">Manual</span>
 				</div>
-				<label class="tank-ops-field-label" for="tank-airlock-speed">Airlock Speed Command</label>
+				<label class="tank-ops-field-label" for="tank-airlock-speed">Speed Command</label>
 				<div class="tank-ops-input-row">
 					<input id="tank-airlock-speed" class="tank-ops-input" type="number" min="0" max="30" step="0.5" value="@_airlockSpeedDraft" @onchange="OnAirlockDraftChanged" />
 					<button type="button" class="tank-ops-apply" @onclick="ApplyManualSpeedAsync">Apply</button>
@@ -116,39 +115,6 @@ else
 					{
 						<button type="button" class="tank-ops-preset" @onclick="() => SetNumericParameterAsync(ParamAirlockSpeedCommandHz, preset, 0.0, 30.0)">@preset.ToString("0", CultureInfo.InvariantCulture) Hz</button>
 					}
-				</div>
-			</section>
-
-			<section class="tank-ops-card tank-ops-card-wide">
-				<div class="tank-ops-card-head">
-					<h3>Live Readback</h3>
-					<span class="tank-ops-chip">Process</span>
-				</div>
-				<div class="tank-ops-readback-grid">
-					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.BlowlinePressurePsi)'>
-						<span class="tank-ops-readback-label">Actual line pressure</span>
-						<strong>@BlowlinePressurePsi.ToString("0.0", CultureInfo.InvariantCulture) psi</strong>
-					</button>
-					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.BlowlinePressureCommandPsi)'>
-						<span class="tank-ops-readback-label">Pressure target</span>
-						<strong>@BlowlinePressureCommandPsi.ToString("0.0", CultureInfo.InvariantCulture) psi</strong>
-					</button>
-					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.AirlockCommandHz)'>
-						<span class="tank-ops-readback-label">Airlock cmd</span>
-						<strong>@AirlockCommandHz.ToString("0.0", CultureInfo.InvariantCulture) Hz</strong>
-					</button>
-					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.AirlockSpeedHz)'>
-						<span class="tank-ops-readback-label">Airlock actual</span>
-						<strong>@AirlockSpeedHz.ToString("0.0", CultureInfo.InvariantCulture) Hz</strong>
-					</button>
-					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.TransferRateLbPerSec)'>
-						<span class="tank-ops-readback-label">Transfer rate</span>
-						<strong>@TransferRateLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</strong>
-					</button>
-					<button type="button" class="tank-ops-readback-card" @onclick='() => OpenTrend(TrendKeys.BlowerMotorPercentFla)'>
-						<span class="tank-ops-readback-label">Blower load</span>
-						<strong>@BlowerMotorPercentFla.ToString("0.0", CultureInfo.InvariantCulture)% FLA</strong>
-					</button>
 				</div>
 			</section>
 

@@ -1,53 +1,81 @@
 @namespace SkyNet.Simulator.Dashboard.Components
 
 @{
-	var vesselWidth = Width * 0.52;
-	var vesselLeft = (Width - vesselWidth) / 2.0;
-	var vesselTop = 6.0;
-	var nozzleHeight = 12.0;
-	var vesselBottom = Math.Max(vesselTop + 82.0, OutletY - nozzleHeight);
-	var vesselHeight = vesselBottom - vesselTop;
+	var shellWidth = Width * 0.42;
+	var shellLeft = (Width - shellWidth) / 2.0;
+	var shellRight = shellLeft + shellWidth;
+	var shellTop = 6.0;
+	var cylinderBottom = Math.Max(shellTop + 62.0, OutletY - 42.0);
+	var coneTipY = OutletY - 8.0;
+	var shellHeight = cylinderBottom - shellTop;
 	var fillRatio = FillRatio.HasValue ? Math.Clamp(FillRatio.Value, 0.0, 1.0) : (double?)null;
-	var fillInset = 9.0;
-	var fillHeight = fillRatio.HasValue ? Math.Max(0.0, (vesselHeight - 16.0) * fillRatio.Value) : 0.0;
-	var fillY = vesselBottom - 8.0 - fillHeight;
+	var fillInset = 7.0;
+	var fillHeight = fillRatio.HasValue ? Math.Max(0.0, (shellHeight - 16.0) * fillRatio.Value) : 0.0;
+	var fillY = cylinderBottom - 8.0 - fillHeight;
 	var centerX = Width / 2.0;
 	var outletX = OutletX ?? centerX;
-	var legTopY = vesselBottom + 10.0;
+	var gaugeLeft = shellRight + 10.0;
+	var gaugeTop = shellTop + 8.0;
+	var gaugeHeight = shellHeight + 26.0;
+	var gaugeFillHeight = fillRatio.HasValue ? Math.Max(0.0, (gaugeHeight - 12.0) * fillRatio.Value) : 0.0;
+	var gaugeFillY = gaugeTop + gaugeHeight - 6.0 - gaugeFillHeight;
+	var skirtLeft = centerX - 18.0;
+	var skirtRight = centerX + 18.0;
+	var hopperPath = $"M{F(shellLeft)} {F(cylinderBottom - 4)} L{F(skirtLeft)} {F(coneTipY - 10)} L{F(centerX - 10)} {F(coneTipY + 2)} L{F(centerX)} {F(coneTipY)} L{F(centerX + 10)} {F(coneTipY + 2)} L{F(skirtRight)} {F(coneTipY - 10)} L{F(shellRight)} {F(cylinderBottom - 4)} Z";
+	var highlightPath = $"M{F(shellLeft + 4)} {F(shellTop + 22)} Q{F(centerX)} {F(shellTop + 8)} {F(shellRight - 4)} {F(shellTop + 22)}";
+	var liquidTopPath = $"M{F(shellLeft + fillInset)} {F(fillY + 6)} Q{F(centerX)} {F(fillY)} {F(shellRight - fillInset)} {F(fillY + 6)}";
+	var alertPath = $"M{F(shellLeft - 8)} {F(shellTop + 14)} L{F(shellLeft + 10)} {F(shellTop + 14)} L{F(shellLeft - 8)} {F(cylinderBottom - 10)}";
 }
 
 <g class="schematic-glyph schematic-tank">
-	<rect x="@(vesselLeft - 18)" y="@(vesselTop + 6)" width="@(vesselWidth + 36)" height="@(vesselHeight + 12)" rx="26" ry="26" fill="var(--node-shell-shadow)" opacity="0.18" />
-	<rect x="@vesselLeft" y="@(vesselTop + 10)" width="@vesselWidth" height="@(vesselHeight - 20)" rx="22" ry="22" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
-	<ellipse cx="@centerX" cy="@(vesselTop + 10)" rx="@(vesselWidth / 2.0)" ry="10" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
-	<ellipse cx="@centerX" cy="@vesselBottom" rx="@(vesselWidth / 2.0)" ry="10" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.4" />
-	<path d="M@(vesselLeft + 4) @(vesselTop + 22) Q@centerX @(vesselTop + 8) @(vesselLeft + vesselWidth - 4) @(vesselTop + 22)" fill="none" stroke="var(--node-shell-highlight)" stroke-width="2.2" stroke-linecap="round" opacity="0.75" />
-	<line x1="@(vesselLeft + 12)" y1="@(vesselBottom + 9)" x2="@(vesselLeft + 24)" y2="@(vesselBottom + 17)" stroke="@VisualStyle.DetailStroke" stroke-width="3" stroke-linecap="round" />
-	<line x1="@(vesselLeft + vesselWidth - 12)" y1="@(vesselBottom + 9)" x2="@(vesselLeft + vesselWidth - 24)" y2="@(vesselBottom + 17)" stroke="@VisualStyle.DetailStroke" stroke-width="3" stroke-linecap="round" />
-	<line x1="@(vesselLeft + 24)" y1="@legTopY" x2="@(vesselLeft + 16)" y2="@(legTopY + 18)" stroke="@VisualStyle.DetailStroke" stroke-width="3.2" stroke-linecap="round" />
-	<line x1="@(vesselLeft + vesselWidth - 24)" y1="@legTopY" x2="@(vesselLeft + vesselWidth - 16)" y2="@(legTopY + 18)" stroke="@VisualStyle.DetailStroke" stroke-width="3.2" stroke-linecap="round" />
-	<line x1="@(vesselLeft + 12)" y1="@(legTopY + 18)" x2="@(vesselLeft + vesselWidth - 12)" y2="@(legTopY + 18)" stroke="@VisualStyle.DetailStroke" stroke-width="3" stroke-linecap="round" opacity="0.8" />
+	<rect x="@(shellLeft - 18)" y="@(shellTop + 4)" width="@(shellWidth + 48)" height="@(shellHeight + 76)" rx="26" ry="26" fill="var(--node-shell-shadow)" opacity="0.16" />
+	<ellipse cx="@centerX" cy="@(shellTop + 10)" rx="@(shellWidth / 2.0)" ry="10" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.2" />
+	<rect x="@shellLeft" y="@(shellTop + 10)" width="@shellWidth" height="@(shellHeight - 12)" rx="14" ry="14" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.2" />
+	<path d="@hopperPath" fill="@VisualStyle.ShellFill" stroke="@VisualStyle.ShellStroke" stroke-width="2.2" />
+	<path d="@highlightPath" fill="none" stroke="var(--node-shell-highlight)" stroke-width="2.2" stroke-linecap="round" opacity="0.86" />
+	<line x1="@(shellLeft + 10)" y1="@(shellTop + 20)" x2="@(shellLeft + 10)" y2="@(cylinderBottom - 8)" stroke="rgba(255,255,255,0.46)" stroke-width="1.6" opacity="0.72" />
+	<line x1="@(shellRight - 10)" y1="@(shellTop + 20)" x2="@(shellRight - 10)" y2="@(cylinderBottom - 8)" stroke="rgba(255,255,255,0.24)" stroke-width="1.2" opacity="0.56" />
+	<line x1="@(shellLeft - 12)" y1="@(shellTop + 20)" x2="@(shellLeft - 12)" y2="@(cylinderBottom + 6)" stroke="@VisualStyle.DetailStroke" stroke-width="2" opacity="0.55" />
+	<line x1="@(shellLeft - 16)" y1="@(shellTop + 28)" x2="@(shellLeft - 8)" y2="@(shellTop + 28)" stroke="@VisualStyle.DetailStroke" stroke-width="1.4" />
+	<line x1="@(shellLeft - 16)" y1="@(shellTop + 48)" x2="@(shellLeft - 8)" y2="@(shellTop + 48)" stroke="@VisualStyle.DetailStroke" stroke-width="1.4" />
+	<line x1="@(shellLeft - 16)" y1="@(shellTop + 68)" x2="@(shellLeft - 8)" y2="@(shellTop + 68)" stroke="@VisualStyle.DetailStroke" stroke-width="1.4" />
+	<text x="@(shellLeft - 28)" y="@(shellTop + 30)" style="fill:#f3f3f3; font: 700 7px 'Trebuchet MS', sans-serif;">Hi</text>
+	<text x="@(shellLeft - 30)" y="@(shellTop + 50)" style="fill:#f3f3f3; font: 700 7px 'Trebuchet MS', sans-serif;">Mid</text>
+	<text x="@(shellLeft - 28)" y="@(shellTop + 70)" style="fill:#f3f3f3; font: 700 7px 'Trebuchet MS', sans-serif;">Lo</text>
+	<rect x="@gaugeLeft" y="@gaugeTop" width="12" height="@gaugeHeight" rx="6" ry="6" fill="#16323b" stroke="@VisualStyle.ShellStroke" stroke-width="1.6" />
+	<rect x="@(gaugeLeft + 2)" y="@(gaugeTop + 2)" width="8" height="@(gaugeHeight - 4)" rx="4" ry="4" fill="#102128" />
+	@if (fillRatio.HasValue)
+	{
+		<rect x="@(gaugeLeft + 2.2)" y="@gaugeFillY" width="7.6" height="@gaugeFillHeight" rx="4" ry="4" fill="@VisualStyle.TankFill" opacity="0.96" />
+	}
+	<line x1="@(gaugeLeft - 4)" y1="@(gaugeTop + 6)" x2="@(gaugeLeft + 16)" y2="@(gaugeTop + 6)" stroke="#d8dada" stroke-width="1" opacity="0.6" />
+	<line x1="@(gaugeLeft - 4)" y1="@(gaugeTop + gaugeHeight / 2.0)" x2="@(gaugeLeft + 16)" y2="@(gaugeTop + gaugeHeight / 2.0)" stroke="#d8dada" stroke-width="1" opacity="0.6" />
+	<line x1="@(gaugeLeft - 4)" y1="@(gaugeTop + gaugeHeight - 6)" x2="@(gaugeLeft + 16)" y2="@(gaugeTop + gaugeHeight - 6)" stroke="#d8dada" stroke-width="1" opacity="0.6" />
 
 	@if (fillRatio.HasValue)
 	{
-		<rect x="@(vesselLeft + fillInset)" y="@fillY" width="@(vesselWidth - (fillInset * 2.0))" height="@fillHeight" rx="14" ry="14" fill="@VisualStyle.TankFill" opacity="0.95" />
+		<rect x="@(shellLeft + fillInset)" y="@fillY" width="@(shellWidth - (fillInset * 2.0))" height="@fillHeight" rx="10" ry="10" fill="@VisualStyle.TankFill" opacity="0.88" />
+		<path d="@liquidTopPath" fill="none" stroke="rgba(255,255,255,0.38)" stroke-width="1.4" />
 	}
 
-	<line x1="@outletX" y1="@vesselBottom" x2="@outletX" y2="@OutletY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
+	<rect x="@(centerX - 7)" y="@(coneTipY - 4)" width="14" height="12" rx="4" ry="4" fill="@VisualStyle.BaseFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.4" />
+	<line x1="@outletX" y1="@coneTipY" x2="@outletX" y2="@OutletY" stroke="@VisualStyle.DetailStroke" stroke-width="4" stroke-linecap="round" />
 	<circle cx="@outletX" cy="@OutletY" r="4.5" fill="@VisualStyle.PortCapFill" stroke="@VisualStyle.ShellStroke" stroke-width="2" />
-	<rect x="@(outletX - 7)" y="@(vesselBottom - 2)" width="14" height="8" rx="3" ry="3" fill="@VisualStyle.BaseFill" stroke="@VisualStyle.ShellStroke" stroke-width="1.4" />
-
-	<line x1="@(vesselLeft + 16)" y1="@(vesselTop + 26)" x2="@(vesselLeft + vesselWidth - 16)" y2="@(vesselTop + 26)" stroke="@VisualStyle.DetailStroke" stroke-width="1.8" stroke-linecap="round" />
-	<line x1="@(vesselLeft + 16)" y1="@(vesselTop + 46)" x2="@(vesselLeft + vesselWidth - 16)" y2="@(vesselTop + 46)" stroke="@VisualStyle.DetailStroke" stroke-width="1.8" stroke-linecap="round" />
-	<line x1="@(vesselLeft + 16)" y1="@(vesselTop + 66)" x2="@(vesselLeft + vesselWidth - 16)" y2="@(vesselTop + 66)" stroke="@VisualStyle.DetailStroke" stroke-width="1.8" stroke-linecap="round" />
+	<line x1="@(shellLeft + 10)" y1="@(shellTop + 26)" x2="@(shellRight - 10)" y2="@(shellTop + 26)" stroke="@VisualStyle.DetailStroke" stroke-width="1.2" stroke-linecap="round" opacity="0.45" />
+	<line x1="@(shellLeft + 10)" y1="@(shellTop + 46)" x2="@(shellRight - 10)" y2="@(shellTop + 46)" stroke="@VisualStyle.DetailStroke" stroke-width="1.2" stroke-linecap="round" opacity="0.45" />
+	<line x1="@(shellLeft + 10)" y1="@(shellTop + 66)" x2="@(shellRight - 10)" y2="@(shellTop + 66)" stroke="@VisualStyle.DetailStroke" stroke-width="1.2" stroke-linecap="round" opacity="0.45" />
+	<text x="@(centerX - 14)" y="@(shellTop + 34)" style="fill:#f8f8f8; font: 700 11px 'Trebuchet MS', sans-serif;">Tank</text>
+	<text x="@(centerX - 18)" y="@(shellTop + 49)" style="fill:#f8f8f8; font: 700 10px 'Trebuchet MS', sans-serif;">Name</text>
 
 	@if (IsAlert)
 	{
-		<path d="M@(vesselLeft - 6) @(vesselTop + 14) L@(vesselLeft + 10) @(vesselTop + 14) L@(vesselLeft - 6) @(vesselBottom - 14)" fill="@VisualStyle.AlertFill" opacity="0.95" />
+		<path d="@alertPath" fill="@VisualStyle.AlertFill" opacity="0.95" />
 	}
 </g>
 
 @code {
+	private static string F(double value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+
 	[CascadingParameter] public SchematicVisualStyle VisualStyle { get; set; } = SchematicVisualStyle.Default;
 	[Parameter] public double Width { get; set; } = 220;
 	[Parameter] public double OutletY { get; set; } = 135;

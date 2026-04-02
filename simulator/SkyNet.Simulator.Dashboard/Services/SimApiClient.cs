@@ -157,6 +157,10 @@ public sealed class SimApiClient(HttpClient http)
 		await http.GetFromJsonAsync<TankTransferSchematicLayout>($"/api/sims/{Uri.EscapeDataString(simId)}/view-layout/tank-transfer", cancellationToken).ConfigureAwait(false)
 		?? TankTransferSchematicLayout.Default;
 
+	public async Task<GrainDryerSchematicLayout> GetGrainDryerLayoutAsync(string simId, CancellationToken cancellationToken = default) =>
+		await http.GetFromJsonAsync<GrainDryerSchematicLayout>($"/api/sims/{Uri.EscapeDataString(simId)}/view-layout/grain-dryer", cancellationToken).ConfigureAwait(false)
+		?? GrainDryerSchematicLayout.Default;
+
 	public Task SetTankTransferLayoutAsync(string simId, TankTransferSchematicLayout layout, CancellationToken cancellationToken = default) =>
 		http.PutAsJsonAsync($"/api/sims/{Uri.EscapeDataString(simId)}/view-layout/tank-transfer", layout, cancellationToken)
 			.ContinueWith(async t =>
@@ -166,8 +170,26 @@ public sealed class SimApiClient(HttpClient http)
 			}, cancellationToken)
 			.Unwrap();
 
+	public Task SetGrainDryerLayoutAsync(string simId, GrainDryerSchematicLayout layout, CancellationToken cancellationToken = default) =>
+		http.PutAsJsonAsync($"/api/sims/{Uri.EscapeDataString(simId)}/view-layout/grain-dryer", layout, cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
+
 	public Task ResetTankTransferLayoutAsync(string simId, CancellationToken cancellationToken = default) =>
 		http.DeleteAsync($"/api/sims/{Uri.EscapeDataString(simId)}/view-layout/tank-transfer", cancellationToken)
+			.ContinueWith(async t =>
+			{
+				var resp = await t.ConfigureAwait(false);
+				await EnsureSuccessAsync(resp).ConfigureAwait(false);
+			}, cancellationToken)
+			.Unwrap();
+
+	public Task ResetGrainDryerLayoutAsync(string simId, CancellationToken cancellationToken = default) =>
+		http.DeleteAsync($"/api/sims/{Uri.EscapeDataString(simId)}/view-layout/grain-dryer", cancellationToken)
 			.ContinueWith(async t =>
 			{
 				var resp = await t.ConfigureAwait(false);

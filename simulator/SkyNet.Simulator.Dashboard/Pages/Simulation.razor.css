@@ -168,6 +168,15 @@
     gap: 0.8rem;
 }
 
+.opsb-layout-focus {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.opsb-main-column-focus {
+    width: min(100%, 1560px);
+    margin: 0 auto;
+}
+
 .opsb-side-column {
     position: sticky;
     top: 5rem;
@@ -196,6 +205,22 @@
         radial-gradient(circle at top, rgba(180, 108, 36, 0.28), transparent 40%);
 }
 
+.opsb-viewport-panel-focus {
+    padding: 1rem;
+}
+
+.opsb-panel-head-focus {
+    margin-bottom: 0.85rem;
+}
+
+.opsb-viewport-frame-focus {
+    padding: 0.45rem;
+    border-radius: 26px;
+    background:
+        linear-gradient(180deg, rgba(17, 11, 6, 0.92), rgba(29, 19, 10, 0.95)),
+        radial-gradient(circle at top, rgba(218, 154, 70, 0.24), transparent 42%);
+}
+
 .opsb-viewport-scene {
     padding: 4rem 0.7rem 3.5rem;
     min-height: 360px;
@@ -204,6 +229,26 @@
         linear-gradient(90deg, rgba(235, 180, 112, 0.08) 1px, transparent 1px),
         linear-gradient(rgba(235, 180, 112, 0.06) 1px, transparent 1px);
     background-size: auto, 44px 44px, 44px 44px;
+}
+
+.opsb-viewport-scene.is-tank-transfer {
+    padding: 1rem 0.2rem 0.45rem;
+    min-height: 0;
+}
+
+.opsb-viewport-scene.is-grain-dryer {
+    padding: 0.8rem 0.2rem 0.3rem;
+    min-height: 0;
+}
+
+.opsb-viewport-scene.is-tank-transfer > .tank-hmi-shell {
+    margin: 0 auto;
+    max-width: 100%;
+}
+
+.opsb-viewport-scene.is-grain-dryer > .grain-hmi-shell {
+    margin: 0 auto;
+    max-width: 100%;
 }
 
 .opsb-viewport-overlay {
@@ -291,6 +336,48 @@
 .opsb-history-list {
     display: grid;
     gap: 0.55rem;
+}
+
+.opsb-alarm-table-panel {
+    padding: 0.95rem;
+}
+
+.opsb-alarm-table-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 0.8rem;
+}
+
+.opsb-alarm-table-card {
+    padding: 0.2rem;
+    border: 1px solid color-mix(in srgb, var(--opsb-line) 84%, transparent);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--app-surface-elevated) 82%, transparent);
+}
+
+.opsb-alarm-table {
+    margin: 0;
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--app-fg);
+    --bs-table-border-color: color-mix(in srgb, var(--opsb-line) 72%, transparent);
+    --bs-table-striped-bg: color-mix(in srgb, var(--app-surface) 72%, transparent);
+    --bs-table-hover-bg: color-mix(in srgb, var(--app-surface-elevated) 82%, #7e521f 18%);
+}
+
+.opsb-alarm-table thead th {
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--app-muted);
+    border-bottom-width: 1px;
+}
+
+.opsb-alarm-history-table tr.severity-alarm td {
+    color: color-mix(in srgb, var(--opsb-alert) 86%, var(--app-fg) 14%);
+}
+
+.opsb-alarm-history-table tr.severity-clear td {
+    color: color-mix(in srgb, var(--opsb-live) 72%, var(--app-fg) 28%);
 }
 
 .opsb-alarm-item,
@@ -385,6 +472,10 @@
 @media (max-width: 1200px) {
     .opsb-trainer-workspace,
     .opsb-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .opsb-alarm-table-grid {
         grid-template-columns: 1fr;
     }
 

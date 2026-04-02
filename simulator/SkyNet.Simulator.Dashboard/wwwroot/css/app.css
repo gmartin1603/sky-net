@@ -546,10 +546,18 @@ a, .btn-link {
     font-size: 0.9rem;
     cursor: grab;
     min-height: 96px;
+    touch-action: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
 
 .layout-drag-box:active {
     cursor: grabbing;
+}
+
+.layout-drag-box.is-dragging {
+    border-color: var(--schematic-border-on);
+    transform: scale(1.01);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--schematic-border-on) 45%, transparent), var(--app-shadow-strong);
 }
 
 .layout-drag-box-title {

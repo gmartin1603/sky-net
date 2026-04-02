@@ -17,25 +17,7 @@ else
 			<div>
 				<p class="dryer-ops-kicker">Operator Deck</p>
 				<h2>Grain Dryer Controls</h2>
-				<p class="dryer-ops-copy">Run startup automation, manage fan, burner, and feed, then tune moisture, throughput, and thermal load from a single operating panel.</p>
-			</div>
-			<div class="dryer-ops-hero-stats">
-				<div>
-					<span class="dryer-ops-stat-label">Mode</span>
-					<strong>@ModeLabel</strong>
-				</div>
-				<div>
-					<span class="dryer-ops-stat-label">Outlet Moisture</span>
-					<strong>@OutletMoisturePercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
-				</div>
-				<div>
-					<span class="dryer-ops-stat-label">Plenum</span>
-					<strong>@PlenumTempF.ToString("0.0", CultureInfo.InvariantCulture) F</strong>
-				</div>
-				<div>
-					<span class="dryer-ops-stat-label">Airflow</span>
-					<strong>@AirflowCfm.ToString("0", CultureInfo.InvariantCulture) cfm</strong>
-				</div>
+				<p class="dryer-ops-copy">Use the lower control shelf for automation, equipment start-stop, and command entry. Live process gauges and annunciators now stay on the HMI surface.</p>
 			</div>
 		</div>
 
@@ -59,12 +41,6 @@ else
 						<small>Operator runs equipment directly</small>
 					</button>
 				</div>
-				<div class="dryer-ops-inline-status">
-					<span class="dryer-ops-mini-stat">Recipe fan @StartupFanSpeedPercent.ToString("0", CultureInfo.InvariantCulture)%</span>
-					<span class="dryer-ops-mini-stat">Recipe burner @StartupBurnerFiringRatePercent.ToString("0", CultureInfo.InvariantCulture)%</span>
-					<span class="dryer-ops-mini-stat">Recipe feed @StartupFeedRateCommandLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</span>
-					<span class="dryer-ops-mini-stat">Shutdown fan @ShutdownFanSpeedPercent.ToString("0", CultureInfo.InvariantCulture)%</span>
-				</div>
 			</section>
 
 			<section class="dryer-ops-card">
@@ -85,11 +61,6 @@ else
 						<span class="dryer-ops-device-name">Feed</span>
 						<strong>@(FeedEnabled ? "Enabled" : "Stopped")</strong>
 					</button>
-				</div>
-				<div class="dryer-ops-inline-status">
-					<span class="dryer-ops-mini-stat">Wet bin @WetBinWeightLb.ToString("0", CultureInfo.InvariantCulture) lb</span>
-					<span class="dryer-ops-mini-stat">Dry bin @DryBinWeightLb.ToString("0", CultureInfo.InvariantCulture) lb</span>
-					<span class="dryer-ops-mini-stat">Hold-up @GrainHoldUpLb.ToString("0", CultureInfo.InvariantCulture) lb</span>
 				</div>
 			</section>
 
@@ -168,51 +139,6 @@ else
 								<button type="button" class="dryer-ops-preset" @onclick="() => SetNumericParameterAsync(ParamFanSpeedPercent, preset, 0.0, 100.0)">@preset.ToString("0", CultureInfo.InvariantCulture)%</button>
 							}
 						</div>
-					</div>
-				</div>
-			</section>
-
-			<section class="dryer-ops-card dryer-ops-card-wide">
-				<div class="dryer-ops-card-head">
-					<h3>Live Readback</h3>
-					<span class="dryer-ops-chip">Process</span>
-				</div>
-				<div class="dryer-ops-readback-grid">
-					<div>
-						<span class="dryer-ops-readback-label">Outlet moisture</span>
-						<strong>@OutletMoisturePercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
-					</div>
-					<div>
-						<span class="dryer-ops-readback-label">Moisture target</span>
-						<strong>@TargetOutletMoisturePercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
-					</div>
-					<div>
-						<span class="dryer-ops-readback-label">Moisture error</span>
-						<strong>@MoistureControlErrorPercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
-					</div>
-					<div>
-						<span class="dryer-ops-readback-label">Feed actual</span>
-						<strong>@FeedRateLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</strong>
-					</div>
-					<div>
-						<span class="dryer-ops-readback-label">Discharge</span>
-						<strong>@DischargeRateLbPerSec.ToString("0.0", CultureInfo.InvariantCulture) lb/s</strong>
-					</div>
-					<div>
-						<span class="dryer-ops-readback-label">Residence time</span>
-						<strong>@ResidenceTimeMinutes.ToString("0.0", CultureInfo.InvariantCulture) min</strong>
-					</div>
-					<div>
-						<span class="dryer-ops-readback-label">Burner output</span>
-						<strong>@BurnerOutputPercent.ToString("0.0", CultureInfo.InvariantCulture)%</strong>
-					</div>
-					<div>
-						<span class="dryer-ops-readback-label">Exhaust temp</span>
-						<strong>@ExhaustTempF.ToString("0.0", CultureInfo.InvariantCulture) F</strong>
-					</div>
-					<div>
-						<span class="dryer-ops-readback-label">Removal</span>
-						<strong>@MoistureRemovalRateLbPerSec.ToString("0.00", CultureInfo.InvariantCulture) lb/s</strong>
 					</div>
 				</div>
 			</section>

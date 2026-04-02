@@ -51,13 +51,13 @@
 				<a class="opsb-view-link @(IsTrainerView ? "is-active" : string.Empty)" href="@BuildViewHref(true)">Trainer View</a>
 			</div>
 			<button type="button" class="opsb-command-button opsb-command-button-primary" @onclick="OpenRunOverlay">Console Runboard</button>
+			@if (SupportsLayoutCreator)
+			{
+				<a class="opsb-command-link" href="@($"sim/{Uri.EscapeDataString(SimId)}/creator")">Open layout editor</a>
+			}
 			@if (IsTrainerView)
 			{
 				<button type="button" class="opsb-command-button" @onclick="OpenEngineeringOverlay">Maintenance Access</button>
-				@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
-				{
-					<a class="opsb-command-link" href="@($"sim/{Uri.EscapeDataString(SimId)}/creator")">Tune console layout</a>
-				}
 			}
 		</div>
 		<div class="opsb-run-meta">
@@ -121,206 +121,338 @@
 	}
 	else
 	{
-		<div class="opsb-layout">
-			<div class="opsb-main-column">
-				@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
-				{
-					<TankTransferOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
-				}
-				else if (string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
-				{
-					<GrainDryerOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
-				}
-				else if (IsHydraulicSimulation(SimId))
-				{
-					<HydraulicOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
-				}
+		@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase)
+			|| string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
+		{
+			var isTankTransfer = string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase);
+			var focusedSceneClass = isTankTransfer ? "is-tank-transfer" : "is-grain-dryer";
 
-				<section class="opsb-panel opsb-viewport-panel opsb-panel-dense">
-					<div class="opsb-panel-head">
-						<div>
-							<p class="opsb-section-kicker">Live View</p>
-							<h2>@SchematicTitle</h2>
-						</div>
-						<div class="opsb-viewport-badges">
-							<span class="opsb-badge">Embedded HMI</span>
-							<span class="opsb-badge">@CurrentViewLabel</span>
-							<span class="opsb-badge @(ActiveAlarmCount > 0 ? "is-alert" : "is-live")">@(ActiveAlarmCount > 0 ? "Respond now" : "Steady")</span>
-						</div>
-					</div>
-					<div class="opsb-viewport-frame">
-						<div class="opsb-viewport-overlay opsb-viewport-overlay-top">
+			<div class="opsb-layout opsb-layout-focus">
+				<div class="opsb-main-column opsb-main-column-focus">
+					<section class="opsb-panel opsb-viewport-panel opsb-viewport-panel-focus opsb-panel-dense">
+						<div class="opsb-panel-head opsb-panel-head-focus">
 							<div>
-								<span class="opsb-meta-label">Console</span>
-								<strong>@SimulationTitle</strong>
+								<p class="opsb-section-kicker">Primary HMI</p>
+								<h2>@SchematicTitle</h2>
 							</div>
-							<div>
-								<span class="opsb-meta-label">Operating state</span>
-								<strong class="@(ActiveAlarmCount > 0 ? "is-alert" : "is-live")">@(ActiveAlarmCount > 0 ? "Respond" : "Watching")</strong>
-							</div>
-							<div>
-								<span class="opsb-meta-label">Tick Rate</span>
-								<strong>@(_status?.StepSeconds.ToString("0.000") ?? "0.000")s</strong>
+							<div class="opsb-viewport-badges">
+								<span class="opsb-badge">Embedded HMI</span>
+								<span class="opsb-badge">@CurrentViewLabel</span>
+								<span class="opsb-badge @(ActiveAlarmCount > 0 ? "is-alert" : "is-live")">@(ActiveAlarmCount > 0 ? "Respond now" : "Steady")</span>
 							</div>
 						</div>
-						<div class="opsb-viewport-scene">
-							@if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
+						<div class="opsb-viewport-frame opsb-viewport-frame-focus">
+							<div class="opsb-viewport-scene @focusedSceneClass">
+								@if (isTankTransfer)
+								{
+									<TankTransferSchematic SimId="@SimId" Snapshot="@_uiSnapshot" Layout="@_tankTransferLayout" />
+								}
+								else
+								{
+									<GrainDryerSchematic SimId="@SimId" Snapshot="@_uiSnapshot" Layout="@_grainDryerLayout" />
+								}
+							</div>
+						</div>
+					</section>
+
+					<section class="opsb-panel opsb-panel-dense opsb-alarm-table-panel">
+						<div class="opsb-panel-head">
+							<div>
+								<p class="opsb-section-kicker">Alarm Management</p>
+								<h2>Annunciator Table</h2>
+							</div>
+						</div>
+						<div class="opsb-alarm-table-grid">
+							<section class="opsb-alarm-table-card">
+								<div class="opsb-history-head">
+									<span class="opsb-meta-label">Active Alarms</span>
+								</div>
+								@if (ActiveAlarms.Count == 0)
+								{
+									<div class="opsb-empty-inline">No active alarms. Console remains in steady operation.</div>
+								}
+								else
+								{
+									<div class="table-responsive">
+										<table class="table table-sm align-middle opsb-alarm-table">
+											<thead>
+												<tr>
+													<th>Alarm</th>
+													<th>Value</th>
+													<th>State</th>
+												</tr>
+											</thead>
+											<tbody>
+												@foreach (var alarm in ActiveAlarms)
+												{
+													<tr>
+														<td>@HumanizeKey(alarm.Key)</td>
+														<td>@alarm.Value.ToString("0.###")</td>
+														<td><span class="opsb-alarm-pill">Active</span></td>
+													</tr>
+												}
+											</tbody>
+										</table>
+									</div>
+								}
+							</section>
+
+							<section class="opsb-alarm-table-card">
+								<div class="opsb-history-head">
+									<span class="opsb-meta-label">Recent Alarm History</span>
+								</div>
+								@if (_alarmHistory.Count == 0)
+								{
+									<div class="opsb-empty-inline">No annunciated transitions captured in this shift window.</div>
+								}
+								else
+								{
+									<div class="table-responsive">
+										<table class="table table-sm align-middle opsb-alarm-table opsb-alarm-history-table">
+											<thead>
+												<tr>
+													<th>Time</th>
+													<th>Alarm</th>
+													<th>Detail</th>
+												</tr>
+											</thead>
+											<tbody>
+												@foreach (var entry in _alarmHistory)
+												{
+													<tr class="@entry.SeverityClass">
+														<td>@FormatHistoryTime(entry.Timestamp)</td>
+														<td>@entry.Title</td>
+														<td>@entry.Detail</td>
+													</tr>
+												}
+											</tbody>
+										</table>
+									</div>
+								}
+							</section>
+						</div>
+					</section>
+
+					@if (isTankTransfer)
+					{
+						<TankTransferOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+					}
+					else
+					{
+						<GrainDryerOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+					}
+
+					<section class="opsb-panel opsb-panel-dense">
+						<div class="opsb-panel-head">
+							<div>
+								<p class="opsb-section-kicker">History</p>
+								<h2>Recorder Banks</h2>
+							</div>
+						</div>
+						<div class="opsb-chart-grid">
+							<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-one" Title="@_chart1Title" SubTitle="@_chart1Unit" Stroke="var(--chart-series-1)" Points="@_pressureSeries" YFormat="@_chart1Format" />
+							<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-two" Title="@_chart2Title" SubTitle="@_chart2Unit" Stroke="var(--chart-series-2)" Points="@_positionSeries" YFormat="@_chart2Format" />
+							<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-three" Title="@_chart3Title" SubTitle="@_chart3Unit" Stroke="var(--chart-series-3)" Points="@_flowSeries" YFormat="@_chart3Format" />
+						</div>
+					</section>
+				</div>
+			</div>
+		}
+		else
+		{
+			<div class="opsb-layout">
+				<div class="opsb-main-column">
+					@if (string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
+					{
+						<GrainDryerOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+					}
+					else if (IsHydraulicSimulation(SimId))
+					{
+						<HydraulicOperatorPanel SimId="@SimId" Snapshot="@_uiSnapshot" />
+					}
+
+					<section class="opsb-panel opsb-viewport-panel opsb-panel-dense">
+						<div class="opsb-panel-head">
+							<div>
+								<p class="opsb-section-kicker">Live View</p>
+								<h2>@SchematicTitle</h2>
+							</div>
+							<div class="opsb-viewport-badges">
+								<span class="opsb-badge">Embedded HMI</span>
+								<span class="opsb-badge">@CurrentViewLabel</span>
+								<span class="opsb-badge @(ActiveAlarmCount > 0 ? "is-alert" : "is-live")">@(ActiveAlarmCount > 0 ? "Respond now" : "Steady")</span>
+							</div>
+						</div>
+						<div class="opsb-viewport-frame">
+							<div class="opsb-viewport-overlay opsb-viewport-overlay-top">
+								<div>
+									<span class="opsb-meta-label">Console</span>
+									<strong>@SimulationTitle</strong>
+								</div>
+								<div>
+									<span class="opsb-meta-label">Operating state</span>
+									<strong class="@(ActiveAlarmCount > 0 ? "is-alert" : "is-live")">@(ActiveAlarmCount > 0 ? "Respond" : "Watching")</strong>
+								</div>
+								<div>
+									<span class="opsb-meta-label">Tick Rate</span>
+									<strong>@(_status?.StepSeconds.ToString("0.000") ?? "0.000")s</strong>
+								</div>
+							</div>
+							<div class="opsb-viewport-scene">
+								@if (string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
+								{
+									<GrainDryerSchematic SimId="@SimId" Snapshot="@_uiSnapshot" Layout="@_grainDryerLayout" />
+								}
+								else if (IsHydraulicSimulation(SimId))
+								{
+									<HydraulicSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
+								}
+							</div>
+							<div class="opsb-viewport-overlay opsb-viewport-overlay-bottom">
+								@foreach (var item in ViewportOverlayMetrics)
+								{
+									<div>
+										<span class="opsb-meta-label">@item.Label</span>
+										<strong>@item.Value</strong>
+									</div>
+								}
+							</div>
+						</div>
+					</section>
+
+					<section class="opsb-panel opsb-panel-dense">
+						<div class="opsb-panel-head">
+							<div>
+								<p class="opsb-section-kicker">Signal Watch</p>
+								<h2>Instrument Bus</h2>
+							</div>
+						</div>
+						<div class="opsb-signal-grid">
+							@foreach (var key in _keySignals)
 							{
-								<TankTransferSchematic SimId="@SimId" Snapshot="@_uiSnapshot" Layout="@_tankTransferLayout" />
-							}
-							else if (string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
-							{
-								<GrainDryerSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
-							}
-							else if (IsHydraulicSimulation(SimId))
-							{
-								<HydraulicSchematic SimId="@SimId" Snapshot="@_uiSnapshot" />
+								var value = _uiSnapshot.Signals.TryGetValue(key, out var v) ? v : double.NaN;
+								<div class="opsb-signal-tile @(IsAlarmSignal(key) && value >= 0.5 ? "is-alarm" : string.Empty)">
+									<div class="opsb-signal-name">@HumanizeKey(key)</div>
+									<div class="opsb-signal-value">@value.ToString("0.###")</div>
+								</div>
 							}
 						</div>
-						<div class="opsb-viewport-overlay opsb-viewport-overlay-bottom">
-							@foreach (var item in ViewportOverlayMetrics)
+					</section>
+
+					<section class="opsb-panel opsb-panel-dense">
+						<div class="opsb-panel-head">
+							<div>
+								<p class="opsb-section-kicker">History</p>
+								<h2>Recorder Banks</h2>
+							</div>
+						</div>
+						<div class="opsb-chart-grid">
+							<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-one" Title="@_chart1Title" SubTitle="@_chart1Unit" Stroke="var(--chart-series-1)" Points="@_pressureSeries" YFormat="@_chart1Format" />
+							<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-two" Title="@_chart2Title" SubTitle="@_chart2Unit" Stroke="var(--chart-series-2)" Points="@_positionSeries" YFormat="@_chart2Format" />
+							<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-three" Title="@_chart3Title" SubTitle="@_chart3Unit" Stroke="var(--chart-series-3)" Points="@_flowSeries" YFormat="@_chart3Format" />
+						</div>
+					</section>
+				</div>
+
+				<aside class="opsb-side-column">
+					<section class="opsb-panel opsb-side-panel opsb-panel-dense">
+						<div class="opsb-panel-head">
+							<div>
+								<p class="opsb-section-kicker">System Status</p>
+								<h2>Shift Summary</h2>
+							</div>
+						</div>
+						<div class="opsb-side-metrics">
+							<div>
+								<span class="opsb-meta-label">Run State</span>
+								<strong>@RunStateLabel</strong>
+							</div>
+							<div>
+								<span class="opsb-meta-label">Connection</span>
+								<strong>@ConnectionLabel</strong>
+							</div>
+							<div>
+								<span class="opsb-meta-label">Tracked Signals</span>
+								<strong>@_sortedSignals.Length</strong>
+							</div>
+							<div>
+								<span class="opsb-meta-label">Alarm History</span>
+								<strong>@_alarmHistory.Count items</strong>
+							</div>
+						</div>
+					</section>
+
+					<section class="opsb-panel opsb-side-panel opsb-panel-dense">
+						<div class="opsb-panel-head">
+							<div>
+								<p class="opsb-section-kicker">Active Alarms</p>
+								<h2>Annunciator Board</h2>
+							</div>
+						</div>
+						@if (ActiveAlarms.Count == 0)
+						{
+							<div class="opsb-empty-inline">No active alarms. No annunciated faults. Console remains in steady operation.</div>
+						}
+						else
+						{
+							<div class="opsb-alarm-list">
+								@foreach (var alarm in ActiveAlarms)
+								{
+									<div class="opsb-alarm-item is-active">
+										<div>
+											<strong>@HumanizeKey(alarm.Key)</strong>
+											<p>Signal value @alarm.Value.ToString("0.###")</p>
+										</div>
+										<span class="opsb-alarm-pill">Active</span>
+									</div>
+								}
+							</div>
+						}
+
+						<div class="opsb-history-head">
+							<span class="opsb-meta-label">Recent Alarm History</span>
+						</div>
+						@if (_alarmHistory.Count == 0)
+						{
+							<div class="opsb-empty-inline">No annunciated transitions captured in this shift window.</div>
+						}
+						else
+						{
+							<div class="opsb-history-list">
+								@foreach (var entry in _alarmHistory)
+								{
+									<div class="opsb-history-item @entry.SeverityClass">
+										<div>
+											<strong>@entry.Title</strong>
+											<p>@entry.Detail</p>
+										</div>
+										<span>@FormatHistoryTime(entry.Timestamp)</span>
+									</div>
+								}
+							</div>
+						}
+					</section>
+
+					<section class="opsb-panel opsb-side-panel opsb-panel-dense">
+						<div class="opsb-panel-head">
+							<div>
+								<p class="opsb-section-kicker">Diagnostics</p>
+								<h2>Quick Gauges</h2>
+							</div>
+						</div>
+						<div class="opsb-fast-list">
+							@foreach (var kvp in FastReadbackSignals)
 							{
 								<div>
-									<span class="opsb-meta-label">@item.Label</span>
-									<strong>@item.Value</strong>
+									<span class="opsb-meta-label">@HumanizeKey(kvp.Key)</span>
+									<strong>@kvp.Value.ToString("0.###")</strong>
 								</div>
 							}
 						</div>
-					</div>
-				</section>
-
-				<section class="opsb-panel opsb-panel-dense">
-					<div class="opsb-panel-head">
-						<div>
-							<p class="opsb-section-kicker">Signal Watch</p>
-							<h2>Instrument Bus</h2>
-						</div>
-					</div>
-					<div class="opsb-signal-grid">
-						@foreach (var key in _keySignals)
-						{
-							var value = _uiSnapshot.Signals.TryGetValue(key, out var v) ? v : double.NaN;
-							<div class="opsb-signal-tile @(IsAlarmSignal(key) && value >= 0.5 ? "is-alarm" : string.Empty)">
-								<div class="opsb-signal-name">@HumanizeKey(key)</div>
-								<div class="opsb-signal-value">@value.ToString("0.###")</div>
-							</div>
-						}
-					</div>
-				</section>
-
-				<section class="opsb-panel opsb-panel-dense">
-					<div class="opsb-panel-head">
-						<div>
-							<p class="opsb-section-kicker">History</p>
-							<h2>Recorder Banks</h2>
-						</div>
-					</div>
-					<div class="opsb-chart-grid">
-						<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-one" Title="@_chart1Title" SubTitle="@_chart1Unit" Stroke="var(--chart-series-1)" Points="@_pressureSeries" YFormat="@_chart1Format" />
-						<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-two" Title="@_chart2Title" SubTitle="@_chart2Unit" Stroke="var(--chart-series-2)" Points="@_positionSeries" YFormat="@_chart2Format" />
-						<LineChart PanelClass="opsb-chart-panel opsb-chart-panel-three" Title="@_chart3Title" SubTitle="@_chart3Unit" Stroke="var(--chart-series-3)" Points="@_flowSeries" YFormat="@_chart3Format" />
-					</div>
-				</section>
+					</section>
+				</aside>
 			</div>
-
-			<aside class="opsb-side-column">
-				<section class="opsb-panel opsb-side-panel opsb-panel-dense">
-					<div class="opsb-panel-head">
-						<div>
-							<p class="opsb-section-kicker">System Status</p>
-							<h2>Shift Summary</h2>
-						</div>
-					</div>
-					<div class="opsb-side-metrics">
-						<div>
-							<span class="opsb-meta-label">Run State</span>
-							<strong>@RunStateLabel</strong>
-						</div>
-						<div>
-							<span class="opsb-meta-label">Connection</span>
-							<strong>@ConnectionLabel</strong>
-						</div>
-						<div>
-							<span class="opsb-meta-label">Tracked Signals</span>
-							<strong>@_sortedSignals.Length</strong>
-						</div>
-						<div>
-							<span class="opsb-meta-label">Alarm History</span>
-							<strong>@_alarmHistory.Count items</strong>
-						</div>
-					</div>
-				</section>
-
-				<section class="opsb-panel opsb-side-panel opsb-panel-dense">
-					<div class="opsb-panel-head">
-						<div>
-							<p class="opsb-section-kicker">Active Alarms</p>
-							<h2>Annunciator Board</h2>
-						</div>
-					</div>
-					@if (ActiveAlarms.Count == 0)
-					{
-						<div class="opsb-empty-inline">No active alarms. No annunciated faults. Console remains in steady operation.</div>
-					}
-					else
-					{
-						<div class="opsb-alarm-list">
-							@foreach (var alarm in ActiveAlarms)
-							{
-								<div class="opsb-alarm-item is-active">
-									<div>
-										<strong>@HumanizeKey(alarm.Key)</strong>
-										<p>Signal value @alarm.Value.ToString("0.###")</p>
-									</div>
-									<span class="opsb-alarm-pill">Active</span>
-								</div>
-							}
-						</div>
-					}
-
-					<div class="opsb-history-head">
-						<span class="opsb-meta-label">Recent Alarm History</span>
-					</div>
-					@if (_alarmHistory.Count == 0)
-					{
-						<div class="opsb-empty-inline">No annunciated transitions captured in this shift window.</div>
-					}
-					else
-					{
-						<div class="opsb-history-list">
-							@foreach (var entry in _alarmHistory)
-							{
-								<div class="opsb-history-item @entry.SeverityClass">
-									<div>
-										<strong>@entry.Title</strong>
-										<p>@entry.Detail</p>
-									</div>
-									<span>@FormatHistoryTime(entry.Timestamp)</span>
-								</div>
-							}
-						</div>
-					}
-				</section>
-
-				<section class="opsb-panel opsb-side-panel opsb-panel-dense">
-					<div class="opsb-panel-head">
-						<div>
-							<p class="opsb-section-kicker">Diagnostics</p>
-							<h2>Quick Gauges</h2>
-						</div>
-					</div>
-					<div class="opsb-fast-list">
-						@foreach (var kvp in FastReadbackSignals)
-						{
-							<div>
-								<span class="opsb-meta-label">@HumanizeKey(kvp.Key)</span>
-								<strong>@kvp.Value.ToString("0.###")</strong>
-							</div>
-						}
-					</div>
-				</section>
-			</aside>
-		</div>
+		}
 
 		<section class="opsb-panel opsb-diagnostics-panel opsb-panel-dense">
 			<div class="opsb-panel-head">
@@ -504,6 +636,7 @@
 	private readonly Dictionary<string, double> _lastParameterValues = new(StringComparer.OrdinalIgnoreCase);
 	private readonly Dictionary<string, double> _lastSignalValues = new(StringComparer.OrdinalIgnoreCase);
 	private TankTransferSchematicLayout _tankTransferLayout = TankTransferSchematicLayout.Default;
+	private GrainDryerSchematicLayout _grainDryerLayout = GrainDryerSchematicLayout.Default;
 	private string? _error;
 	private CancellationTokenSource? _cts;
 	private Task? _pollTask;
@@ -543,6 +676,8 @@
 		: string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase)
 			? "Dryer Schematic"
 			: "Hydraulic Schematic";
+	private bool SupportsLayoutCreator => string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase);
 
 	private string ConnectionLabel => Hub.IsConnected ? "Connected" : "Disconnected";
 	private string RunStateLabel => (_status?.IsPaused ?? true) ? "Paused" : "Running";
@@ -606,7 +741,21 @@
 		_lastRenderedSnapshotSeq = -1;
 
 		ConfigureViewForSim(SimId);
-		_tankTransferLayout = await LayoutStore.GetTankTransferLayoutAsync(SimId, _cts.Token);
+		if (string.Equals(SimId, "tank-transfer", StringComparison.OrdinalIgnoreCase))
+		{
+			_tankTransferLayout = await LayoutStore.GetTankTransferLayoutAsync(SimId, _cts.Token);
+			_grainDryerLayout = GrainDryerSchematicLayout.Default;
+		}
+		else if (string.Equals(SimId, "grain-dryer", StringComparison.OrdinalIgnoreCase))
+		{
+			_grainDryerLayout = await LayoutStore.GetGrainDryerLayoutAsync(SimId, _cts.Token);
+			_tankTransferLayout = TankTransferSchematicLayout.Default;
+		}
+		else
+		{
+			_tankTransferLayout = TankTransferSchematicLayout.Default;
+			_grainDryerLayout = GrainDryerSchematicLayout.Default;
+		}
 
 		if (ViewCache.TryGet(SimId, out var state))
 		{
