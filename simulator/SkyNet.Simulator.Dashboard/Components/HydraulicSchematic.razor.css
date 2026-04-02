@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════════
-   Grain Dryer Schematic — Industrial SCADA / WonderWare Style
+   Hydraulic Schematic — Industrial SCADA / WonderWare Style
    ═══════════════════════════════════════════════════════════ */
 
-.grain-hmi-shell {
+.hydraulic-hmi-shell {
     display: grid;
     gap: 0.75rem;
     padding: 0.75rem;
@@ -14,7 +14,7 @@
     font-family: "Segoe UI", Tahoma, sans-serif;
 }
 
-.grain-hmi-shell.scada-industrial {
+.hydraulic-hmi-shell.scada-industrial {
     padding: 0;
     border-radius: 4px;
     background: #c0c0c0;
@@ -22,12 +22,12 @@
     border: 2px solid #888;
 }
 
-.grain-hmi-shell-empty {
+.hydraulic-hmi-shell-empty {
     min-height: 240px;
     place-items: center;
 }
 
-.grain-hmi-empty {
+.hydraulic-hmi-empty {
     padding: 1rem 1.2rem;
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.34);
@@ -48,21 +48,21 @@
 
 /* ─── Lower panels ─── */
 
-.grain-hmi-lower-grid {
+.hydraulic-hmi-lower-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.75rem;
     padding: 0.75rem;
 }
 
-.grain-hmi-panel {
+.hydraulic-hmi-panel {
     padding: 0.8rem;
     border: 1px solid #999;
     border-radius: 3px;
     background: #e8e8e8;
 }
 
-.grain-hmi-panel-head {
+.hydraulic-hmi-panel-head {
     display: flex;
     justify-content: space-between;
     gap: 0.5rem;
@@ -70,12 +70,12 @@
     margin-bottom: 0.75rem;
 }
 
-.grain-hmi-panel-head h4 {
+.hydraulic-hmi-panel-head h4 {
     margin: 0;
     color: #000;
 }
 
-.grain-hmi-tag {
+.hydraulic-hmi-tag {
     padding: 0.28rem 0.5rem;
     border: 1px solid #999;
     border-radius: 4px;
@@ -87,7 +87,7 @@
     text-transform: uppercase;
 }
 
-.grain-hmi-label {
+.hydraulic-hmi-label {
     display: block;
     margin: 0 0 0.22rem;
     color: #444;
@@ -97,13 +97,12 @@
     text-transform: uppercase;
 }
 
-.grain-hmi-display-stack,
-.grain-hmi-lamp-bank {
+.hydraulic-hmi-display-stack {
     display: grid;
     gap: 0.55rem;
 }
 
-.grain-hmi-display-card {
+.hydraulic-hmi-display-card {
     padding: 0.72rem 0.8rem;
     border: 1px solid #888;
     border-radius: 2px;
@@ -112,62 +111,16 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.grain-hmi-display-card strong {
+.hydraulic-hmi-display-card strong {
     display: block;
     margin-top: 0.18rem;
     font-size: 1rem;
     color: #fff;
-}
-
-.grain-hmi-display-card.is-alert {
-    border-color: #c62828;
-    background: #5a2020;
-}
-
-.grain-hmi-display-card.is-alert strong {
-    color: #ffd3cf;
-}
-
-.grain-hmi-lamp-row {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.75rem;
-    align-items: center;
-    padding: 0.55rem 0.8rem;
-    border: 1px solid #888;
-    border-radius: 2px;
-    background: #505860;
-    color: #eef3f6;
-}
-
-.grain-hmi-lamp-row strong {
-    display: block;
-    margin-top: 0.18rem;
-    font-size: 1rem;
-    color: #fff;
-}
-
-.grain-hmi-lamp {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 1px solid rgba(0, 0, 0, 0.5);
-    background: radial-gradient(circle at 35% 35%, #cfd7dc, #5c6870 72%);
-}
-
-.grain-hmi-lamp.is-live {
-    background: radial-gradient(circle at 35% 35%, #d4ffe1, #57dd60 52%, #17731e 100%);
-    box-shadow: 0 0 14px rgba(84, 226, 110, 0.5);
-}
-
-.grain-hmi-lamp.is-alert {
-    background: radial-gradient(circle at 35% 35%, #ffd1d1, #cf4038 60%, #7d1313 100%);
-    box-shadow: 0 0 14px rgba(207, 64, 56, 0.5);
 }
 
 /* ─── Footer ─── */
 
-.grain-hmi-footer {
+.hydraulic-hmi-footer {
     display: flex;
     justify-content: start;
     gap: 0.7rem;
@@ -182,7 +135,7 @@
     font-weight: 700;
 }
 
-.grain-hmi-console-pill {
+.hydraulic-hmi-console-pill {
     min-width: 140px;
     padding: 0.7rem 0.8rem;
     border: 1px solid #888;
@@ -191,27 +144,23 @@
     color: #eef3f6;
 }
 
-.grain-hmi-console-pill strong {
+.hydraulic-hmi-console-pill strong {
     display: block;
     margin-top: 0.18rem;
     font-size: 1rem;
     color: #fff;
 }
 
-.grain-hmi-console-pill.is-alert strong {
-    color: #ffd3cf;
-}
-
 /* ─── Responsive ─── */
 
 @media (max-width: 1180px) {
-    .grain-hmi-lower-grid {
+    .hydraulic-hmi-lower-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 720px) {
-    .grain-hmi-lower-grid {
+    .hydraulic-hmi-lower-grid {
         grid-template-columns: 1fr;
     }
 }
